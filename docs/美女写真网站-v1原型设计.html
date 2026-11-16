@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sylvie Gallery · 美女在线写真 v1 原型</title>
+<style>
+:root{
+  --accent:#8f7bf0;
+  --accent-2:#6aa8f0;
+  --lavender:#f1f2f8;
+  --bg:#f7f8fc;
+  --card:#ffffff;
+  --text:#33384a;
+  --text-light:#8b91a5;
+  --line:#ececf4;
+  --radius:12px;
+  --shadow:0 4px 18px rgba(90,95,140,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px;
+}
+a{text-decoration:none;color:inherit}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input{font-family:inherit;outline:none}
+
+/* ================= 视图 ================= */
+.view{display:none;animation:fadein .25s}
+.view.active{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ================= 头部：双行导航 ================= */
+.header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.header-top{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:24px;padding:14px 24px 10px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:20px;white-space:nowrap;cursor:pointer;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.logo svg{width:28px;height:28px}
+.search{flex:1;max-width:520px;display:flex;align-items:center;gap:8px;
+  background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:9px 16px;transition:border .2s}
+.search:focus-within{border-color:var(--accent)}
+.search input{border:none;background:none;flex:1;font-size:14px;color:var(--text)}
+.search input::placeholder{color:#b6bac9}
+.hot-words{display:flex;gap:14px;font-size:12px;color:var(--text-light);white-space:nowrap}
+.hot-words span{cursor:pointer}
+.hot-words span:hover{color:var(--accent)}
+.header-right{display:flex;align-items:center;gap:12px;margin-left:auto}
+.btn-vip{padding:8px 18px;border-radius:10px;font-size:14px;font-weight:600;color:#fff;white-space:nowrap;
+  background:linear-gradient(90deg,#f0b95c,#e8933f);box-shadow:0 3px 10px rgba(232,147,63,.3)}
+.btn-login{padding:8px 20px;border-radius:10px;font-size:14px;font-weight:600;white-space:nowrap;
+  border:1.5px solid var(--line);color:var(--accent)}
+.avatar-chip{display:none;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer}
+.avatar-chip .ava{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:13px;background:linear-gradient(135deg,var(--accent),var(--accent-2))}
+.logged-in .avatar-chip{display:flex}
+.logged-in .btn-login{display:none}
+.hamburger{display:none;font-size:20px;color:var(--accent)}
+
+/* 二级导航 */
+.header-nav{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:6px;padding:0 24px;overflow-x:auto;scrollbar-width:none}
+.header-nav::-webkit-scrollbar{display:none}
+.header-nav a{padding:10px 16px;font-size:14px;color:var(--text-light);white-space:nowrap;border-bottom:2px solid transparent;cursor:pointer}
+.header-nav a.active{color:var(--accent);font-weight:700;border-bottom-color:var(--accent)}
+.header-nav .sep{width:1px;height:16px;background:var(--line);margin:0 8px;flex-shrink:0}
+.header-nav a.cat{font-size:13px;padding:10px 12px}
+
+/* ================= 布局：主栏 + 侧栏 ================= */
+.wrap{max-width:1280px;margin:0 auto;padding:22px 24px;display:grid;grid-template-columns:1fr 292px;gap:24px;align-items:start}
+.main-col{min-width:0}
+.sidebar{position:sticky;top:120px;display:flex;flex-direction:column;gap:18px}
+
+/* 面板通用 */
+.panel{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:18px}
+.panel h3{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.panel h3::before{content:"";width:4px;height:16px;border-radius:2px;background:linear-gradient(180deg,var(--accent),var(--accent-2))}
+
+/* ================= 排行榜 ================= */
+.rank-tabs{display:flex;gap:6px;margin-bottom:12px}
+.rank-tabs button{padding:5px 14px;border-radius:999px;font-size:12px;background:var(--bg);color:var(--text-light)}
+.rank-tabs button.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff}
+.rank-item{display:flex;align-items:center;gap:10px;padding:7px 0;cursor:pointer;border-radius:8px}
+.rank-item:hover{background:var(--bg)}
+.rank-num{width:20px;text-align:center;font-weight:800;font-size:14px;color:#c3c6d4;font-style:italic;flex-shrink:0}
+.rank-item:nth-child(1) .rank-num,.rank-item:nth-child(2) .rank-num,.rank-item:nth-child(3) .rank-num{color:#f0a03f}
+.rank-thumb{width:44px;height:56px;border-radius:8px;overflow:hidden;flex-shrink:0}
+.rank-thumb .art{width:100%;height:100%}
+.rank-info{min-width:0;flex:1}
+.rank-info p{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank-info span{font-size:11px;color:var(--text-light)}
+/* 排行榜序号修正：nth-child 需要跳过 tabs，改为显式 class */
+.rank-item .n1,.rank-item .n2,.rank-item .n3{color:#f0a03f}
+
+/* 标签云 */
+.tagcloud{display:flex;flex-wrap:wrap;gap:8px}
+.tagcloud a{font-size:12px;color:var(--text-light);background:var(--bg);padding:5px 12px;border-radius:999px;cursor:pointer}
+.tagcloud a:hover{color:var(--accent);background:rgba(143,123,240,.08)}
+
+/* 公告 */
+.notice-list li{list-style:none;font-size:13px;color:var(--text-light);padding:6px 0;display:flex;gap:8px;cursor:pointer}
+.notice-list li:hover{color:var(--accent)}
+.notice-list li::before{content:"·";font-weight:800}
+
+/* ================= 首页横幅（紧凑版） ================= */
+.hero{border-radius:16px;overflow:hidden;position:relative;
+  background:linear-gradient(120deg,#f0f1fa 0%,#f7f5ff 50%,#ecf4fd 100%);
+  padding:38px 6%;text-align:center;margin-bottom:26px}
+.hero h1{font-size:clamp(20px,3vw,30px);font-weight:800}
+.hero h1 .grad{background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{margin-top:10px;color:var(--text-light);font-size:13px}
+.hero .cta{display:inline-block;margin-top:18px;padding:10px 34px;border-radius:999px;color:#fff;font-size:14px;font-weight:600;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));box-shadow:0 6px 18px rgba(143,123,240,.3)}
+.petal{position:absolute;top:-20px;border-radius:60% 40% 60% 40%;opacity:.7;animation:fall linear infinite}
+@keyframes fall{0%{transform:translateY(-30px) rotate(0)}100%{transform:translateY(45vh) rotate(360deg)}}
+
+/* ================= 区块标题 ================= */
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 14px}
+.sec-head h2{font-size:18px;font-weight:800;display:flex;align-items:center;gap:9px}
+.sec-head h2::before{content:"";width:5px;height:18px;border-radius:3px;background:linear-gradient(180deg,var(--accent),var(--accent-2))}
+.sec-head a{font-size:13px;color:var(--text-light);cursor:pointer}
+.sec-head a:hover{color:var(--accent)}
+.section{margin-bottom:30px}
+
+/* ================= 瀑布流 ================= */
+.wf{column-count:3;column-gap:14px}
+.wf.c4{column-count:4}
+.wf-item{break-inside:avoid;margin-bottom:14px}
+
+/* 卡片 */
+.card{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:transform .2s,box-shadow .2s;animation:fadein .3s}
+.card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(90,95,140,.14)}
+.thumb{position:relative;overflow:hidden;background:var(--lavender)}
+.thumb.s1{height:300px}.thumb.s2{height:340px}.thumb.s3{height:380px}.thumb.s4{height:420px}
+.thumb .art{width:100%;height:100%;transition:transform .4s}
+.card:hover .art{transform:scale(1.05)}
+/* 底部渐变遮罩 + 标题 */
+.thumb .shade{position:absolute;inset:auto 0 0 0;padding:30px 12px 10px;
+  background:linear-gradient(180deg,transparent,rgba(20,22,40,.62));pointer-events:none}
+.thumb .shade b{display:block;color:#fff;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{position:absolute;top:10px;left:10px;padding:3px 10px;border-radius:6px;font-size:11px;color:#fff;
+  background:linear-gradient(90deg,#f0b95c,#e8933f);font-weight:600}
+.badge.free{background:rgba(60,190,130,.9)}
+.count{position:absolute;top:10px;right:10px;font-size:11px;color:#fff;background:rgba(20,22,40,.45);padding:3px 8px;border-radius:6px;backdrop-filter:blur(4px)}
+.card-foot{display:flex;align-items:center;gap:10px;padding:9px 12px;font-size:12px;color:var(--text-light)}
+.card-foot .tag{color:var(--accent);background:rgba(143,123,240,.09);padding:1px 8px;border-radius:5px;font-size:11px}
+.card-foot .sp{flex:1}
+.card-foot .fav{cursor:pointer;font-size:14px;line-height:1}
+.card-foot .fav.on{color:#f0a03f}
+
+/* ================= 发现页工具栏 ================= */
+.toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.toolbar .search{max-width:340px;flex:1;min-width:200px}
+.sort{display:flex;gap:6px}
+.sort button{padding:7px 15px;border-radius:999px;font-size:13px;color:var(--text-light);background:#fff;border:1px solid var(--line)}
+.sort button.active{color:#fff;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-color:transparent;font-weight:600}
+.result-count{font-size:12px;color:var(--text-light);margin-left:auto}
+.chips{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;padding:7px 18px;border-radius:999px;font-size:13px;background:#fff;border:1px solid var(--line);color:var(--text-light);transition:all .2s}
+.chip.active,.chip:hover{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border-color:transparent}
+
+/* 加载更多 / 空状态 */
+.load-more{display:block;margin:22px auto 0;padding:11px 42px;border-radius:999px;font-size:14px;
+  color:var(--accent);border:1.5px solid var(--line);background:#fff}
+.load-more:hover{background:var(--lavender)}
+.load-more:disabled{color:var(--text-light);border-color:transparent;background:none;cursor:default}
+.empty{text-align:center;padding:60px 0;color:var(--text-light)}
+.empty .ico{font-size:40px;margin-bottom:12px}
+
+/* ================= 会员页 ================= */
+.vip-hero{border-radius:16px;padding:36px 6%;color:#fff;text-align:center;position:relative;overflow:hidden;
+  background:linear-gradient(110deg,#9a8cf5 0%,#7ba6f2 55%,#8ec5fc 100%);box-shadow:0 10px 28px rgba(123,166,242,.25);margin-bottom:24px}
+.vip-hero h2{font-size:22px;font-weight:800}
+.vip-hero p{margin-top:8px;opacity:.9;font-size:13px}
+.price-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:760px;margin:24px auto 0}
+.price-card{background:#fff;border-radius:14px;padding:22px 18px;text-align:center;cursor:pointer;position:relative;
+  border:2px solid transparent;box-shadow:var(--shadow);transition:transform .2s}
+.price-card:hover{transform:translateY(-3px)}
+.price-card .pn{font-size:13px;color:var(--text-light)}
+.price-card .pp{font-size:30px;font-weight:800;margin:8px 0 2px}
+.price-card .pp small{font-size:13px;font-weight:400;color:var(--text-light)}
+.price-card .pm{font-size:12px;color:var(--text-light)}
+.price-card.best{border-color:var(--accent)}
+.price-card.best .pn{color:var(--accent);font-weight:700}
+.price-card .ribbon{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:11px;color:#fff;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:999px;padding:2px 12px}
+.rights{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-top:22px}
+.right-item{background:#fff;border-radius:12px;padding:14px 16px;font-size:13px;box-shadow:var(--shadow)}
+.right-item b{color:var(--accent);margin-right:8px}
+
+/* ================= 个人中心 ================= */
+.profile-head{display:flex;align-items:center;gap:18px;background:#fff;border-radius:14px;padding:24px 26px;box-shadow:var(--shadow);flex-wrap:wrap}
+.profile-head .big-ava{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:24px;background:linear-gradient(135deg,var(--accent),var(--accent-2));flex-shrink:0}
+.profile-head h3{font-size:19px}
+.profile-head .sub{font-size:13px;color:var(--text-light);margin-top:4px}
+.vip-tag{display:inline-block;margin-left:8px;padding:2px 10px;border-radius:999px;font-size:11px;color:#b0791f;background:#ffedbd}
+.stat-row{display:flex;gap:12px;margin-left:auto}
+.stat{text-align:center;min-width:64px;background:var(--bg);border-radius:10px;padding:8px 14px}
+.stat b{font-size:18px;display:block}
+.stat span{font-size:11px;color:var(--text-light)}
+.ptabs{display:flex;gap:8px;margin:20px 0 14px}
+.ptabs button{padding:9px 22px;border-radius:999px;font-size:13px;background:#fff;border:1px solid var(--line);color:var(--text-light)}
+.ptabs button.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border-color:transparent;font-weight:600}
+
+/* ================= 弹窗 ================= */
+.modal{position:fixed;inset:0;z-index:100;display:none;background:rgba(30,33,50,.5);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px}
+.modal.open{display:flex}
+.modal-box{background:#fff;border-radius:16px;width:100%;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;animation:pop .22s}
+@keyframes pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-head{display:flex;align-items:center;gap:14px;padding:15px 22px;border-bottom:1px solid var(--line)}
+.modal-head h3{flex:1;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.close{font-size:19px;color:var(--text-light);padding:4px 8px}
+.close:hover{color:var(--accent)}
+
+/* ================= 详情页（无限滚动阅读器） ================= */
+.d-top{position:sticky;top:104px;z-index:40;display:flex;align-items:center;gap:12px;
+  background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border:1px solid var(--line);
+  border-radius:12px;padding:10px 16px;margin-bottom:16px;box-shadow:var(--shadow)}
+.back-btn{padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;color:var(--accent);
+  border:1.5px solid var(--line);white-space:nowrap}
+.back-btn:hover{background:var(--lavender)}
+.d-title{flex:1;font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.d-count{font-size:13px;color:var(--text-light);white-space:nowrap;font-variant-numeric:tabular-nums}
+.icon-act{width:36px;height:36px;border-radius:10px;background:var(--bg);border:1px solid var(--line);font-size:15px;flex-shrink:0}
+.icon-act.on{background:rgba(143,123,240,.12);border-color:transparent;color:var(--accent)}
+.d-wrap{display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start}
+.d-images{display:flex;flex-direction:column;gap:14px;min-width:0}
+.d-img{border-radius:12px;overflow:hidden;height:78vh;position:relative;box-shadow:var(--shadow);animation:fadein .3s}
+.d-img .art{width:100%;height:100%}
+.d-img .idx{position:absolute;bottom:12px;right:14px;font-size:12px;color:#fff;background:rgba(20,22,40,.45);padding:3px 10px;border-radius:6px;backdrop-filter:blur(4px)}
+.d-end{margin-top:10px}
+.d-end .end-tip{text-align:center;color:var(--text-light);font-size:13px;margin:18px 0 16px;letter-spacing:2px}
+.related-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.mini-card{cursor:pointer;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--shadow);transition:transform .2s}
+.mini-card:hover{transform:translateY(-3px)}
+.mini-card .rthumb{height:150px;position:relative}
+.mini-card .rthumb .art{width:100%;height:100%}
+.mini-card .rthumb .rtag{position:absolute;top:6px;left:6px;font-size:10px;color:#fff;background:rgba(20,22,40,.45);padding:2px 7px;border-radius:5px}
+.mini-card p{font-size:12px;padding:8px 10px 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.next-btn{display:block;margin:20px auto 6px;padding:12px 42px;border-radius:999px;color:#fff;font-size:14px;font-weight:600;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));box-shadow:0 6px 18px rgba(143,123,240,.3)}
+.d-side{position:sticky;top:184px}
+.d-side h3{margin:12px 0 2px;font-size:17px}
+.desc{font-size:13px;line-height:1.8;color:var(--text-light)}
+.tagline{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.tagline span{font-size:12px;color:var(--accent);background:rgba(143,123,240,.08);padding:3px 10px;border-radius:6px;cursor:pointer}
+.tagline span:hover{background:rgba(143,123,240,.16)}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.act{flex:1;min-width:90px;padding:11px 0;border-radius:10px;font-size:14px;font-weight:600;text-align:center;transition:all .2s}
+.act.ghost{border:1.5px solid var(--line);color:var(--accent)}
+.act.ghost:hover{background:var(--lavender)}
+.act.ghost.on{background:rgba(143,123,240,.1);border-color:transparent}
+.act.main{color:#fff;background:linear-gradient(90deg,var(--accent),var(--accent-2));box-shadow:0 4px 14px rgba(143,123,240,.3)}
+.act.dl{color:#fff;background:linear-gradient(90deg,#f0b95c,#e8933f);box-shadow:0 4px 14px rgba(232,147,63,.3)}
+.d-side .actions{margin-top:16px}
+.act.dl{width:100%}
+.vip-hint{font-size:12px;color:var(--text-light);text-align:center;margin-top:10px}
+.d-mob-acts{display:none;position:fixed;bottom:0;left:0;right:0;z-index:65;background:rgba(255,255,255,.96);
+  backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+.d-mob-acts .act{padding:12px 0}
+/* 悬浮操作栏（桌面端阅读器右侧） */
+.rail{position:fixed;right:18px;top:50%;transform:translateY(-50%);z-index:45;display:none;flex-direction:column;gap:10px}
+.rail button{width:46px;height:46px;border-radius:14px;background:#fff;box-shadow:var(--shadow);font-size:18px;color:var(--text)}
+.rail button:hover{color:var(--accent)}
+.rail button.on{color:var(--accent);background:rgba(143,123,240,.1)}
+body.in-detail .rail{display:flex}
+body.in-detail .tabbar{display:none!important}
+body.in-detail .wrap,body.in-detail .footer{display:none}
+.badge-lg{align-self:flex-start;padding:4px 12px;border-radius:8px;font-size:12px;color:#fff;font-weight:600;
+  background:linear-gradient(90deg,#f0b95c,#e8933f)}
+.badge-lg.free{background:#3ebe82}
+.meta-row{display:flex;gap:16px;margin:12px 0;color:var(--text-light);font-size:13px;flex-wrap:wrap}
+
+/* 登录 / 支付弹窗 */
+#modalLogin .modal-box{max-width:380px}
+.login-body{padding:26px 28px 24px}
+.login-body p{font-size:13px;color:var(--text-light);margin-bottom:18px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:13px;color:var(--text-light);margin-bottom:6px}
+.field input{width:100%;padding:11px 15px;border-radius:10px;border:1.5px solid var(--line);font-size:14px;background:var(--bg)}
+.field input:focus{border-color:var(--accent)}
+.btn-block{width:100%;padding:12px 0;border-radius:10px;color:#fff;font-size:15px;font-weight:600;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));margin-top:8px}
+.login-tip{text-align:center;font-size:12px;color:var(--text-light);margin-top:14px}
+#modalPay .modal-box{max-width:400px}
+.pay-body{padding:24px 26px}
+.pay-plan{text-align:center;background:var(--lavender);border-radius:12px;padding:16px;margin-bottom:18px}
+.pay-plan b{font-size:26px;color:var(--accent)}
+.pay-plan p{font-size:13px;color:var(--text-light);margin-top:4px}
+.pay-methods{display:flex;flex-direction:column;gap:10px}
+.pay-m{display:flex;align-items:center;gap:12px;padding:13px 15px;border-radius:12px;border:1.5px solid var(--line);font-size:14px;cursor:pointer}
+.pay-m:hover{border-color:var(--accent)}
+.pay-m .ico{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff}
+.pay-m .ico.wx{background:#3fbf62}.pay-m .ico.zfb{background:#3a8ef0}
+.pay-m .radio{margin-left:auto;width:17px;height:17px;border-radius:50%;border:2px solid #d8daea}
+.pay-m.sel .radio{border-color:var(--accent);background:radial-gradient(circle,var(--accent) 40%,#fff 45%)}
+
+/* ================= Toast / 返回顶部 ================= */
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-12px);z-index:200;
+  background:rgba(40,44,66,.92);color:#fff;padding:10px 22px;border-radius:999px;font-size:14px;
+  opacity:0;pointer-events:none;transition:all .3s;max-width:86vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.totop{position:fixed;right:24px;bottom:96px;z-index:60;width:42px;height:42px;border-radius:50%;
+  background:#fff;color:var(--accent);box-shadow:var(--shadow);font-size:17px;opacity:0;pointer-events:none;transition:opacity .25s}
+.totop.show{opacity:1;pointer-events:auto}
+
+/* ================= 抽屉（移动端） ================= */
+.mask{position:fixed;inset:0;z-index:80;background:rgba(30,33,50,.4);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .25s}
+.mask.show{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;z-index:90;width:74%;max-width:300px;background:#fff;
+  padding:24px 20px;transform:translateX(100%);transition:transform .28s;display:flex;flex-direction:column;gap:4px}
+.drawer.show{transform:none}
+.drawer a{padding:13px 12px;border-radius:10px;font-size:15px;cursor:pointer}
+.drawer a.active{background:var(--lavender);color:var(--accent);font-weight:700}
+.drawer .drawer-foot{margin-top:auto;color:var(--text-light);font-size:12px;line-height:1.9}
+
+/* ================= 占位插画 ================= */
+.art{
+  background:
+    radial-gradient(circle at 30% 25%,rgba(255,255,255,.65) 0 14%,transparent 15%),
+    radial-gradient(circle at 70% 22%,rgba(255,255,255,.5) 0 10%,transparent 11%),
+    radial-gradient(ellipse 26% 20% at 50% 68%,rgba(60,66,90,.20) 0 60%,transparent 61%),
+    radial-gradient(ellipse 34% 30% at 50% 40%,rgba(60,66,90,.12) 0 60%,transparent 61%),
+    linear-gradient(160deg,#e7ebf8,#ece6fa)}
+.art.v2{background:
+    radial-gradient(circle at 32% 24%,rgba(255,255,255,.6) 0 15%,transparent 16%),
+    radial-gradient(ellipse 26% 20% at 50% 70%,rgba(60,66,90,.18) 0 60%,transparent 61%),
+    linear-gradient(160deg,#e0e9f8,#ece7fb)}
+.art.v3{background:
+    radial-gradient(circle at 68% 26%,rgba(255,255,255,.6) 0 13%,transparent 14%),
+    radial-gradient(ellipse 24% 18% at 50% 66%,rgba(60,66,90,.18) 0 60%,transparent 61%),
+    linear-gradient(160deg,#f2ecdf,#e7ebf8)}
+.art.v4{background:
+    radial-gradient(circle at 40% 22%,rgba(255,255,255,.65) 0 12%,transparent 13%),
+    radial-gradient(ellipse 28% 20% at 50% 68%,rgba(60,66,90,.18) 0 60%,transparent 61%),
+    linear-gradient(160deg,#e2f0ea,#e0e9f8)}
+
+/* ================= 页脚 ================= */
+.footer{margin-top:40px;padding:30px 24px 90px;background:#fff;border-top:1px solid var(--line);text-align:center;color:var(--text-light);font-size:12px;line-height:2}
+.footer .links{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-bottom:6px}
+.footer .links a{cursor:pointer}
+.footer .links a:hover{color:var(--accent)}
+
+/* ================= 移动端底部导航 ================= */
+.tabbar{position:fixed;bottom:0;left:0;right:0;z-index:60;display:none;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);
+  padding:7px 0 max(7px,env(safe-area-inset-bottom))}
+.tabbar .tabs{display:flex}
+.tabbar a{flex:1;text-align:center;font-size:11px;color:var(--text-light);cursor:pointer}
+.tabbar a svg{width:23px;height:23px;margin:0 auto 2px;display:block}
+.tabbar a.active{color:var(--accent);font-weight:600}
+
+/* ================= 响应式 ================= */
+@media (max-width:1100px){
+  .wrap{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .wf.c4{column-count:3}
+}
+@media (max-width:860px){
+  .header-top{gap:12px;padding:12px 16px 8px}
+  .search,.hot-words,.btn-login,.avatar-chip .name{display:none}
+  .hamburger{display:block}
+  .header-right{margin-left:auto}
+  .header-nav a{padding:9px 12px}
+  .wrap{padding:16px 12px}
+  .hero{padding:30px 6%}
+  .wf,.wf.c4{column-count:2;column-gap:10px}
+  .wf-item{margin-bottom:10px}
+  .thumb.s1{height:210px}.thumb.s2{height:240px}.thumb.s3{height:270px}.thumb.s4{height:300px}
+  .d-top{top:64px}
+  .d-wrap{grid-template-columns:1fr}
+  .d-side{display:none}
+  .d-img{height:56vh}
+  .d-mob-acts{display:flex}
+  .rail{display:none!important}
+  .price-row{grid-template-columns:1fr;gap:12px}
+  .tabbar{display:block}
+  .stat-row{margin:12px 0 0;width:100%;justify-content:space-around}
+  .profile-head{flex-wrap:wrap}
+  .totop{right:14px;bottom:110px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 头部 ===== -->
+<header class="header">
+  <div class="header-top">
+    <a class="logo" data-go="home">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 21s-7.5-4.7-10-9.3C.6 8 2.6 4.5 6 4.5c2.2 0 3.8 1.2 6 3.6 2.2-2.4 3.8-3.6 6-3.6 3.4 0 5.4 3.5 4 7.2C19.5 16.3 12 21 12 21z" fill="url(#g1)"/><defs><linearGradient id="g1" x1="0" y1="0" x2="24" y2="24"><stop stop-color="#8f7bf0"/><stop offset="1" stop-color="#6aa8f0"/></linearGradient></defs></svg>
+      Sylvie Gallery
+    </a>
+    <div class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b91a5" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="navSearch" placeholder="搜索图集 / 标签 / 模特…">
+    </div>
+    <div class="hot-words">
+      <span onclick="hotWord('樱花')">樱花</span>
+      <span onclick="hotWord('汉服')">汉服</span>
+      <span onclick="hotWord('JK')">JK</span>
+      <span onclick="hotWord('浴衣')">浴衣</span>
+    </div>
+    <div class="header-right">
+      <button class="btn-login" onclick="openLogin()">登录 / 注册</button>
+      <div class="avatar-chip" onclick="go('profile')"><span class="ava" id="avaLetter">雪</span><span class="name" id="avaName">小雪</span></div>
+      <button class="btn-vip" data-go="vip">开通 VIP</button>
+      <button class="hamburger" onclick="toggleDrawer(true)">☰</button>
+    </div>
+  </div>
+  <nav class="header-nav">
+    <a data-go="home" class="active">首页</a>
+    <a data-go="discover">发现</a>
+    <a data-go="vip">VIP 会员</a>
+    <a data-go="profile">个人中心</a>
+    <span class="sep"></span>
+    <a class="cat" onclick="pickTag('日系清新')">日系清新</a>
+    <a class="cat" onclick="pickTag('古风汉服')">古风汉服</a>
+    <a class="cat" onclick="pickTag('JK 制服')">JK 制服</a>
+    <a class="cat" onclick="pickTag('洛丽塔')">洛丽塔</a>
+    <a class="cat" onclick="pickTag('和风浴衣')">和风浴衣</a>
+    <a class="cat" onclick="pickTag('街拍文艺')">街拍文艺</a>
+  </nav>
+</header>
+
+<!-- ===== 抽屉 ===== -->
+<div class="mask" id="mask" onclick="toggleDrawer(false)"></div>
+<aside class="drawer" id="drawer">
+  <a data-go="home" class="active">🏠 首页</a>
+  <a data-go="discover">🔍 发现</a>
+  <a data-go="vip">👑 VIP 会员</a>
+  <a data-go="profile">👤 个人中心</a>
+  <div class="drawer-foot">Sylvie Gallery v1 原型<br>仅作交互演示使用</div>
+</aside>
+
+<div class="wrap">
+  <!-- ================= 主内容列 ================= -->
+  <div class="main-col">
+
+    <!-- ===== 首页 ===== -->
+    <main class="view active" id="view-home">
+      <header class="hero" id="hero">
+        <h1>遇见每一帧<span class="grad">唯美瞬间</span></h1>
+        <p>精选优质二次元风格写真 · 每日更新 · 高清原图下载</p>
+        <a class="cta" data-go="discover">开始探索 ✨</a>
+      </header>
+
+      <section class="section">
+        <div class="sec-head"><h2>🔥 热门推荐</h2><a onclick="go('discover')">更多 ›</a></div>
+        <div class="wf c4" id="gridHot"></div>
+      </section>
+
+      <section class="section">
+        <div class="sec-head"><h2>🆕 最新上架</h2><a onclick="go('discover')">更多 ›</a></div>
+        <div class="wf" id="gridNew"></div>
+      </section>
+
+      <section class="section">
+        <div class="sec-head"><h2>⭐ 编辑精选</h2></div>
+        <div class="wf c4" id="gridPick"></div>
+      </section>
+    </main>
+
+    <!-- ===== 发现 ===== -->
+    <main class="view" id="view-discover">
+      <div class="toolbar">
+        <div class="search">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8b91a5" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="discSearch" placeholder="搜索图集 / 标签…">
+        </div>
+        <div class="sort">
+          <button data-sort="hot" class="active">最热</button>
+          <button data-sort="new">最新</button>
+          <button data-sort="rating">评分</button>
+        </div>
+        <span class="result-count" id="resultCount"></span>
+      </div>
+      <div class="chips" id="discChips"></div>
+      <div class="wf c4" id="gridDisc"></div>
+      <div class="empty" id="emptyDisc" style="display:none">
+        <div class="ico">🔍</div><p>没有找到相关图集，换个关键词试试吧</p>
+      </div>
+      <button class="load-more" id="btnMore" onclick="loadMore()">加载更多</button>
+    </main>
+
+    <!-- ===== 会员 ===== -->
+    <main class="view" id="view-vip">
+      <div class="vip-hero">
+        <h2>👑 解锁全部高清图集</h2>
+        <p id="vipStatus">VIP 畅享全站原图下载 · 无限浏览 · 新图抢先看</p>
+      </div>
+      <div class="price-row">
+        <div class="price-card" onclick="openPay('月度会员',18)">
+          <div class="pn">月度会员</div>
+          <div class="pp">¥18<small>/月</small></div>
+          <div class="pm">适合先体验一下</div>
+        </div>
+        <div class="price-card best" onclick="openPay('年度会员',128)">
+          <span class="ribbon">最受欢迎 · 立省 40%</span>
+          <div class="pn">年度会员</div>
+          <div class="pp">¥128<small>/年</small></div>
+          <div class="pm">折合 ¥10.7/月</div>
+        </div>
+        <div class="price-card" onclick="openPay('季度会员',45)">
+          <div class="pn">季度会员</div>
+          <div class="pp">¥45<small>/季</small></div>
+          <div class="pm">折合 ¥15/月</div>
+        </div>
+      </div>
+      <div class="rights">
+        <div class="right-item"><b>01</b>全站 VIP 图集无限浏览</div>
+        <div class="right-item"><b>02</b>高清原图打包下载</div>
+        <div class="right-item"><b>03</b>新图抢先看 · 提前 3 天</div>
+        <div class="right-item"><b>04</b>专属客服 · 优先工单</div>
+      </div>
+    </main>
+
+    <!-- ===== 个人中心 ===== -->
+    <main class="view" id="view-profile">
+      <div class="profile-head">
+        <div class="big-ava" id="bigAva">雪</div>
+        <div>
+          <h3 id="pfName">未登录</h3>
+          <div class="sub" id="pfSub">登录后可同步收藏与浏览历史</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><b id="statFav">0</b><span>收藏</span></div>
+          <div class="stat"><b id="statLike">0</b><span>点赞</span></div>
+          <div class="stat"><b id="statHis">0</b><span>足迹</span></div>
+        </div>
+      </div>
+      <div class="ptabs">
+        <button class="active" data-ptab="fav">⭐ 我的收藏</button>
+        <button data-ptab="like">❤ 我的点赞</button>
+        <button data-ptab="his">🕐 浏览历史</button>
+      </div>
+      <div class="wf c4" id="gridProfile"></div>
+      <div class="empty" id="emptyProfile"><div class="ico">📭</div><p id="emptyProfileText">还没有收藏，去发现页逛逛吧</p></div>
+    </main>
+  </div>
+
+  <!-- ================= 右侧栏 ================= -->
+  <aside class="sidebar">
+    <div class="panel">
+      <h3>🏆 人气排行榜</h3>
+      <div class="rank-tabs">
+        <button class="active" data-rank="hot">热度榜</button>
+        <button data-rank="like">点赞榜</button>
+        <button data-rank="rating">高分榜</button>
+      </div>
+      <div id="rankList"></div>
+    </div>
+    <div class="panel">
+      <h3>🏷 热门标签</h3>
+      <div class="tagcloud" id="tagCloud"></div>
+    </div>
+    <div class="panel">
+      <h3>📢 站内公告</h3>
+      <ul class="notice-list">
+        <li>本周五晚 20:00 新图批量上架</li>
+        <li>年度会员限时 8 折进行中</li>
+        <li>新增「古风汉服」分类专区</li>
+        <li>下载通道已完成 CDN 加速</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+
+<!-- ===== 页脚 ===== -->
+<footer class="footer">
+  <div class="links"><a>关于我们</a><a>用户协议</a><a>隐私政策</a><a>侵权投诉</a><a>联系我们</a></div>
+  <div>本站所有内容均为虚构插画风格演示素材 · 原型设计稿 v1</div>
+  <div>© 2026 Sylvie Gallery · 仅作原型演示使用</div>
+</footer>
+
+<!-- ===== 详情页：无限滚动阅读器 ===== -->
+<main class="view" id="view-detail">
+  <div class="d-top">
+    <button class="back-btn" onclick="backFromDetail()">‹ 返回</button>
+    <div class="d-title" id="dT">图集标题</div>
+    <span class="d-count" id="dCount">1 / 32</span>
+    <button class="icon-act syncLike" onclick="toggleLike()">♡</button>
+    <button class="icon-act syncFav" onclick="toggleFav()">☆</button>
+  </div>
+  <div class="d-wrap">
+    <div>
+      <div class="d-images" id="dImages"></div>
+      <div id="dSentinel"></div>
+      <div class="d-end" id="dEnd" style="display:none">
+        <div class="end-tip">— 已经到底啦，看看别的 —</div>
+        <div class="related-grid" id="dRelated"></div>
+        <button class="next-btn" onclick="nextAlbum()">⏭ 阅读下一个图集</button>
+      </div>
+    </div>
+    <aside class="d-side panel">
+      <span class="badge-lg" id="dBadge">VIP 专享</span>
+      <h3 id="dTitle">图集标题</h3>
+      <div class="meta-row" id="dMeta"></div>
+      <p class="desc">这是一套二次元唯美风格的写真图集。柔和的光影与细腻的笔触交织，记录下最温柔的画面。VIP 用户可打包下载原图。</p>
+      <div class="tagline" id="dTags"></div>
+      <div class="actions">
+        <button class="act dl" onclick="downloadAlbum()">⬇ 下载图集</button>
+      </div>
+      <div class="vip-hint" id="vipHint">开通 VIP 可下载全部原图</div>
+    </aside>
+  </div>
+</main>
+
+<!-- 悬浮操作栏（阅读器右侧，桌面端） -->
+<div class="rail">
+  <button class="syncLike" onclick="toggleLike()">♡</button>
+  <button class="syncFav" onclick="toggleFav()">☆</button>
+  <button onclick="downloadAlbum()" title="下载图集">⬇</button>
+  <button onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部">↑</button>
+</div>
+
+<!-- 移动端阅读器操作栏 -->
+<div class="d-mob-acts">
+  <button class="act ghost syncLike" data-label=" 点赞" onclick="toggleLike()">♡ 点赞</button>
+  <button class="act ghost syncFav" data-label=" 收藏" onclick="toggleFav()">☆ 收藏</button>
+  <button class="act dl" onclick="downloadAlbum()">⬇ 下载</button>
+</div>
+
+<!-- ===== 登录弹窗 ===== -->
+<div class="modal" id="modalLogin">
+  <div class="modal-box">
+    <div class="modal-head"><h3>登录 / 注册</h3><button class="close" onclick="closeModal('modalLogin')">✕</button></div>
+    <div class="login-body">
+      <p>登录后可收藏图集、同步浏览历史</p>
+      <div class="field"><label>邮箱</label><input id="loginEmail" type="email" placeholder="you@example.com"></div>
+      <div class="field"><label>密码</label><input id="loginPwd" type="password" placeholder="至少 6 位密码"></div>
+      <button class="btn-block" onclick="doLogin()">登 录</button>
+      <div class="login-tip">原型演示：任意邮箱 + 6 位以上密码即可登录</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 支付弹窗 ===== -->
+<div class="modal" id="modalPay">
+  <div class="modal-box">
+    <div class="modal-head"><h3>确认订单</h3><button class="close" onclick="closeModal('modalPay')">✕</button></div>
+    <div class="pay-body">
+      <div class="pay-plan"><b id="payAmount">¥128</b><p id="payPlanName">年度会员</p></div>
+      <div class="pay-methods">
+        <div class="pay-m sel" onclick="selPay(this)"><span class="ico wx">微</span>微信支付<span class="radio"></span></div>
+        <div class="pay-m" onclick="selPay(this)"><span class="ico zfb">支</span>支付宝<span class="radio"></span></div>
+      </div>
+      <button class="btn-block" onclick="doPay()">立即支付</button>
+      <div class="login-tip">原型演示：点击后模拟支付成功流程</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 移动端底部导航 ===== -->
+<nav class="tabbar">
+  <div class="tabs">
+    <a data-go="home" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>首页
+    </a>
+    <a data-go="discover">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>发现
+    </a>
+    <a data-go="vip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8l5 4 5-8 5 8 5-4-2 12H4L2 8z"/></svg>会员
+    </a>
+    <a data-go="profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>我的
+    </a>
+  </div>
+</nav>
+
+<button class="totop" id="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= 数据 ================= */
+const TAGS=["全部","日系清新","古风汉服","JK 制服","洛丽塔","和风浴衣","街拍文艺","人气模特"];
+const albums=[
+ {id:1, title:"樱花树下的午后 · 日系写真", tag:"日系清新", views:12400, likes:3200, n:32, vip:false, art:"",  h:"s2", rating:4.8, date:11},
+ {id:2, title:"仲夏夜之梦 · 洛丽塔特辑",   tag:"洛丽塔",   views:9800,  likes:2700, n:26, vip:true,  art:"v2", h:"s4", rating:4.7, date:10},
+ {id:3, title:"秋日物语 · 和风浴衣漫步",   tag:"和风浴衣", views:8100,  likes:2100, n:24, vip:true,  art:"v3", h:"s1", rating:4.6, date:9},
+ {id:4, title:"青空与白云 · 清新街拍",     tag:"街拍文艺", views:7600,  likes:1900, n:18, vip:false, art:"v4", h:"s3", rating:4.5, date:12},
+ {id:5, title:"月夜花嫁 · 古风汉服大片",   tag:"古风汉服", views:15200, likes:4600, n:36, vip:true,  art:"v3", h:"s4", rating:4.9, date:8},
+ {id:6, title:"放学后的天台 · JK 制服日记",tag:"JK 制服",  views:11000, likes:3000, n:28, vip:false, art:"v2", h:"s2", rating:4.7, date:11},
+ {id:7, title:"冬日暖阳 · 居家慵懒风",     tag:"日系清新", views:6300,  likes:1500, n:20, vip:false, art:"v4", h:"s1", rating:4.4, date:7},
+ {id:8, title:"星海之约 · 梦幻夜景特辑",   tag:"人气模特", views:13900, likes:4100, n:30, vip:true,  art:"",   h:"s3", rating:4.8, date:6},
+ {id:9, title:"晨雾森林 · 生态写真集",     tag:"街拍文艺", views:1200,  likes:320,  n:22, vip:false, art:"v4", h:"s2", rating:4.3, date:13},
+ {id:10,title:"蔷薇少女 · 哥特萝莉风",     tag:"洛丽塔",   views:980,   likes:256,  n:16, vip:true,  art:"v3", h:"s1", rating:4.5, date:13},
+ {id:11,title:"海风与夏祭 · 浴衣回",       tag:"和风浴衣", views:2100,  likes:540,  n:26, vip:true,  art:"",   h:"s3", rating:4.6, date:14},
+ {id:12,title:"教室的窗边 · JK 日常",      tag:"JK 制服",  views:1700,  likes:430,  n:19, vip:false, art:"v2", h:"s4", rating:4.4, date:14},
+ {id:13,title:"初雪与红叶 · 汉服冬装",     tag:"古风汉服", views:3400,  likes:880,  n:24, vip:true,  art:"v3", h:"s2", rating:4.7, date:15},
+ {id:14,title:"橘色黄昏 · 元气写真",       tag:"人气模特", views:5200,  likes:1400, n:22, vip:false, art:"",   h:"s1", rating:4.6, date:15},
+ {id:15,title:"云端漫步 · 白裙特辑",       tag:"日系清新", views:2900,  likes:720,  n:18, vip:true,  art:"v2", h:"s3", rating:4.5, date:16},
+ {id:16,title:"铁道与远方 · 旅拍纪实",     tag:"街拍文艺", views:1800,  likes:390,  n:20, vip:false, art:"v4", h:"s4", rating:4.2, date:16},
+];
+
+/* ================= 状态 ================= */
+const store=JSON.parse(localStorage.getItem('sg_state')||'{}');
+const state={
+  view:'home', tag:'全部', kw:'', sort:'hot', shown:8, ptab:'fav',
+  liked:new Set(store.liked||[]),
+  favs:new Set(store.favs||[]),
+  history:store.history||[],
+  user:store.user||null,
+  vip:!!store.vip,
+};
+let curAlbum=null,curImg=0;
+const save=()=>localStorage.setItem('sg_state',JSON.stringify({
+  liked:[...state.liked],favs:[...state.favs],history:state.history,user:state.user,vip:state.vip}));
+
+/* ================= 工具 ================= */
+const $=s=>document.querySelector(s);
+const fmt=n=>n>=10000?(n/10000).toFixed(1)+'w':n>=1000?(n/1000).toFixed(1)+'k':n;
+const byId=id=>albums.find(a=>a.id===id);
+let toastTimer;
+function toast(msg){
+  const t=$('#toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+/* ================= 视图切换 ================= */
+function go(view){
+  if(view!=='detail')state.prevView=view;
+  state.view=view;
+  document.body.classList.toggle('in-detail',view==='detail');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  $('#view-'+view).classList.add('active');
+  document.querySelectorAll('.header-nav a[data-go], .tabbar a, .drawer a').forEach(a=>
+    a.classList.toggle('active',a.dataset.go===view));
+  toggleDrawer(false);window.scrollTo({top:0});
+  if(view==='discover')renderDiscover();
+  if(view==='profile')renderProfile();
+  if(view==='vip')renderVipStatus();
+}
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-go]');
+  if(el){e.preventDefault();go(el.dataset.go)}
+});
+function toggleDrawer(open){
+  $('#drawer').classList.toggle('show',open);
+  $('#mask').classList.toggle('show',open);
+}
+
+/* ================= 卡片（瀑布流） ================= */
+function cardHTML(a){
+  return `<div class="wf-item"><div class="card" onclick="openDetail(${a.id})">
+    <div class="thumb ${a.h}">
+      <div class="art ${a.art}"></div>
+      <span class="badge ${a.vip?'':'free'}">${a.vip?'VIP':'免费'}</span>
+      <span class="count">📷 ${a.n}P</span>
+      <div class="shade"><b>${a.title}</b></div>
+    </div>
+    <div class="card-foot">
+      <span class="tag">${a.tag}</span>
+      <span>👁 ${fmt(a.views)}</span>
+      <span>❤ ${fmt(a.likes+(state.liked.has(a.id)?1:0))}</span>
+      <span class="sp"></span>
+      <span class="fav ${state.favs.has(a.id)?'on':''}" onclick="event.stopPropagation();quickFav(${a.id})">${state.favs.has(a.id)?'⭐':'☆'}</span>
+    </div>
+  </div></div>`;
+}
+function wfHTML(list){return list.map(cardHTML).join('')}
+function renderHome(){
+  $('#gridHot').innerHTML=wfHTML([...albums].sort((a,b)=>b.views-a.views).slice(0,8));
+  $('#gridNew').innerHTML=wfHTML([...albums].sort((a,b)=>b.date-a.date).slice(0,6));
+  $('#gridPick').innerHTML=wfHTML([...albums].sort((a,b)=>b.rating-a.rating).slice(0,4));
+}
+
+/* ================= 分类 ================= */
+function renderChips(){
+  const html=TAGS.map(t=>`<button class="chip ${t===state.tag?'active':''}" onclick="pickTag('${t}')">${t}</button>`).join('');
+  $('#discChips').innerHTML=html;
+}
+function pickTag(t){
+  state.tag=t;state.shown=8;renderChips();
+  if(state.view!=='discover')go('discover');else renderDiscover();
+  toast(`分类：${t}`);
+}
+function hotWord(w){
+  state.kw=w;state.shown=8;
+  $('#discSearch').value=w;go('discover');
+}
+
+/* ================= 发现页 ================= */
+function filtered(){
+  let list=albums.filter(a=>
+    (state.tag==='全部'||a.tag===state.tag)&&
+    (!state.kw||(a.title+a.tag).toLowerCase().includes(state.kw.toLowerCase())));
+  if(state.sort==='hot')list.sort((a,b)=>b.views-a.views);
+  if(state.sort==='new')list.sort((a,b)=>b.date-a.date);
+  if(state.sort==='rating')list.sort((a,b)=>b.rating-a.rating);
+  return list;
+}
+function renderDiscover(){
+  const list=filtered();
+  $('#resultCount').textContent=`共 ${list.length} 个图集`;
+  $('#gridDisc').innerHTML=wfHTML(list.slice(0,state.shown));
+  $('#emptyDisc').style.display=list.length?'none':'block';
+  const more=$('#btnMore');
+  more.disabled=state.shown>=list.length;
+  more.textContent=state.shown>=list.length?'没有更多了':'加载更多';
+}
+function loadMore(){state.shown+=8;renderDiscover();toast('已加载更多 ✨')}
+document.querySelectorAll('.sort button').forEach(b=>b.addEventListener('click',()=>{
+  state.sort=b.dataset.sort;state.shown=8;
+  document.querySelectorAll('.sort button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');renderDiscover();
+}));
+$('#discSearch').addEventListener('input',e=>{state.kw=e.target.value;state.shown=8;renderDiscover()});
+$('#navSearch').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.value.trim()){
+    hotWord(e.target.value.trim());e.target.blur();
+  }
+});
+
+/* ================= 侧栏：排行榜 / 标签云 ================= */
+function renderRank(key){
+  const sorters={hot:(a,b)=>b.views-a.views,like:(a,b)=>b.likes-a.likes,rating:(a,b)=>b.rating-a.rating};
+  const list=[...albums].sort(sorters[key]).slice(0,6);
+  const meta={hot:a=>`👁 ${fmt(a.views)}`,like:a=>`❤ ${fmt(a.likes)}`,rating:a=>`★ ${a.rating}`};
+  $('#rankList').innerHTML=list.map((a,i)=>`
+    <div class="rank-item" onclick="openDetail(${a.id})">
+      <span class="rank-num ${i<3?'n'+(i+1):''}">${i+1}</span>
+      <div class="rank-thumb"><div class="art ${a.art}"></div></div>
+      <div class="rank-info"><p>${a.title}</p><span>${meta[key](a)}</span></div>
+    </div>`).join('');
+}
+document.querySelectorAll('.rank-tabs button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.rank-tabs button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');renderRank(b.dataset.rank);
+}));
+function renderTagCloud(){
+  const extra=['樱花','白裙','夜景','午后','天台','教室','旅拍','元气'];
+  $('#tagCloud').innerHTML=[...TAGS.slice(1),...extra].map(t=>
+    `<a onclick="hotWord('${t}')">${t}</a>`).join('');
+}
+
+/* ================= 详情页：无限滚动阅读器 ================= */
+let rendered=0,dObserver=null,idxTicking=false;
+function openDetail(id){
+  if(state.view!=='detail')state.prevView=state.view;
+  curAlbum=byId(id);rendered=0;
+  state.history=[id,...state.history.filter(x=>x!==id)].slice(0,20);save();
+  $('#dT').textContent=curAlbum.title;
+  $('#dTitle').textContent=curAlbum.title;
+  $('#dBadge').textContent=curAlbum.vip?'👑 VIP 专享':'免费图集';
+  $('#dBadge').className='badge-lg'+(curAlbum.vip?'':' free');
+  $('#dMeta').innerHTML=`<span>📷 ${curAlbum.n} 张</span><span>👁 ${fmt(curAlbum.views)}</span><span>❤ ${fmt(curAlbum.likes+(state.liked.has(id)?1:0))}</span><span>★ ${curAlbum.rating}</span>`;
+  $('#dTags').innerHTML=[curAlbum.tag,'人像','唯美','高清'].map(t=>`<span onclick="hotWord('${t}')">${t}</span>`).join('');
+  $('#vipHint').textContent=curAlbum.vip
+    ?(state.vip?'VIP 生效中 · 可打包下载全部原图':'VIP 专享 · 开通会员后可下载原图')
+    :'免费图集 · 登录后可下载';
+  $('#dImages').innerHTML='';
+  $('#dEnd').style.display='none';
+  $('#dCount').textContent=`1 / ${curAlbum.n}`;
+  syncActionBtns();
+  go('detail');
+  appendImages(4);          // 首屏先渲染 4 张
+  setupObserver();          // 滚动接近底部时继续加载
+}
+function appendImages(k){
+  const variants=['','v2','v3','v4'];
+  let html='';
+  for(let i=0;i<k&&rendered<curAlbum.n;i++,rendered++){
+    html+=`<div class="d-img"><div class="art ${variants[rendered%4]}"></div><span class="idx">${rendered+1} / ${curAlbum.n}</span></div>`;
+  }
+  $('#dImages').insertAdjacentHTML('beforeend',html);
+  if(rendered>=curAlbum.n)finishAlbum();
+}
+function setupObserver(){
+  if(dObserver)dObserver.disconnect();
+  dObserver=new IntersectionObserver(es=>{
+    if(es[0].isIntersecting&&rendered<curAlbum.n)appendImages(3);
+  },{rootMargin:'600px 0px'});
+  dObserver.observe($('#dSentinel'));
+}
+function finishAlbum(){
+  if(dObserver){dObserver.disconnect();dObserver=null}
+  let rel=albums.filter(a=>a.id!==curAlbum.id&&a.tag===curAlbum.tag);
+  rel=rel.concat(albums.filter(a=>a.id!==curAlbum.id&&!rel.includes(a)).sort((a,b)=>b.views-a.views));
+  $('#dRelated').innerHTML=rel.slice(0,4).map(a=>`
+    <div class="mini-card" onclick="openDetail(${a.id})">
+      <div class="rthumb"><div class="art ${a.art}"></div><span class="rtag">${a.vip?'VIP':'免费'}</span></div>
+      <p>${a.title}</p>
+    </div>`).join('');
+  $('#dEnd').style.display='block';
+}
+function nextAlbum(){
+  const i=albums.indexOf(curAlbum);
+  openDetail(albums[(i+1)%albums.length].id);
+}
+function backFromDetail(){go(state.prevView||'home')}
+function updateIdx(){
+  if(!curAlbum)return;
+  const imgs=$('#dImages').children;
+  let cur=1;
+  for(let i=0;i<imgs.length;i++){
+    if(imgs[i].getBoundingClientRect().top<window.innerHeight*0.55)cur=i+1;else break;
+  }
+  $('#dCount').textContent=`${cur} / ${curAlbum.n}`;
+}
+function scrollImg(d){
+  const imgs=$('#dImages').children;if(!imgs.length)return;
+  let cur=0;
+  for(let i=0;i<imgs.length;i++){if(imgs[i].getBoundingClientRect().top<window.innerHeight*0.55)cur=i;else break}
+  const t=imgs[Math.min(Math.max(cur+d,0),imgs.length-1)];
+  window.scrollTo({top:t.offsetTop-90,behavior:'smooth'});
+}
+function syncActionBtns(){
+  const lk=state.liked.has(curAlbum.id),fv=state.favs.has(curAlbum.id);
+  document.querySelectorAll('.syncLike').forEach(el=>{
+    el.textContent=(lk?'❤':'♡')+(el.dataset.label||'');
+    el.classList.toggle('on',lk);
+  });
+  document.querySelectorAll('.syncFav').forEach(el=>{
+    el.textContent=(fv?'⭐':'☆')+(el.dataset.label||'');
+    el.classList.toggle('on',fv);
+  });
+}
+function toggleLike(){
+  const id=curAlbum.id;
+  state.liked.has(id)?state.liked.delete(id):state.liked.add(id);
+  save();syncActionBtns();refreshGrids();
+  toast(state.liked.has(id)?'已点赞 ❤':'已取消点赞');
+}
+function toggleFav(){
+  const id=curAlbum.id;
+  state.favs.has(id)?state.favs.delete(id):state.favs.add(id);
+  save();syncActionBtns();refreshGrids();
+  toast(state.favs.has(id)?'已加入收藏 ⭐':'已取消收藏');
+}
+function quickFav(id){
+  state.favs.has(id)?state.favs.delete(id):state.favs.add(id);
+  save();refreshGrids();
+  toast(state.favs.has(id)?'已加入收藏 ⭐':'已取消收藏');
+}
+function downloadAlbum(){
+  if(curAlbum.vip&&!state.vip){toast('该图集为 VIP 专享，请先开通会员 👑');go('vip');return}
+  if(!state.user){toast('请先登录后再下载');openLogin();return}
+  toast('开始打包下载…（原型演示）');
+}
+
+/* ================= 登录 ================= */
+function openLogin(){openModal('modalLogin')}
+function doLogin(){
+  const email=$('#loginEmail').value.trim(),pwd=$('#loginPwd').value;
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){toast('请输入有效的邮箱地址');return}
+  if(pwd.length<6){toast('密码至少 6 位');return}
+  state.user={name:email.split('@')[0],email};
+  save();applyUser();closeModal('modalLogin');
+  toast(`欢迎回来，${state.user.name} 🎉`);
+}
+function applyUser(){
+  document.body.classList.toggle('logged-in',!!state.user);
+  const disp=state.user?state.user.name.slice(0,4):'';
+  $('#avaName').textContent=disp;
+  $('#avaLetter').textContent=(state.user?state.user.name[0]:'游').toUpperCase();
+  $('#bigAva').textContent=(state.user?state.user.name[0]:'游').toUpperCase();
+  $('#pfName').innerHTML=state.user?`${disp}${state.vip?' <span class="vip-tag">VIP</span>':''}`:'未登录';
+  $('#pfSub').textContent=state.user?(state.vip?'VIP 会员生效中':'当前为免费用户'):'登录后可同步收藏与浏览历史';
+}
+
+/* ================= VIP ================= */
+let payPlan={name:'年度会员',price:128};
+function openPay(name,price){
+  if(state.vip){toast('您已是 VIP 会员，无需重复开通 👑');return}
+  if(!state.user){toast('请先登录后再开通');openLogin();return}
+  payPlan={name,price};
+  $('#payAmount').textContent='¥'+price;
+  $('#payPlanName').textContent=name;
+  openModal('modalPay');
+}
+function selPay(el){
+  document.querySelectorAll('.pay-m').forEach(m=>m.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function doPay(){
+  state.vip=true;save();applyUser();renderVipStatus();closeModal('modalPay');
+  toast('支付成功，VIP 已开通 👑');
+}
+function renderVipStatus(){
+  $('#vipStatus').textContent=state.vip?'✅ 您已是 VIP 会员，全站图集畅享无阻':'VIP 畅享全站原图下载 · 无限浏览 · 新图抢先看';
+}
+
+/* ================= 个人中心 ================= */
+document.querySelectorAll('.ptabs button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.ptabs button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');state.ptab=b.dataset.ptab;renderProfile();
+}));
+function renderProfile(){
+  const ids=state.ptab==='fav'?state.favs:state.ptab==='like'?state.liked:state.history;
+  const list=[...ids].map(byId).filter(Boolean);
+  $('#statFav').textContent=state.favs.size;
+  $('#statLike').textContent=state.liked.size;
+  $('#statHis').textContent=state.history.length;
+  $('#gridProfile').innerHTML=wfHTML(list);
+  const tips={fav:'还没有收藏，去发现页逛逛吧',like:'还没有点赞过任何图集',his:'暂无浏览记录'};
+  $('#emptyProfile').style.display=list.length?'none':'block';
+  $('#emptyProfileText').textContent=tips[state.ptab];
+}
+function refreshGrids(){
+  renderHome();
+  if(state.view==='discover')renderDiscover();
+  if(state.view==='profile')renderProfile();
+}
+
+/* ================= 弹窗 / 键盘 / 滚动 ================= */
+function openModal(id){$('#'+id).classList.add('open');document.body.style.overflow='hidden'}
+function closeModal(id){$('#'+id).classList.remove('open');document.body.style.overflow=''}
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id)}));
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    const open=document.querySelector('.modal.open');
+    if(open)closeModal(open.id);
+    else if(state.view==='detail')backFromDetail();
+  }
+  if(state.view==='detail'&&!document.querySelector('.modal.open')){
+    if(e.key==='ArrowLeft')scrollImg(-1);
+    if(e.key==='ArrowRight')scrollImg(1);
+  }
+});
+window.addEventListener('scroll',()=>{
+  $('#totop').classList.toggle('show',window.scrollY>400);
+  if(state.view==='detail'&&!idxTicking){
+    idxTicking=true;
+    requestAnimationFrame(()=>{updateIdx();idxTicking=false});
+  }
+}, {passive:true});
+
+/* ================= 樱花 ================= */
+const hero=$('#hero');
+for(let i=0;i<10;i++){
+  const p=document.createElement('span');
+  p.className='petal';
+  const s=6+Math.random()*9;
+  p.style.cssText=`left:${Math.random()*100}%;width:${s}px;height:${s*0.8}px;
+    background:${['#c9d6fb','#e4e9fb','#dcd6fb'][i%3]};
+    animation-duration:${7+Math.random()*8}s;animation-delay:${-Math.random()*10}s`;
+  hero.appendChild(p);
+}
+
+/* ================= 初始化 ================= */
+renderChips();renderHome();renderDiscover();renderProfile();
+renderRank('hot');renderTagCloud();applyUser();
+</script>
+</body>
+</html>
