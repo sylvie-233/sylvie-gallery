@@ -3,1046 +3,2664 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Sylvie Gallery · 美女在线写真 v1 原型</title>
+<title>希尔薇图集 · v1 原型设计</title>
 <style>
 :root{
-  --accent:#8f7bf0;
-  --accent-2:#6aa8f0;
-  --lavender:#f1f2f8;
-  --bg:#f7f8fc;
-  --card:#ffffff;
-  --text:#33384a;
-  --text-light:#8b91a5;
-  --line:#ececf4;
-  --radius:12px;
-  --shadow:0 4px 18px rgba(90,95,140,.08);
+  --bg:#0b0b0e;
+  --s1:#141417;
+  --s2:#1a1a1f;
+  --s3:#222228;
+  --line:#26262d;
+  --line2:#34343d;
+  --t1:#ececee;
+  --t2:#9c9ca6;
+  --t3:#6d6d78;
+  --red:#ff2d55;
+  --red2:#ff5b78;
+  --reddim:rgba(255,45,85,.12);
+  --r:14px;
+  --shadow:0 10px 30px rgba(0,0,0,.45);
+  --wrap:1280px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
 body{
-  font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
-  background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px;
+  font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+  background:var(--bg);color:var(--t1);min-height:100vh;
+  display:flex;flex-direction:column;
+  background-image:radial-gradient(900px 420px at 50% -140px,rgba(255,45,85,.10),transparent 70%);
+  background-repeat:no-repeat;
 }
-a{text-decoration:none;color:inherit}
-button{font-family:inherit;cursor:pointer;border:none;background:none}
-input{font-family:inherit;outline:none}
+a{text-decoration:none;color:inherit;cursor:pointer}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+[onclick]{cursor:pointer}
+input,textarea{font-family:inherit;outline:none}
+img{display:block;max-width:100%}
+::selection{background:rgba(255,45,85,.32)}
 
-/* ================= 视图 ================= */
-.view{display:none;animation:fadein .25s}
-.view.active{display:block}
-@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* ================= 占位图 ================= */
+.art{position:relative;overflow:hidden;background:#1c1c22}
+.art::before{content:"";position:absolute;inset:0;
+  background:
+    radial-gradient(115% 85% at 50% -12%,rgba(255,255,255,.13),transparent 62%),
+    radial-gradient(78% 62% at 88% 112%,rgba(0,0,0,.5),transparent 72%),
+    radial-gradient(55% 45% at 8% 96%,rgba(255,255,255,.05),transparent 70%)}
+.a1{background:linear-gradient(155deg,#4d2d34,#2a1f25 70%)}
+.a2{background:linear-gradient(155deg,#3f3348,#241f2b 70%)}
+.a3{background:linear-gradient(155deg,#2f3a44,#1c222a 70%)}
+.a4{background:linear-gradient(155deg,#4a3a2c,#2a2119 70%)}
+.a5{background:linear-gradient(155deg,#2c3f45,#1a262a 70%)}
+.a6{background:linear-gradient(155deg,#46303c,#241a20 70%)}
+.a7{background:linear-gradient(155deg,#34303f,#1e1c26 70%)}
+.a8{background:linear-gradient(155deg,#48302f,#2a1c1c 70%)}
 
-/* ================= 头部：双行导航 ================= */
-.header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
-.header-top{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:24px;padding:14px 24px 10px}
-.logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:20px;white-space:nowrap;cursor:pointer;
-  background:linear-gradient(90deg,var(--accent),var(--accent-2));
-  -webkit-background-clip:text;background-clip:text;color:transparent}
-.logo svg{width:28px;height:28px}
-.search{flex:1;max-width:520px;display:flex;align-items:center;gap:8px;
-  background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:9px 16px;transition:border .2s}
-.search:focus-within{border-color:var(--accent)}
-.search input{border:none;background:none;flex:1;font-size:14px;color:var(--text)}
-.search input::placeholder{color:#b6bac9}
-.hot-words{display:flex;gap:14px;font-size:12px;color:var(--text-light);white-space:nowrap}
-.hot-words span{cursor:pointer}
-.hot-words span:hover{color:var(--accent)}
-.header-right{display:flex;align-items:center;gap:12px;margin-left:auto}
-.btn-vip{padding:8px 18px;border-radius:10px;font-size:14px;font-weight:600;color:#fff;white-space:nowrap;
-  background:linear-gradient(90deg,#f0b95c,#e8933f);box-shadow:0 3px 10px rgba(232,147,63,.3)}
-.btn-login{padding:8px 20px;border-radius:10px;font-size:14px;font-weight:600;white-space:nowrap;
-  border:1.5px solid var(--line);color:var(--accent)}
-.avatar-chip{display:none;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer}
-.avatar-chip .ava{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  color:#fff;font-size:13px;background:linear-gradient(135deg,var(--accent),var(--accent-2))}
-.logged-in .avatar-chip{display:flex}
-.logged-in .btn-login{display:none}
-.hamburger{display:none;font-size:20px;color:var(--accent)}
+/* ================= 头部 ================= */
+.hdr{position:sticky;top:0;z-index:60;background:rgba(11,11,14,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.hdr-in{max-width:var(--wrap);margin:0 auto;display:flex;align-items:center;gap:18px;padding:0 20px;height:62px}
+.brand{display:flex;align-items:center;gap:9px;font-size:17px;font-weight:800;letter-spacing:.5px;white-space:nowrap}
+.brand .mark{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--red),#ff7a52);box-shadow:0 4px 14px rgba(255,45,85,.35);flex-shrink:0}
+.brand .mark svg{width:15px;height:15px}
+.nav{display:flex;align-items:center;gap:2px;margin-left:10px}
+.nav a{position:relative;display:flex;align-items:center;gap:6px;padding:8px 13px;font-size:14.5px;color:var(--t2);border-radius:9px;transition:color .18s,background .18s;white-space:nowrap}
+.nav a svg{opacity:.72;transition:opacity .18s}
+.nav a:hover svg,.nav a.on svg{opacity:1}
+.nav a:hover{color:var(--t1);background:rgba(255,255,255,.05)}
+.nav a.on{color:#fff;font-weight:600}
+.nav a.on::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:-1px;width:16px;height:2.5px;border-radius:2px;background:var(--red)}
+.hdr-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+.hsearch{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--line);border-radius:10px;
+  padding:8px 12px;width:238px;transition:border-color .2s,background .2s}
+.hsearch:focus-within{border-color:rgba(255,45,85,.55);background:#16161a}
+.hsearch svg{flex-shrink:0;opacity:.55}
+.hsearch input{border:none;background:none;color:var(--t1);font-size:13.5px;width:100%}
+.hsearch input::placeholder{color:var(--t3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:10px;font-size:14px;font-weight:600;
+  padding:9px 16px;white-space:nowrap;transition:.18s}
+.btn-line{border:1px solid var(--line2);color:var(--t1);background:transparent}
+.btn-line:hover{border-color:#4a4a55;background:rgba(255,255,255,.04)}
+.btn-red{background:linear-gradient(135deg,var(--red),#ff4b6b);color:#fff;box-shadow:0 6px 18px rgba(255,45,85,.28)}
+.btn-red:hover{filter:brightness(1.06)}
+.btn-ghost{color:var(--t2);font-size:13.5px;padding:7px 12px}
+.btn-ghost:hover{color:var(--t1)}
 
-/* 二级导航 */
-.header-nav{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:6px;padding:0 24px;overflow-x:auto;scrollbar-width:none}
-.header-nav::-webkit-scrollbar{display:none}
-.header-nav a{padding:10px 16px;font-size:14px;color:var(--text-light);white-space:nowrap;border-bottom:2px solid transparent;cursor:pointer}
-.header-nav a.active{color:var(--accent);font-weight:700;border-bottom-color:var(--accent)}
-.header-nav .sep{width:1px;height:16px;background:var(--line);margin:0 8px;flex-shrink:0}
-.header-nav a.cat{font-size:13px;padding:10px 12px}
+/* 用户区 */
+.user-wrap{position:relative;display:none}
+body.logged .user-wrap{display:block}
+body.logged #btnLoginTop{display:none}
+.ava-btn{position:relative;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--red),#ff7a52);border:1.5px solid rgba(255,255,255,.16)}
+.ava-btn .crown{position:absolute;top:-7px;right:-5px;font-size:11px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+.user-menu{position:absolute;right:0;top:46px;width:206px;background:var(--s2);border:1px solid var(--line2);
+  border-radius:13px;box-shadow:var(--shadow);padding:7px;display:none;animation:pop .16s}
+.user-menu.on{display:block}
+.user-menu .u-head{padding:9px 10px 10px;border-bottom:1px solid var(--line);margin-bottom:5px}
+.user-menu .u-head b{font-size:13.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-menu .u-head span{font-size:11.5px;color:var(--t3)}
+.user-menu a{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;font-size:13.5px;color:var(--t2)}
+.user-menu a:hover{background:var(--s3);color:var(--t1)}
+.user-menu a svg{opacity:.7}
+.user-menu .sep{height:1px;background:var(--line);margin:5px 4px}
+.user-menu a.danger{color:#ff6b81}
+@keyframes pop{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
 
-/* ================= 布局：主栏 + 侧栏 ================= */
-.wrap{max-width:1280px;margin:0 auto;padding:22px 24px;display:grid;grid-template-columns:1fr 292px;gap:24px;align-items:start}
-.main-col{min-width:0}
-.sidebar{position:sticky;top:120px;display:flex;flex-direction:column;gap:18px}
+/* 移动端标签条 */
+.mnav{display:none;background:rgba(11,11,14,.92);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.mnav::-webkit-scrollbar{display:none}
+.mnav .mnav-in{display:flex;gap:4px;padding:0 12px}
+.mnav a{padding:10px 12px;font-size:13.5px;color:var(--t2);white-space:nowrap;border-bottom:2px solid transparent}
+.mnav a.on{color:#fff;font-weight:600;border-bottom-color:var(--red)}
 
-/* 面板通用 */
-.panel{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:18px}
-.panel h3{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:14px}
-.panel h3::before{content:"";width:4px;height:16px;border-radius:2px;background:linear-gradient(180deg,var(--accent),var(--accent-2))}
+/* ================= 布局 ================= */
+.wrap{width:100%;max-width:var(--wrap);margin:0 auto;padding:22px 20px 50px;flex:1 0 auto}
+.view{display:none;animation:fade .22s}
+.view.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.page-head{margin-bottom:18px}
+.page-head h1{font-size:22px;font-weight:800;letter-spacing:.3px}
+.page-head p{font-size:13px;color:var(--t3);margin-top:6px}
+.sec{margin-bottom:34px}
+.sec-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sec-head h2{font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px}
+.sec-head h2::before{content:"";width:3px;height:15px;border-radius:2px;background:var(--red)}
+.sec-head .sub{font-size:12px;color:var(--t3)}
+.sec-head .more{margin-left:auto;font-size:12.5px;color:var(--t3)}
+.sec-head .more:hover{color:var(--red2)}
+.sec-head.red h2{color:var(--red)}
 
-/* ================= 排行榜 ================= */
-.rank-tabs{display:flex;gap:6px;margin-bottom:12px}
-.rank-tabs button{padding:5px 14px;border-radius:999px;font-size:12px;background:var(--bg);color:var(--text-light)}
-.rank-tabs button.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff}
-.rank-item{display:flex;align-items:center;gap:10px;padding:7px 0;cursor:pointer;border-radius:8px}
-.rank-item:hover{background:var(--bg)}
-.rank-num{width:20px;text-align:center;font-weight:800;font-size:14px;color:#c3c6d4;font-style:italic;flex-shrink:0}
-.rank-item:nth-child(1) .rank-num,.rank-item:nth-child(2) .rank-num,.rank-item:nth-child(3) .rank-num{color:#f0a03f}
-.rank-thumb{width:44px;height:56px;border-radius:8px;overflow:hidden;flex-shrink:0}
-.rank-thumb .art{width:100%;height:100%}
-.rank-info{min-width:0;flex:1}
-.rank-info p{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rank-info span{font-size:11px;color:var(--text-light)}
-/* 排行榜序号修正：nth-child 需要跳过 tabs，改为显式 class */
-.rank-item .n1,.rank-item .n2,.rank-item .n3{color:#f0a03f}
+/* ================= 图集卡片 ================= */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:16px}
+.card-grid.g6{grid-template-columns:repeat(6,minmax(0,1fr))}
+.card-grid.g5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.card{display:flex;flex-direction:column;background:var(--s1);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;
+  transition:transform .2s,border-color .2s,box-shadow .2s}
+.card:hover{transform:translateY(-3px);border-color:var(--line2);box-shadow:0 12px 26px rgba(0,0,0,.45)}
+.card .thumb{position:relative;overflow:hidden}
+.card .thumb .art{width:100%;aspect-ratio:3/4}
+.masonry .card .thumb .art{aspect-ratio:auto;height:var(--h,340px)}
+.card .badges{position:absolute;top:8px;right:8px;display:flex;gap:4px}
+.pill{font-size:11px;line-height:1;padding:4px 7px;border-radius:6px;color:#f2f2f4;
+  background:rgba(8,8,10,.66);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(6px);
+  display:inline-flex;align-items:center;gap:3px;font-variant-numeric:tabular-nums}
+.pill.v{color:#ffc7d0;border-color:rgba(255,45,85,.35)}
+.card .cbody{padding:8px 12px 10px;display:flex;flex-direction:column;flex:1}
+.card .ctitle{font-size:13.5px;line-height:1.4;min-height:19px;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;color:#e6e6e9}
+.card:hover .ctitle{color:#fff}
+.card .cmeta{display:flex;align-items:center;gap:7px;margin-top:auto;padding-top:6px;font-size:12px;color:var(--t3);min-width:0}
+.ava{width:21px;height:21px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:10.5px;font-weight:700;color:#fff;background:var(--s3);border:1px solid rgba(255,255,255,.1)}
+.card .cname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t2)}
+.card .cfav{margin-left:auto;display:flex;align-items:center;gap:3px;color:var(--t3);font-variant-numeric:tabular-nums}
+.card .cfav.on{color:var(--red2)}
+.card .cfav:hover{color:var(--red2)}
 
-/* 标签云 */
-.tagcloud{display:flex;flex-wrap:wrap;gap:8px}
-.tagcloud a{font-size:12px;color:var(--text-light);background:var(--bg);padding:5px 12px;border-radius:999px;cursor:pointer}
-.tagcloud a:hover{color:var(--accent);background:rgba(143,123,240,.08)}
+/* ================= 作者卡 ================= */
+.author-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px}
+.author-card{cursor:pointer;transition:transform .2s}
+.author-card:hover{transform:translateY(-3px)}
+.au-cover{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#16161a;transition:border-color .2s}
+.author-card:hover .au-cover{border-color:var(--line2);box-shadow:0 10px 22px rgba(0,0,0,.42)}
+.au-cover .art{width:100%;aspect-ratio:1/1}
+.au-badge{position:absolute;top:8px;right:8px;display:inline-flex;align-items:center;gap:4px;font-size:11px;line-height:1;
+  padding:4px 7px;border-radius:6px;color:#f0f0f3;background:rgba(8,8,10,.66);
+  border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(6px);font-variant-numeric:tabular-nums}
+.au-cname{margin-top:9px;font-size:13px;font-weight:600;text-align:center;color:#e6e6ea;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .18s}
+.author-card:hover .au-cname{color:var(--red2)}
+.tools{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--s1);border:1px solid var(--line);
+  border-radius:10px;padding:10px 13px;width:340px;max-width:100%;transition:border-color .2s,background .2s}
+.search-box:focus-within{border-color:rgba(255,45,85,.5);background:#16161a}
+.search-box input{flex:1;min-width:0;border:none;background:none;color:var(--t1);font-size:13.5px}
+.search-box input::placeholder{color:var(--t3)}
+.tools .cnt{margin-left:auto;font-size:12.5px;color:var(--t3)}
 
-/* 公告 */
-.notice-list li{list-style:none;font-size:13px;color:var(--text-light);padding:6px 0;display:flex;gap:8px;cursor:pointer}
-.notice-list li:hover{color:var(--accent)}
-.notice-list li::before{content:"·";font-weight:800}
+/* ================= 公告 ================= */
+.notice-box{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.notice-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .18s}
+.notice-row:last-child{border-bottom:none}
+.notice-row:hover{background:var(--s2)}
+.notice-row .ntag{font-size:11px;padding:3px 8px;border-radius:5px;background:var(--reddim);color:var(--red2);flex-shrink:0}
+.notice-row .ntag.gray{background:rgba(255,255,255,.06);color:var(--t2)}
+.notice-row .ntitle{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.notice-row .ndate{font-size:12px;color:var(--t3);flex-shrink:0;font-variant-numeric:tabular-nums}
+.notice-page-row{padding:16px 18px}
+.notice-page-row .ntitle{font-size:14.5px}
+.notice-page-row .ndesc{font-size:12.5px;color:var(--t3);margin-top:6px;line-height:1.6;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 
-/* ================= 首页横幅（紧凑版） ================= */
-.hero{border-radius:16px;overflow:hidden;position:relative;
-  background:linear-gradient(120deg,#f0f1fa 0%,#f7f5ff 50%,#ecf4fd 100%);
-  padding:38px 6%;text-align:center;margin-bottom:26px}
-.hero h1{font-size:clamp(20px,3vw,30px);font-weight:800}
-.hero h1 .grad{background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero p{margin-top:10px;color:var(--text-light);font-size:13px}
-.hero .cta{display:inline-block;margin-top:18px;padding:10px 34px;border-radius:999px;color:#fff;font-size:14px;font-weight:600;
-  background:linear-gradient(90deg,var(--accent),var(--accent-2));box-shadow:0 6px 18px rgba(143,123,240,.3)}
-.petal{position:absolute;top:-20px;border-radius:60% 40% 60% 40%;opacity:.7;animation:fall linear infinite}
-@keyframes fall{0%{transform:translateY(-30px) rotate(0)}100%{transform:translateY(45vh) rotate(360deg)}}
-
-/* ================= 区块标题 ================= */
-.sec-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 14px}
-.sec-head h2{font-size:18px;font-weight:800;display:flex;align-items:center;gap:9px}
-.sec-head h2::before{content:"";width:5px;height:18px;border-radius:3px;background:linear-gradient(180deg,var(--accent),var(--accent-2))}
-.sec-head a{font-size:13px;color:var(--text-light);cursor:pointer}
-.sec-head a:hover{color:var(--accent)}
-.section{margin-bottom:30px}
+/* ================= 工具栏 / 排序 / 分页 ================= */
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.sort{display:flex;gap:6px;background:var(--s1);border:1px solid var(--line);padding:4px;border-radius:11px}
+.sort button{padding:7px 15px;border-radius:8px;font-size:13px;color:var(--t2);transition:.18s}
+.sort button:hover{color:var(--t1)}
+.sort button.on{background:var(--reddim);color:var(--red2);font-weight:600}
+.toolbar .count{margin-left:auto;font-size:12.5px;color:var(--t3)}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.fchip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--red2);
+  background:var(--reddim);border:1px solid rgba(255,45,85,.3);padding:5px 10px;border-radius:8px}
+.fchip b{font-weight:600;color:var(--t1)}
+.fchip span{opacity:.7;cursor:pointer}
+.fchip span:hover{opacity:1}
+.pager{display:flex;justify-content:center;align-items:center;gap:7px;margin-top:28px;flex-wrap:wrap}
+.pager button{min-width:36px;height:36px;padding:0 12px;border-radius:9px;font-size:13px;
+  background:var(--s1);border:1px solid var(--line);color:var(--t2);transition:.18s}
+.pager button:hover:not(:disabled){border-color:var(--line2);color:var(--t1)}
+.pager button.on{background:var(--red);border-color:var(--red);color:#fff;font-weight:600}
+.pager button:disabled{opacity:.35;cursor:default}
+.empty{text-align:center;padding:70px 0;color:var(--t3);font-size:13px}
+.empty b{display:block;font-size:15px;color:var(--t2);margin-bottom:8px}
 
 /* ================= 瀑布流 ================= */
-.wf{column-count:3;column-gap:14px}
-.wf.c4{column-count:4}
-.wf-item{break-inside:avoid;margin-bottom:14px}
+.masonry{column-count:5;column-gap:14px}
+.masonry .card{break-inside:avoid;margin-bottom:14px;display:block}
+.feed-tip{text-align:center;padding:26px 0 4px;font-size:12.5px;color:var(--t3)}
 
-/* 卡片 */
-.card{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:transform .2s,box-shadow .2s;animation:fadein .3s}
-.card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(90,95,140,.14)}
-.thumb{position:relative;overflow:hidden;background:var(--lavender)}
-.thumb.s1{height:300px}.thumb.s2{height:340px}.thumb.s3{height:380px}.thumb.s4{height:420px}
-.thumb .art{width:100%;height:100%;transition:transform .4s}
-.card:hover .art{transform:scale(1.05)}
-/* 底部渐变遮罩 + 标题 */
-.thumb .shade{position:absolute;inset:auto 0 0 0;padding:30px 12px 10px;
-  background:linear-gradient(180deg,transparent,rgba(20,22,40,.62));pointer-events:none}
-.thumb .shade b{display:block;color:#fff;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.badge{position:absolute;top:10px;left:10px;padding:3px 10px;border-radius:6px;font-size:11px;color:#fff;
-  background:linear-gradient(90deg,#f0b95c,#e8933f);font-weight:600}
-.badge.free{background:rgba(60,190,130,.9)}
-.count{position:absolute;top:10px;right:10px;font-size:11px;color:#fff;background:rgba(20,22,40,.45);padding:3px 8px;border-radius:6px;backdrop-filter:blur(4px)}
-.card-foot{display:flex;align-items:center;gap:10px;padding:9px 12px;font-size:12px;color:var(--text-light)}
-.card-foot .tag{color:var(--accent);background:rgba(143,123,240,.09);padding:1px 8px;border-radius:5px;font-size:11px}
-.card-foot .sp{flex:1}
-.card-foot .fav{cursor:pointer;font-size:14px;line-height:1}
-.card-foot .fav.on{color:#f0a03f}
+/* ================= 标签云 ================= */
+.tagcloud{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:22px;display:flex;flex-wrap:wrap;gap:10px}
+.tagcloud a{border-radius:999px;padding:7px 15px;background:var(--s2);border:1px solid var(--line);
+  color:var(--t2);transition:.18s;line-height:1.2}
+.tagcloud a:hover{color:#fff;background:var(--reddim);border-color:rgba(255,45,85,.45)}
+.tagcloud a .n{font-size:10.5px;opacity:.55;margin-left:5px;font-variant-numeric:tabular-nums}
+.tz1{font-size:13px}.tz2{font-size:14px}.tz3{font-size:16px;color:#d8d8dd}
+.tz4{font-size:18px;color:#ededf0;font-weight:600}.tz5{font-size:21px;color:#fff;font-weight:700}
 
-/* ================= 发现页工具栏 ================= */
-.toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-.toolbar .search{max-width:340px;flex:1;min-width:200px}
-.sort{display:flex;gap:6px}
-.sort button{padding:7px 15px;border-radius:999px;font-size:13px;color:var(--text-light);background:#fff;border:1px solid var(--line)}
-.sort button.active{color:#fff;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-color:transparent;font-weight:600}
-.result-count{font-size:12px;color:var(--text-light);margin-left:auto}
-.chips{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;scrollbar-width:none}
-.chips::-webkit-scrollbar{display:none}
-.chip{flex-shrink:0;padding:7px 18px;border-radius:999px;font-size:13px;background:#fff;border:1px solid var(--line);color:var(--text-light);transition:all .2s}
-.chip.active,.chip:hover{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border-color:transparent}
+/* ================= 会员 ================= */
+.vip-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;max-width:860px}
+.vip-card{position:relative;background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:24px 22px 22px;overflow:hidden}
+.vip-card.paid{border-color:rgba(255,45,85,.42);background:
+  radial-gradient(600px 260px at 100% 0%,rgba(255,45,85,.16),transparent 65%),var(--s1)}
+.vip-card .vt{font-size:12px;letter-spacing:2px;color:var(--t3)}
+.vip-card.paid .vt{color:var(--red2)}
+.vip-card .vp{display:flex;align-items:baseline;gap:5px;margin:10px 0 4px}
+.vip-card .vp b{font-size:32px;font-weight:800;letter-spacing:-.5px}
+.vip-card .vp small{font-size:13px;color:var(--t3)}
+.vip-card .vdesc{font-size:12.5px;color:var(--t3);margin-bottom:16px}
+.vip-rights{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:22px}
+.vip-rights li{display:flex;gap:9px;font-size:13px;color:var(--t2);line-height:1.5}
+.vip-rights li i{width:16px;height:16px;border-radius:50%;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-style:normal;background:rgba(255,255,255,.08);color:var(--t2)}
+.vip-card.paid .vip-rights li i{background:var(--reddim);color:var(--red2)}
+.vip-card .vbtn{width:100%;padding:12px 0;border-radius:11px;font-size:14px;font-weight:600}
+.vip-note{margin-top:20px;font-size:12px;color:var(--t3);line-height:1.9}
 
-/* 加载更多 / 空状态 */
-.load-more{display:block;margin:22px auto 0;padding:11px 42px;border-radius:999px;font-size:14px;
-  color:var(--accent);border:1.5px solid var(--line);background:#fff}
-.load-more:hover{background:var(--lavender)}
-.load-more:disabled{color:var(--text-light);border-color:transparent;background:none;cursor:default}
-.empty{text-align:center;padding:60px 0;color:var(--text-light)}
-.empty .ico{font-size:40px;margin-bottom:12px}
+/* ================= 详情页 ================= */
+.detail{display:grid;grid-template-columns:minmax(0,1fr) 346px;gap:24px;align-items:start}
+.d-main{min-width:0}
+.crumb{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--t3);margin-bottom:12px;flex-wrap:wrap}
+.crumb a:hover{color:var(--red2)}
+.crumb i{font-style:normal;opacity:.5;font-size:11px}
+.crumb span{color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:52%}
 
-/* ================= 会员页 ================= */
-.vip-hero{border-radius:16px;padding:36px 6%;color:#fff;text-align:center;position:relative;overflow:hidden;
-  background:linear-gradient(110deg,#9a8cf5 0%,#7ba6f2 55%,#8ec5fc 100%);box-shadow:0 10px 28px rgba(123,166,242,.25);margin-bottom:24px}
-.vip-hero h2{font-size:22px;font-weight:800}
-.vip-hero p{margin-top:8px;opacity:.9;font-size:13px}
-.price-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:760px;margin:24px auto 0}
-.price-card{background:#fff;border-radius:14px;padding:22px 18px;text-align:center;cursor:pointer;position:relative;
-  border:2px solid transparent;box-shadow:var(--shadow);transition:transform .2s}
-.price-card:hover{transform:translateY(-3px)}
-.price-card .pn{font-size:13px;color:var(--text-light)}
-.price-card .pp{font-size:30px;font-weight:800;margin:8px 0 2px}
-.price-card .pp small{font-size:13px;font-weight:400;color:var(--text-light)}
-.price-card .pm{font-size:12px;color:var(--text-light)}
-.price-card.best{border-color:var(--accent)}
-.price-card.best .pn{color:var(--accent);font-weight:700}
-.price-card .ribbon{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:11px;color:#fff;
-  background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:999px;padding:2px 12px}
-.rights{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-top:22px}
-.right-item{background:#fff;border-radius:12px;padding:14px 16px;font-size:13px;box-shadow:var(--shadow)}
-.right-item b{color:var(--accent);margin-right:8px}
+/* 详情页头部信息卡 */
+.al-head{background:#121215;border:1px solid var(--line);border-radius:16px;padding:20px 22px 18px}
+.al-top{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.al-title{font-size:26px;line-height:1.35;font-weight:800;color:var(--red);letter-spacing:.2px;flex:1;min-width:0}
+.al-acts{display:flex;gap:8px;flex-shrink:0;margin-left:auto}
+.al-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;font-size:12.5px;
+  color:var(--t2);background:transparent;border:1px solid var(--line2);transition:.18s}
+.al-btn:hover{color:var(--t1);border-color:#4b4b57;background:rgba(255,255,255,.04)}
+.al-btn.on{color:var(--red2);border-color:rgba(255,45,85,.45);background:var(--reddim)}
+.al-btn svg{flex-shrink:0}
+.al-meta{font-size:12.5px;color:var(--t3);margin-top:12px;font-variant-numeric:tabular-nums}
+.al-desc{font-size:13.5px;line-height:1.85;color:#b9b9c2;margin-top:10px}
+.al-intro{font-size:12.5px;line-height:1.9;color:var(--t3);margin-top:8px}
+.al-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:7px;font-size:12px;
+  color:var(--t2);background:#1d1d22;border:1px solid #26262c;transition:.18s;line-height:1.5}
+a.chip:hover{color:var(--t1);border-color:#3a3a45}
+.chip.author{color:#d6d6dc}
+.chip.author:hover{color:var(--red2);border-color:rgba(255,45,85,.4)}
+.chip.sub{cursor:pointer;color:#e8c07a;border-color:#3a3122;background:#221d14}
+.chip.sub:hover{border-color:#6a5327;color:#f7d79a}
+.chip.sub.on{color:var(--t3);background:#1d1d22;border-color:#26262c}
+.chip.num{color:var(--t2);font-variant-numeric:tabular-nums}
 
-/* ================= 个人中心 ================= */
-.profile-head{display:flex;align-items:center;gap:18px;background:#fff;border-radius:14px;padding:24px 26px;box-shadow:var(--shadow);flex-wrap:wrap}
-.profile-head .big-ava{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  color:#fff;font-size:24px;background:linear-gradient(135deg,var(--accent),var(--accent-2));flex-shrink:0}
-.profile-head h3{font-size:19px}
-.profile-head .sub{font-size:13px;color:var(--text-light);margin-top:4px}
-.vip-tag{display:inline-block;margin-left:8px;padding:2px 10px;border-radius:999px;font-size:11px;color:#b0791f;background:#ffedbd}
-.stat-row{display:flex;gap:12px;margin-left:auto}
-.stat{text-align:center;min-width:64px;background:var(--bg);border-radius:10px;padding:8px 14px}
-.stat b{font-size:18px;display:block}
-.stat span{font-size:11px;color:var(--text-light)}
-.ptabs{display:flex;gap:8px;margin:20px 0 14px}
-.ptabs button{padding:9px 22px;border-radius:999px;font-size:13px;background:#fff;border:1px solid var(--line);color:var(--text-light)}
-.ptabs button.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border-color:transparent;font-weight:600}
+.m-stat{display:none;gap:0;margin-top:14px;background:var(--s1);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.m-stat div{flex:1;text-align:center;padding:10px 4px;border-right:1px solid var(--line)}
+.m-stat div:last-child{border-right:none}
+.m-stat b{display:block;font-size:14px;font-variant-numeric:tabular-nums}
+.m-stat span{font-size:10.5px;color:var(--t3)}
+
+/* 媒体区 */
+.media{display:flex;flex-direction:column;gap:12px;margin-top:22px}
+.media-item{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#101014}
+.media-item .art{width:100%;aspect-ratio:3/4;max-height:76vh}
+.media-item .idx{position:absolute;left:12px;bottom:10px;font-size:11px;color:#e9e9ec;background:rgba(8,8,10,.6);
+  padding:3px 9px;border-radius:6px;backdrop-filter:blur(4px);font-variant-numeric:tabular-nums}
+.media-item.video .art{aspect-ratio:16/9;display:flex;align-items:center;justify-content:center}
+.play{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.34);
+  display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);position:relative;z-index:2}
+.play::after{content:"";width:0;height:0;border-left:14px solid #fff;border-top:9px solid transparent;border-bottom:9px solid transparent;margin-left:4px}
+.media-item.video .vlabel{position:absolute;top:10px;left:12px;font-size:11px;color:#fff;background:rgba(255,45,85,.85);padding:3px 8px;border-radius:5px;z-index:2}
+.media-item.video .dur{position:absolute;right:12px;bottom:10px;font-size:11px;color:#e9e9ec;background:rgba(8,8,10,.6);padding:3px 8px;border-radius:5px;z-index:2}
+
+/* 锁定区 */
+.lock{padding:30px 0 4px;text-align:center}
+.lock-icon{width:64px;height:64px;border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,45,85,.12);border:1px solid rgba(255,45,85,.16)}
+.lock-icon svg{width:26px;height:26px;color:var(--red)}
+.lock-title{font-size:21px;font-weight:800;color:var(--red);letter-spacing:.4px}
+.lock-title b{font-size:23px;margin:0 2px}
+.lock-cards{display:flex;gap:14px;margin-top:24px;text-align:left}
+.lock-card{flex:1;min-width:0;display:flex;flex-direction:column;padding:18px;border-radius:14px;
+  background:#0c0c0f;border:1px solid var(--line)}
+.lock-card.hot{border-color:rgba(255,45,85,.6);
+  background:radial-gradient(320px 150px at 50% -30%,rgba(255,45,85,.14),transparent 72%),#0c0c0f}
+.lock-card h4{font-size:15px;font-weight:700;letter-spacing:.2px}
+.lock-card p{font-size:12.5px;color:var(--t3);margin:8px 0 20px;line-height:1.6}
+.lk-price{display:flex;align-items:baseline;gap:4px;margin-top:8px}
+.lk-price b{font-size:21px;font-weight:800;color:var(--red);letter-spacing:-.3px}
+.lk-price small{font-size:11.5px;color:var(--t3)}
+.lk-btn{margin-top:auto;width:100%;padding:12px 0;border-radius:9px;font-size:14px;font-weight:700;
+  color:var(--red);background:transparent;border:1px solid rgba(255,45,85,.7);transition:.18s}
+.lk-btn:hover{background:var(--reddim)}
+.lk-btn.solid{color:#fff;border-color:transparent;background:linear-gradient(135deg,var(--red),#ff4b6b);
+  box-shadow:0 6px 16px rgba(255,45,85,.25)}
+.lk-btn.solid:hover{filter:brightness(1.07);background:linear-gradient(135deg,var(--red),#ff4b6b)}
+.d-done{margin-top:16px;padding:13px;text-align:center;font-size:12.5px;color:var(--t3);
+  border:1px dashed var(--line2);border-radius:11px}
+.d-done button{color:var(--red2);font-size:12.5px;margin-left:6px;font-weight:600}
+
+/* 评论 */
+.cmt{margin-top:30px;padding-top:22px;border-top:1px solid var(--line)}
+.cmt-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.cmt-head h2{font-size:16px;font-weight:800}
+.cmt-head span{font-size:12px;color:var(--t3)}
+.cmt-editor{display:flex;gap:10px;margin-bottom:22px}
+.cmt-editor .ava{width:34px;height:34px;font-size:12px}
+.cmt-input{flex:1;background:var(--s1);border:1px solid var(--line);border-radius:11px;overflow:hidden;transition:border-color .2s}
+.cmt-input:focus-within{border-color:rgba(255,45,85,.45)}
+.cmt-input textarea{width:100%;min-height:74px;resize:vertical;border:none;background:none;color:var(--t1);
+  font-size:13.5px;line-height:1.7;padding:11px 13px}
+.cmt-input textarea::placeholder{color:var(--t3)}
+.cmt-bar{display:flex;align-items:center;gap:10px;padding:8px 11px;border-top:1px solid var(--line)}
+.cmt-bar .tip{font-size:11.5px;color:var(--t3)}
+.cmt-bar .btn{margin-left:auto;padding:7px 16px;font-size:12.5px;border-radius:8px}
+.cmt-item{display:flex;gap:11px;padding:16px 0;border-bottom:1px solid var(--line)}
+.cmt-item:last-child{border-bottom:none}
+.cmt-item>.ava{width:32px;height:32px;font-size:12px}
+.cmt-body{flex:1;min-width:0}
+.cmt-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px}
+.cmt-top b{font-size:13px;font-weight:600}
+.lv{font-size:10px;padding:2px 7px;border-radius:999px;font-weight:600;letter-spacing:.2px}
+.lv.free{color:#ffd3da;background:linear-gradient(90deg,#a3142f,#6d0d20)}
+.lv.vip{color:#3a2600;background:linear-gradient(90deg,#ffd777,#e0a53a)}
+.cmt-top .t{font-size:11.5px;color:var(--t3)}
+.cmt-top .del{margin-left:auto;font-size:11.5px;color:var(--t3);display:inline-flex;gap:4px;align-items:center}
+.cmt-top .del:hover{color:#ff6b81}
+.cmt-text{font-size:13.5px;line-height:1.75;color:#dcdce1;margin-top:7px;word-break:break-word}
+.cmt-acts{display:flex;align-items:center;gap:14px;margin-top:9px;font-size:11.5px;color:var(--t3)}
+.cmt-acts button{font-size:11.5px;color:var(--t3)}
+.cmt-acts button:hover{color:var(--red2)}
+.replies{margin-top:12px;padding-left:14px;border-left:2px solid var(--s3);display:flex;flex-direction:column;gap:12px}
+.reply{display:flex;gap:10px}
+.reply>.ava{width:26px;height:26px;font-size:10px}
+.reply .cmt-text{margin-top:5px;font-size:13px}
+.reply .to{font-size:12px;color:var(--t3)}
+.reply .to b{color:#8fb6ff;font-weight:600}
+.pending{font-size:10.5px;color:var(--red2);border:1px solid rgba(255,45,85,.5);padding:1px 6px;border-radius:4px;letter-spacing:.2px}
+.reply-editor{display:flex;gap:8px;margin-top:10px}
+.reply-editor input{flex:1;background:var(--s2);border:1px solid var(--line);border-radius:8px;padding:9px 11px;
+  font-size:12.5px;color:var(--t1)}
+.reply-editor input:focus{border-color:rgba(255,45,85,.45)}
+.reply-editor .btn{padding:0 15px;font-size:12.5px;border-radius:8px}
+
+/* 右侧栏 */
+.d-side{position:sticky;top:84px;display:flex;flex-direction:column;gap:16px}
+.side-card{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.side-card .sh{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.side-card .sh h3{font-size:14px;font-weight:700}
+.side-card .sh .r{margin-left:auto;font-size:11.5px;color:var(--t3)}
+.side-card .sh .r:hover{color:var(--red2)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.stat{background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:10px 11px}
+.stat .st{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--t3)}
+.stat .sv{font-size:16px;font-weight:700;margin-top:5px;font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:3px}
+.stat .sv small{font-size:11px;font-weight:400;color:var(--t3)}
+.stat .sv.red{color:var(--red2)}
+.act-row{display:flex;gap:8px;margin-top:12px}
+.act-row .btn-red{flex:1;padding:11px 0;font-size:13.5px;border-radius:10px}
+.act-icon{width:42px;height:42px;border-radius:10px;background:var(--s2);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--t2);flex-shrink:0;transition:.18s}
+.act-icon:hover{color:var(--t1);border-color:var(--line2)}
+.act-icon.on{color:var(--red2);border-color:rgba(255,45,85,.4);background:var(--reddim)}
+.work-row{display:flex;gap:10px;padding:9px 0;cursor:pointer;border-radius:9px;transition:background .16s;padding-left:6px;margin-left:-6px}
+.work-row:hover{background:var(--s2)}
+.work-row .wt{width:58px;height:58px;border-radius:8px;overflow:hidden;flex-shrink:0}
+.work-row .wt .art{width:100%;height:100%}
+.work-row .wi{min-width:0;flex:1}
+.work-row .wn{font-size:12.5px;line-height:1.45;color:#ff7d90;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.work-row:hover .wn{color:var(--red2)}
+.work-row .wc{font-size:11px;color:var(--t3);margin-top:4px}
+.cont-tags{display:flex;gap:8px;flex-wrap:wrap}
+.cont-tags a{font-size:12px;color:var(--t2);background:var(--s2);border:1px solid var(--line);padding:5px 11px;border-radius:7px}
+.cont-tags a:hover{color:var(--red2);border-color:rgba(255,45,85,.4)}
+.side-author{display:flex;gap:10px;align-items:center;cursor:pointer}
+.side-author .big-ava{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:700;font-size:15px;border:1px solid rgba(255,255,255,.12);flex-shrink:0}
+.side-author .sn{font-size:13.5px;font-weight:600;color:var(--red2)}
+.side-author .ss{font-size:11.5px;color:var(--t3);margin-top:4px}
+.side-tip{font-size:11px;color:var(--t3);margin-top:10px;line-height:1.6}
+
+/* 移动端底部操作条 */
+.m-acts{display:none;position:fixed;left:0;right:0;bottom:0;z-index:70;gap:9px;align-items:center;
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(13,13,16,.96);
+  backdrop-filter:blur(14px);border-top:1px solid var(--line)}
+.m-acts .btn-red{flex:1;padding:12px 0;border-radius:10px}
+.m-acts .act-icon{width:44px;height:44px}
+
+/* ================= 我的 ================= */
+.me-head{display:flex;align-items:center;gap:16px;background:var(--s1);border:1px solid var(--line);
+  border-radius:16px;padding:20px 22px;flex-wrap:wrap}
+.me-head .big-ava{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:21px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--red),#ff7a52);flex-shrink:0}
+.me-head h3{font-size:18px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.me-head .sub{font-size:12.5px;color:var(--t3);margin-top:5px}
+.me-edit{display:inline-flex;align-items:center;gap:5px;margin-top:9px;padding:4px 11px;border-radius:7px;
+  border:1px solid var(--line2);color:var(--t2);font-size:11.5px;transition:.18s}
+.me-edit:hover{color:#fff;border-color:#50505d;background:rgba(255,255,255,.05)}
+.ava-picker{display:flex;gap:8px;flex-wrap:wrap;padding-top:2px}
+.ava-opt{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;color:#fff;border:2px solid transparent;opacity:.75;
+  transition:transform .16s,opacity .16s,box-shadow .16s}
+.ava-opt:hover{opacity:1;transform:translateY(-2px)}
+.ava-opt.on{opacity:1;border-color:#fff;box-shadow:0 0 0 3px rgba(255,45,85,.28)}
+.ava-opt img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
+.ava-up-row{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.ava-up-row .hint{font-size:11.5px;color:var(--t3)}
+.me-stats{display:flex;gap:9px;margin-left:auto;flex-wrap:wrap}
+.me-stats .ms{background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:8px 16px;text-align:center;min-width:74px}
+.me-stats .ms b{display:block;font-size:16px;font-variant-numeric:tabular-nums}
+.me-stats .ms span{font-size:11px;color:var(--t3)}
+.mtabs{display:flex;gap:6px;margin:20px 0 16px;flex-wrap:wrap}
+.mtabs button{padding:8px 16px;border-radius:9px;font-size:13px;color:var(--t2);border:1px solid var(--line);background:var(--s1)}
+.mtabs button.on{background:var(--reddim);border-color:rgba(255,45,85,.4);color:var(--red2);font-weight:600}
+.list-box{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.list-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.list-row:last-child{border-bottom:none}
+.list-row .dot{width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0}
+.list-row .dot.read{background:var(--t3)}
+.list-row .li{flex:1;min-width:0}
+.list-row .lt{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.list-row .ld{font-size:11.5px;color:var(--t3);margin-top:4px}
+.list-row .ltime{font-size:11.5px;color:var(--t3);flex-shrink:0}
+
+/* ---- 我的通知 ---- */
+.nt-bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.nt-seg{display:flex;gap:4px;background:var(--s1);border:1px solid var(--line);padding:4px;border-radius:10px}
+.nt-seg button{padding:6px 14px;border-radius:7px;font-size:12.5px;color:var(--t2);transition:.18s;font-variant-numeric:tabular-nums}
+.nt-seg button.on{background:var(--reddim);color:var(--red2);font-weight:600}
+.nt-seg button:hover:not(.on){color:var(--t1)}
+.nt-allread{margin-left:auto;font-size:12.5px;color:var(--t3)}
+.nt-allread:hover{color:var(--red2)}
+.nt-pginfo{font-size:12px;color:var(--t3);font-variant-numeric:tabular-nums}
+.fav-count{font-size:12px;color:var(--t3);margin-bottom:12px;font-variant-numeric:tabular-nums}
+.nt-dhead{display:flex;gap:13px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.nt-dhead .nt-ico{width:44px;height:44px;border-radius:13px}
+.nt-dmeta{flex:1;min-width:0}
+.nt-dtags{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.nt-dtags .ntag{font-size:11px;padding:3px 8px;border-radius:5px;background:var(--reddim);color:var(--red2);flex-shrink:0}
+.nt-dtags .ntag.gray{background:rgba(255,255,255,.06);color:var(--t2)}
+.nt-dmeta h3{font-size:15.5px;font-weight:700}
+.nt-dfull{font-size:13.5px;color:var(--t2);line-height:1.9;margin-bottom:16px}
+.nt-dalbum{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:13px;
+  background:var(--s1);cursor:pointer;transition:.18s}
+.nt-dalbum:hover{border-color:#3d3d49;background:var(--s3)}
+.nt-dalb{flex:1;min-width:0}
+.nt-dalb b{display:block;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nt-dalb span{display:block;font-size:12px;color:var(--t3);margin-top:4px}
+.nt-dalb em{display:block;font-size:12px;color:var(--red2);font-style:normal;margin-top:7px;font-weight:600}
+.nt-list{display:flex;flex-direction:column;gap:10px}
+.nt-item{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--s1);
+  border:1px solid var(--line);border-radius:12px;cursor:pointer;transition:.18s}
+.nt-item:hover{border-color:var(--line2);background:#17171c}
+.nt-item.read{opacity:.6}
+.nt-item.read:hover{opacity:.85}
+.nt-ico{width:34px;height:34px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.nt-ico.audit{background:rgba(224,165,58,.14);color:#e0a53a}
+.nt-ico.update{background:var(--reddim);color:var(--red2)}
+.nt-ico.vip{background:rgba(255,215,119,.15);color:#ffd777}
+.nt-ico.sys{background:rgba(122,150,255,.14);color:#8fa6ff}
+.nt-main{flex:1;min-width:0}
+.nt-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.nt-top b{font-size:13.5px;font-weight:600;color:#ececef}
+.nt-item.read .nt-top b{font-weight:400;color:#b9b9c2}
+.nt-tag{font-size:10.5px;padding:2px 7px;border-radius:5px;background:rgba(255,255,255,.07);color:var(--t2);line-height:1.5}
+.nt-time{font-size:11.5px;color:var(--t3);margin-left:auto;white-space:nowrap}
+.nt-desc{font-size:12.5px;color:var(--t3);line-height:1.7;margin-top:6px}
+.nt-dot{width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:7px}
+
+/* ---- 我的购买 ---- */
+.ord-sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.ord-sum>div{background:var(--s1);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.ord-sum b{display:block;font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+.ord-sum span{font-size:11.5px;color:var(--t3);display:block;margin-top:3px}
+.ord-sec{margin-bottom:22px}
+.ord-sec>h4{font-size:13px;color:var(--t2);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.ord-sec>h4::before{content:"";width:3px;height:12px;border-radius:2px;background:var(--red)}
+.ord-card{display:flex;align-items:center;gap:13px;padding:13px 15px;background:var(--s1);
+  border:1px solid var(--line);border-radius:12px;margin-bottom:10px;transition:border-color .18s}
+.ord-card:hover{border-color:var(--line2)}
+.ord-ico{width:42px;height:42px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,rgba(255,215,119,.2),rgba(224,165,58,.08));color:#ffd777;border:1px solid rgba(255,215,119,.18)}
+.ord-thumb{width:42px;height:56px;border-radius:8px;overflow:hidden;flex-shrink:0;border:1px solid var(--line)}
+.ord-thumb .art{width:100%;height:100%}
+.ord-main{flex:1;min-width:0}
+.ord-t{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e8e8ec}
+.ord-d{font-size:11.5px;color:var(--t3);margin-top:5px;line-height:1.6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ord-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;text-align:right}
+.ord-amt{font-size:13.5px;font-weight:700;color:var(--red2);font-variant-numeric:tabular-nums}
+.ord-stat{font-size:11px;color:var(--t3);white-space:nowrap}
+.ord-btn{font-size:11.5px;padding:5px 12px;border-radius:7px;border:1px solid var(--line2);color:var(--t2);transition:.18s;white-space:nowrap}
+.ord-btn:hover{color:#fff;border-color:#50505d;background:rgba(255,255,255,.04)}
 
 /* ================= 弹窗 ================= */
-.modal{position:fixed;inset:0;z-index:100;display:none;background:rgba(30,33,50,.5);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px}
-.modal.open{display:flex}
-.modal-box{background:#fff;border-radius:16px;width:100%;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;animation:pop .22s}
-@keyframes pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
-.modal-head{display:flex;align-items:center;gap:14px;padding:15px 22px;border-bottom:1px solid var(--line)}
-.modal-head h3{flex:1;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.close{font-size:19px;color:var(--text-light);padding:4px 8px}
-.close:hover{color:var(--accent)}
+.modal{position:fixed;inset:0;z-index:100;display:none;background:rgba(6,6,8,.72);backdrop-filter:blur(7px);
+  align-items:center;justify-content:center;padding:18px}
+.modal.on{display:flex}
+.mbox{background:#151518;border:1px solid var(--line2);border-radius:16px;width:100%;max-width:420px;
+  max-height:90vh;overflow:auto;box-shadow:var(--shadow);animation:pop .2s}
+.mbox.wide{max-width:560px}
+.mbox.sm{max-width:376px}
+.cf-ico{width:46px;height:46px;border-radius:50%;margin:2px auto 14px;display:flex;align-items:center;justify-content:center;
+  background:var(--reddim);border:1px solid rgba(255,45,85,.35);color:var(--red2);font-size:20px;font-weight:800}
+.cf-title{font-size:16px;font-weight:700;text-align:center;line-height:1.5}
+.cf-text{font-size:13px;color:var(--t3);line-height:1.8;text-align:center;margin-top:8px}
+.cf-btns{display:flex;gap:10px;margin-top:20px}
+.cf-btns .btn{flex:1;padding:11px 0;border-radius:10px;font-size:14px}
+.mhead{display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.mhead h3{font-size:15px;font-weight:700;flex:1}
+.mhead .x{font-size:16px;color:var(--t3);padding:2px 6px}
+.mhead .x:hover{color:var(--t1)}
+.mbody{padding:20px}
+.tab2{display:flex;gap:6px;background:var(--s2);border-radius:10px;padding:4px;margin-bottom:18px}
+.tab2 button{flex:1;padding:8px 0;border-radius:8px;font-size:13.5px;color:var(--t2)}
+.tab2 button.on{background:var(--s1);color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;color:var(--t3);margin-bottom:6px}
+.field input{width:100%;padding:11px 13px;border-radius:9px;border:1px solid var(--line);background:var(--s2);
+  color:var(--t1);font-size:14px}
+.field input:focus{border-color:rgba(255,45,85,.5);background:#1b1b20}
+.field input::placeholder{color:var(--t3)}
+.mbody .btn-block{width:100%;padding:12px 0;border-radius:10px;font-size:14.5px;margin-top:6px}
+.mtip{text-align:center;font-size:11.5px;color:var(--t3);margin-top:14px;line-height:1.7}
+.pay-plan{text-align:center;background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.pay-plan b{font-size:26px;color:var(--red2);font-weight:800}
+.pay-plan p{font-size:12.5px;color:var(--t3);margin-top:5px}
+.pay-m{display:flex;align-items:center;gap:11px;padding:12px 14px;border:1px solid var(--line);border-radius:11px;margin-bottom:9px;cursor:pointer;font-size:13.5px}
+.pay-m.sel{border-color:rgba(255,45,85,.5);background:var(--reddim)}
+.pay-m .ic{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+.pay-m .ic.ali{background:#3a8ef0}
+.pay-m .rd{margin-left:auto;width:15px;height:15px;border-radius:50%;border:1.5px solid var(--line2)}
+.pay-m.sel .rd{border-color:var(--red);background:radial-gradient(circle,var(--red) 40%,transparent 45%)}
+.n-body h4{font-size:15px;margin-bottom:4px}
+.n-body .nd{font-size:11.5px;color:var(--t3);margin-bottom:14px}
+.n-body p{font-size:13.5px;line-height:1.9;color:var(--t2);margin-bottom:10px}
+.upload{margin:4px 0 14px;padding:22px;border:1px dashed var(--line2);border-radius:11px;text-align:center;
+  font-size:12.5px;color:var(--t3);line-height:1.8;background:var(--s2);cursor:pointer}
+.upload:hover{border-color:rgba(255,45,85,.45);color:var(--t2)}
+.admin-note{font-size:11.5px;color:var(--red2);background:var(--reddim);border:1px solid rgba(255,45,85,.3);
+  border-radius:8px;padding:9px 11px;line-height:1.6;margin-bottom:14px}
 
-/* ================= 详情页（无限滚动阅读器） ================= */
-.d-top{position:sticky;top:104px;z-index:40;display:flex;align-items:center;gap:12px;
-  background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border:1px solid var(--line);
-  border-radius:12px;padding:10px 16px;margin-bottom:16px;box-shadow:var(--shadow)}
-.back-btn{padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;color:var(--accent);
-  border:1.5px solid var(--line);white-space:nowrap}
-.back-btn:hover{background:var(--lavender)}
-.d-title{flex:1;font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.d-count{font-size:13px;color:var(--text-light);white-space:nowrap;font-variant-numeric:tabular-nums}
-.icon-act{width:36px;height:36px;border-radius:10px;background:var(--bg);border:1px solid var(--line);font-size:15px;flex-shrink:0}
-.icon-act.on{background:rgba(143,123,240,.12);border-color:transparent;color:var(--accent)}
-.d-wrap{display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start}
-.d-images{display:flex;flex-direction:column;gap:14px;min-width:0}
-.d-img{border-radius:12px;overflow:hidden;height:78vh;position:relative;box-shadow:var(--shadow);animation:fadein .3s}
-.d-img .art{width:100%;height:100%}
-.d-img .idx{position:absolute;bottom:12px;right:14px;font-size:12px;color:#fff;background:rgba(20,22,40,.45);padding:3px 10px;border-radius:6px;backdrop-filter:blur(4px)}
-.d-end{margin-top:10px}
-.d-end .end-tip{text-align:center;color:var(--text-light);font-size:13px;margin:18px 0 16px;letter-spacing:2px}
-.related-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.mini-card{cursor:pointer;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--shadow);transition:transform .2s}
-.mini-card:hover{transform:translateY(-3px)}
-.mini-card .rthumb{height:150px;position:relative}
-.mini-card .rthumb .art{width:100%;height:100%}
-.mini-card .rthumb .rtag{position:absolute;top:6px;left:6px;font-size:10px;color:#fff;background:rgba(20,22,40,.45);padding:2px 7px;border-radius:5px}
-.mini-card p{font-size:12px;padding:8px 10px 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.next-btn{display:block;margin:20px auto 6px;padding:12px 42px;border-radius:999px;color:#fff;font-size:14px;font-weight:600;
-  background:linear-gradient(90deg,var(--accent),var(--accent-2));box-shadow:0 6px 18px rgba(143,123,240,.3)}
-.d-side{position:sticky;top:184px}
-.d-side h3{margin:12px 0 2px;font-size:17px}
-.desc{font-size:13px;line-height:1.8;color:var(--text-light)}
-.tagline{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.tagline span{font-size:12px;color:var(--accent);background:rgba(143,123,240,.08);padding:3px 10px;border-radius:6px;cursor:pointer}
-.tagline span:hover{background:rgba(143,123,240,.16)}
-.actions{display:flex;gap:10px;flex-wrap:wrap}
-.act{flex:1;min-width:90px;padding:11px 0;border-radius:10px;font-size:14px;font-weight:600;text-align:center;transition:all .2s}
-.act.ghost{border:1.5px solid var(--line);color:var(--accent)}
-.act.ghost:hover{background:var(--lavender)}
-.act.ghost.on{background:rgba(143,123,240,.1);border-color:transparent}
-.act.main{color:#fff;background:linear-gradient(90deg,var(--accent),var(--accent-2));box-shadow:0 4px 14px rgba(143,123,240,.3)}
-.act.dl{color:#fff;background:linear-gradient(90deg,#f0b95c,#e8933f);box-shadow:0 4px 14px rgba(232,147,63,.3)}
-.d-side .actions{margin-top:16px}
-.act.dl{width:100%}
-.vip-hint{font-size:12px;color:var(--text-light);text-align:center;margin-top:10px}
-.d-mob-acts{display:none;position:fixed;bottom:0;left:0;right:0;z-index:65;background:rgba(255,255,255,.96);
-  backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
-.d-mob-acts .act{padding:12px 0}
-/* 悬浮操作栏（桌面端阅读器右侧） */
-.rail{position:fixed;right:18px;top:50%;transform:translateY(-50%);z-index:45;display:none;flex-direction:column;gap:10px}
-.rail button{width:46px;height:46px;border-radius:14px;background:#fff;box-shadow:var(--shadow);font-size:18px;color:var(--text)}
-.rail button:hover{color:var(--accent)}
-.rail button.on{color:var(--accent);background:rgba(143,123,240,.1)}
-body.in-detail .rail{display:flex}
-body.in-detail .tabbar{display:none!important}
-body.in-detail .wrap,body.in-detail .footer{display:none}
-.badge-lg{align-self:flex-start;padding:4px 12px;border-radius:8px;font-size:12px;color:#fff;font-weight:600;
-  background:linear-gradient(90deg,#f0b95c,#e8933f)}
-.badge-lg.free{background:#3ebe82}
-.meta-row{display:flex;gap:16px;margin:12px 0;color:var(--text-light);font-size:13px;flex-wrap:wrap}
-
-/* 登录 / 支付弹窗 */
-#modalLogin .modal-box{max-width:380px}
-.login-body{padding:26px 28px 24px}
-.login-body p{font-size:13px;color:var(--text-light);margin-bottom:18px}
-.field{margin-bottom:13px}
-.field label{display:block;font-size:13px;color:var(--text-light);margin-bottom:6px}
-.field input{width:100%;padding:11px 15px;border-radius:10px;border:1.5px solid var(--line);font-size:14px;background:var(--bg)}
-.field input:focus{border-color:var(--accent)}
-.btn-block{width:100%;padding:12px 0;border-radius:10px;color:#fff;font-size:15px;font-weight:600;
-  background:linear-gradient(90deg,var(--accent),var(--accent-2));margin-top:8px}
-.login-tip{text-align:center;font-size:12px;color:var(--text-light);margin-top:14px}
-#modalPay .modal-box{max-width:400px}
-.pay-body{padding:24px 26px}
-.pay-plan{text-align:center;background:var(--lavender);border-radius:12px;padding:16px;margin-bottom:18px}
-.pay-plan b{font-size:26px;color:var(--accent)}
-.pay-plan p{font-size:13px;color:var(--text-light);margin-top:4px}
-.pay-methods{display:flex;flex-direction:column;gap:10px}
-.pay-m{display:flex;align-items:center;gap:12px;padding:13px 15px;border-radius:12px;border:1.5px solid var(--line);font-size:14px;cursor:pointer}
-.pay-m:hover{border-color:var(--accent)}
-.pay-m .ico{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff}
-.pay-m .ico.wx{background:#3fbf62}.pay-m .ico.zfb{background:#3a8ef0}
-.pay-m .radio{margin-left:auto;width:17px;height:17px;border-radius:50%;border:2px solid #d8daea}
-.pay-m.sel .radio{border-color:var(--accent);background:radial-gradient(circle,var(--accent) 40%,#fff 45%)}
+/* ================= 全屏相册 ================= */
+.media-item.zoom{cursor:zoom-in}
+.zoom-hint{position:absolute;left:12px;top:10px;font-size:11px;color:#e9e9ec;background:rgba(8,8,10,.6);
+  padding:3px 9px;border-radius:6px;backdrop-filter:blur(4px);opacity:0;transition:opacity .18s;z-index:2}
+.media-item.zoom:hover .zoom-hint{opacity:1}
+.lightbox{position:fixed;inset:0;z-index:150;display:none;background:rgba(6,6,8,.97);
+  backdrop-filter:blur(10px);flex-direction:column}
+.lightbox.on{display:flex}
+body.lb-open{overflow:hidden}
+.lb-top{display:flex;align-items:center;gap:14px;padding:14px 20px;flex-shrink:0}
+.lb-count{font-size:12.5px;color:var(--t3);font-variant-numeric:tabular-nums}
+.lb-count b{color:#fff;font-size:15px;font-weight:700}
+.lb-tip{font-size:11.5px;color:var(--red2);background:var(--reddim);border:1px solid rgba(255,45,85,.28);
+  padding:3px 9px;border-radius:6px}
+.lb-tip:empty{display:none}
+.lb-close{margin-left:auto;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.14);color:#fff;display:flex;align-items:center;justify-content:center;transition:.18s}
+.lb-close:hover{background:rgba(255,45,85,.85);border-color:transparent}
+.lb-stage{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:6px 78px}
+.lb-stage .art{height:100%;aspect-ratio:3/4;max-width:100%;border-radius:12px;
+  box-shadow:0 24px 70px rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.06)}
+.lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#fff;
+  display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);transition:.18s;z-index:3}
+.lb-nav:hover{background:rgba(255,45,85,.85);border-color:transparent}
+.lb-nav.prev{left:16px}
+.lb-nav.next{right:16px}
+.lb-thumbs{display:flex;gap:8px;padding:12px 20px 16px;overflow-x:auto;justify-content:center;flex-shrink:0}
+.lb-thumbs::-webkit-scrollbar{height:0}
+.lb-thumb{width:46px;height:60px;border-radius:6px;overflow:hidden;border:2px solid transparent;
+  opacity:.5;flex-shrink:0;transition:.16s;padding:0}
+.lb-thumb:hover{opacity:.85}
+.lb-thumb.on{opacity:1;border-color:var(--red)}
+.lb-thumb .art{width:100%;height:100%}
 
 /* ================= Toast / 返回顶部 ================= */
-.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-12px);z-index:200;
-  background:rgba(40,44,66,.92);color:#fff;padding:10px 22px;border-radius:999px;font-size:14px;
-  opacity:0;pointer-events:none;transition:all .3s;max-width:86vw;text-align:center}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.totop{position:fixed;right:24px;bottom:96px;z-index:60;width:42px;height:42px;border-radius:50%;
-  background:#fff;color:var(--accent);box-shadow:var(--shadow);font-size:17px;opacity:0;pointer-events:none;transition:opacity .25s}
-.totop.show{opacity:1;pointer-events:auto}
+.toast{position:fixed;left:50%;top:76px;transform:translateX(-50%) translateY(-10px);z-index:200;
+  background:rgba(28,28,34,.96);border:1px solid var(--line2);color:#fff;font-size:13px;padding:10px 20px;
+  border-radius:999px;opacity:0;pointer-events:none;transition:.28s;max-width:86vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.totop{position:fixed;right:22px;bottom:26px;z-index:65;width:40px;height:40px;border-radius:50%;
+  background:var(--s2);border:1px solid var(--line2);color:var(--t2);font-size:15px;opacity:0;pointer-events:none;transition:.22s}
+.totop.on{opacity:1;pointer-events:auto}
 
-/* ================= 抽屉（移动端） ================= */
-.mask{position:fixed;inset:0;z-index:80;background:rgba(30,33,50,.4);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .25s}
-.mask.show{opacity:1;pointer-events:auto}
-.drawer{position:fixed;top:0;right:0;bottom:0;z-index:90;width:74%;max-width:300px;background:#fff;
-  padding:24px 20px;transform:translateX(100%);transition:transform .28s;display:flex;flex-direction:column;gap:4px}
-.drawer.show{transform:none}
-.drawer a{padding:13px 12px;border-radius:10px;font-size:15px;cursor:pointer}
-.drawer a.active{background:var(--lavender);color:var(--accent);font-weight:700}
-.drawer .drawer-foot{margin-top:auto;color:var(--text-light);font-size:12px;line-height:1.9}
-
-/* ================= 占位插画 ================= */
-.art{
-  background:
-    radial-gradient(circle at 30% 25%,rgba(255,255,255,.65) 0 14%,transparent 15%),
-    radial-gradient(circle at 70% 22%,rgba(255,255,255,.5) 0 10%,transparent 11%),
-    radial-gradient(ellipse 26% 20% at 50% 68%,rgba(60,66,90,.20) 0 60%,transparent 61%),
-    radial-gradient(ellipse 34% 30% at 50% 40%,rgba(60,66,90,.12) 0 60%,transparent 61%),
-    linear-gradient(160deg,#e7ebf8,#ece6fa)}
-.art.v2{background:
-    radial-gradient(circle at 32% 24%,rgba(255,255,255,.6) 0 15%,transparent 16%),
-    radial-gradient(ellipse 26% 20% at 50% 70%,rgba(60,66,90,.18) 0 60%,transparent 61%),
-    linear-gradient(160deg,#e0e9f8,#ece7fb)}
-.art.v3{background:
-    radial-gradient(circle at 68% 26%,rgba(255,255,255,.6) 0 13%,transparent 14%),
-    radial-gradient(ellipse 24% 18% at 50% 66%,rgba(60,66,90,.18) 0 60%,transparent 61%),
-    linear-gradient(160deg,#f2ecdf,#e7ebf8)}
-.art.v4{background:
-    radial-gradient(circle at 40% 22%,rgba(255,255,255,.65) 0 12%,transparent 13%),
-    radial-gradient(ellipse 28% 20% at 50% 68%,rgba(60,66,90,.18) 0 60%,transparent 61%),
-    linear-gradient(160deg,#e2f0ea,#e0e9f8)}
+/* ================= 作者主页 ================= */
+.au-card{background:#121215;border:1px solid var(--line);border-radius:16px;padding:22px 22px 18px}
+.au-main{display:flex;gap:18px;align-items:flex-start}
+.au-ava{width:96px;height:96px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:34px;font-weight:800;color:#fff;border:1px solid rgba(255,255,255,.14);box-shadow:0 8px 22px rgba(0,0,0,.4)}
+.au-info{flex:1;min-width:0}
+.au-name{font-size:21px;font-weight:800;color:var(--red);letter-spacing:.3px;line-height:1.35}
+.au-top{display:flex;align-items:flex-start;gap:14px}
+.au-top .au-name{flex:1;min-width:0}
+.au-meta{display:flex;gap:20px;flex-wrap:wrap;font-size:12.5px;color:var(--t3);margin-top:9px;line-height:1.8}
+.au-meta b{font-weight:400;color:var(--t2)}
+.au-desc{font-size:13px;color:var(--t2);margin-top:11px;line-height:1.85}
+.au-bio{font-size:13px;color:var(--t3);margin-top:10px;line-height:1.95;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.au-bio.open{display:block;overflow:visible;-webkit-line-clamp:unset}
+.au-more{font-size:12.5px;color:var(--red2);margin-top:8px}
+.au-more:hover{color:var(--red)}
+.au-sub{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:9px;font-size:13px;font-weight:600;
+  border:1px solid rgba(255,45,85,.45);color:var(--red2);background:var(--reddim);transition:.18s;
+  margin-left:auto;flex-shrink:0}
+.au-sub:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.au-sub.on{background:transparent;color:var(--t3);border-color:var(--line2)}
+.au-sub.on:hover{background:transparent;color:var(--t2)}
+.au-sec{margin-top:28px}
+.au-sec .sec-head h2{color:var(--red)}
+.au-sec .sec-head h2::before{background:var(--red)}
 
 /* ================= 页脚 ================= */
-.footer{margin-top:40px;padding:30px 24px 90px;background:#fff;border-top:1px solid var(--line);text-align:center;color:var(--text-light);font-size:12px;line-height:2}
-.footer .links{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-bottom:6px}
-.footer .links a{cursor:pointer}
-.footer .links a:hover{color:var(--accent)}
-
-/* ================= 移动端底部导航 ================= */
-.tabbar{position:fixed;bottom:0;left:0;right:0;z-index:60;display:none;
-  background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);
-  padding:7px 0 max(7px,env(safe-area-inset-bottom))}
-.tabbar .tabs{display:flex}
-.tabbar a{flex:1;text-align:center;font-size:11px;color:var(--text-light);cursor:pointer}
-.tabbar a svg{width:23px;height:23px;margin:0 auto 2px;display:block}
-.tabbar a.active{color:var(--accent);font-weight:600}
+.ftr{border-top:1px solid var(--line);background:#0c0c0e;margin-top:24px}
+.ftr-in{max-width:var(--wrap);margin:0 auto;padding:16px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.ftr-brand{display:inline-flex;align-items:center;gap:8px;font-size:14.5px;font-weight:800;letter-spacing:.6px;color:#f0f0f2;flex:1 1 0;min-width:0}
+.ftr-brand:hover{color:#fff}
+.ftr-brand .mark{width:21px;height:21px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--red),#ff7a52);flex-shrink:0}
+.ftr-brand .mark svg{width:12px;height:12px}
+.ftr-links{display:flex;align-items:center;gap:9px;flex:0 0 auto}
+.ftr-links .lb{font-size:12.5px;color:var(--t3);white-space:nowrap}
+.flink{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;
+  border:1px solid #2a2a32;background:#131317;transition:.18s;white-space:nowrap}
+.flink b{font-size:12.5px;font-weight:700;color:#ececee}
+.flink span{font-size:11px;color:var(--t3)}
+.flink:hover{border-color:#3d3d49;background:#17171c}
+.flink:hover b{color:var(--red2)}
+.ftr-copy{font-size:12px;color:var(--t3);white-space:nowrap;flex:1 1 0;text-align:right}
 
 /* ================= 响应式 ================= */
-@media (max-width:1100px){
-  .wrap{grid-template-columns:1fr}
-  .sidebar{display:none}
-  .wf.c4{column-count:3}
+@media (max-width:1240px){
+  .masonry{column-count:4}
+  .detail{grid-template-columns:minmax(0,1fr) 320px}
 }
-@media (max-width:860px){
-  .header-top{gap:12px;padding:12px 16px 8px}
-  .search,.hot-words,.btn-login,.avatar-chip .name{display:none}
-  .hamburger{display:block}
-  .header-right{margin-left:auto}
-  .header-nav a{padding:9px 12px}
-  .wrap{padding:16px 12px}
-  .hero{padding:30px 6%}
-  .wf,.wf.c4{column-count:2;column-gap:10px}
-  .wf-item{margin-bottom:10px}
-  .thumb.s1{height:210px}.thumb.s2{height:240px}.thumb.s3{height:270px}.thumb.s4{height:300px}
-  .d-top{top:64px}
-  .d-wrap{grid-template-columns:1fr}
+@media (max-width:1080px){
+  .nav a{padding:8px 9px;font-size:14px}
+  .hsearch{width:190px}
+  .masonry{column-count:3}
+  .card-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+}
+@media (max-width:960px){
+  .nav{display:none}
+  .mnav{display:block}
+  .hdr-in{height:56px;gap:12px}
+  .hsearch{width:168px}
+  .detail{grid-template-columns:1fr;padding-bottom:66px}
+  body.in-detail .ftr{padding-bottom:66px}
   .d-side{display:none}
-  .d-img{height:56vh}
-  .d-mob-acts{display:flex}
-  .rail{display:none!important}
-  .price-row{grid-template-columns:1fr;gap:12px}
-  .tabbar{display:block}
-  .stat-row{margin:12px 0 0;width:100%;justify-content:space-around}
-  .profile-head{flex-wrap:wrap}
-  .totop{right:14px;bottom:110px}
+  .m-stat{display:flex}
+  .m-acts{display:flex}
+  .wrap{padding:16px 14px 40px}
+  .vip-grid{grid-template-columns:1fr;max-width:none}
+  .page-head h1{font-size:19px}
+  .al-title{font-size:22px}
+  .al-head{padding:18px 18px 16px}
+  .masonry{column-count:3;column-gap:11px}
+  .masonry .card{margin-bottom:11px}
+  .card-grid{gap:12px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+  .ftr-in{padding:16px 16px}
 }
+@media (max-width:640px){
+  .brand span.txt{display:none}
+  .hsearch{width:auto;flex:1;min-width:0}
+  .hdr-in{padding:0 14px}
+  .masonry{column-count:2}
+  .card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .card .ctitle{font-size:12.5px;min-height:18px}
+  .card .cbody{padding:8px 10px 9px}
+  .author-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .au-cname{font-size:12px;margin-top:7px}
+  .al-head{padding:15px 14px 14px;border-radius:14px}
+  .al-title{font-size:19px;line-height:1.4}
+  .al-top{gap:10px}
+  .al-btn{padding:6px 9px;font-size:11.5px;gap:4px}
+  .al-acts{gap:6px}
+  .al-meta{font-size:11.5px;margin-top:9px}
+  .al-desc{font-size:12.5px;line-height:1.75;margin-top:8px}
+  .al-intro{font-size:11.5px;line-height:1.8}
+  .al-chips{gap:6px;margin-top:13px}
+  .chip{font-size:11.5px;padding:4px 9px}
+  .crumb{margin-bottom:10px;font-size:11.5px}
+  .au-card{padding:16px 15px 14px;border-radius:14px}
+  .au-main{gap:13px}
+  .au-ava{width:64px;height:64px;border-radius:12px;font-size:24px}
+  .au-name{font-size:18px}
+  .au-meta{gap:8px 16px;font-size:11.5px;margin-top:7px}
+  .au-desc{font-size:12.5px;margin-top:9px}
+  .au-bio{font-size:12px;-webkit-line-clamp:3}
+  .au-sub{padding:7px 15px;font-size:12.5px}
+  .au-sec{margin-top:22px}
+  .nt-time{margin-left:0;width:100%;order:3}
+  .ord-d{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5}
+  .ord-card{gap:10px;padding:12px}
+  .ord-amt{font-size:12.5px}
+  .ord-stat{font-size:10.5px}
+  .lock{padding:24px 0 2px}
+  .lock-icon{width:54px;height:54px;margin-bottom:14px}
+  .lock-icon svg{width:22px;height:22px}
+  .lock-title{font-size:17px}
+  .lock-title b{font-size:19px}
+  .lock-cards{gap:10px;margin-top:18px}
+  .lock-card{padding:14px 13px;border-radius:12px}
+  .lock-card h4{font-size:13px}
+  .lock-card p{font-size:11.5px;margin:6px 0 14px}
+  .lk-price b{font-size:18px}
+  .lk-btn{padding:10px 0;font-size:12.5px}
+  .stat-grid{gap:8px}
+  .me-head{padding:16px}
+  .me-stats{margin-left:0;width:100%;margin-top:6px}
+  .me-stats .ms{flex:1;min-width:0;padding:8px 8px}
+  .cmt-editor .ava{display:none}
+  .pager button{min-width:32px;height:32px;padding:0 9px;font-size:12px}
+  .sec{margin-bottom:26px}
+  .toolbar{gap:8px}
+  .toolbar .count{width:100%;margin-left:0}
+  .toast{top:64px;font-size:12.5px}
+  .ftr-in{flex-direction:column;align-items:center;gap:12px;padding:18px 16px}
+  .ftr-brand,.ftr-copy{flex:none}
+  .ftr-links{flex-wrap:wrap;justify-content:center}
+  .ftr-copy{white-space:normal;text-align:center}
+}
+@media (max-width:430px){
+  .author-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .al-top{flex-direction:column;align-items:stretch;gap:10px}
+  .al-title{font-size:17px}
+  .al-acts{width:100%;justify-content:flex-end;margin-left:0}
+  .al-btn{font-size:12px;padding:6px 11px}
+}
+/* 首页最近更新：桌面 6 列 × 4 行，逐级降列 */
+@media (max-width:1080px){.card-grid.g6{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media (max-width:900px){.card-grid.g6{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:760px){.card-grid.g6{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.card-grid.g6{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* 图集页 / 瀑布流：桌面 5 列，逐级降列 */
+@media (max-width:1240px){.card-grid.g5{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:900px){.card-grid.g5{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.card-grid.g5{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
 
-<!-- ===== 头部 ===== -->
-<header class="header">
-  <div class="header-top">
-    <a class="logo" data-go="home">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M12 21s-7.5-4.7-10-9.3C.6 8 2.6 4.5 6 4.5c2.2 0 3.8 1.2 6 3.6 2.2-2.4 3.8-3.6 6-3.6 3.4 0 5.4 3.5 4 7.2C19.5 16.3 12 21 12 21z" fill="url(#g1)"/><defs><linearGradient id="g1" x1="0" y1="0" x2="24" y2="24"><stop stop-color="#8f7bf0"/><stop offset="1" stop-color="#6aa8f0"/></linearGradient></defs></svg>
-      Sylvie Gallery
+<!-- ============ 头部 ============ -->
+<header class="hdr">
+  <div class="hdr-in">
+    <a class="brand" data-go="home">
+      <span class="mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.5s-7-4.3-9.3-8.6C1.2 8.4 3 5.2 6.2 5.2c2 0 3.5 1.1 5.8 3.4 2.3-2.3 3.8-3.4 5.8-3.4 3.2 0 5 3.2 3.5 6.7C19 16.2 12 20.5 12 20.5z" fill="#fff"/></svg>
+      </span>
+      <span class="txt">希尔薇图集</span>
     </a>
-    <div class="search">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b91a5" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="navSearch" placeholder="搜索图集 / 标签 / 模特…">
-    </div>
-    <div class="hot-words">
-      <span onclick="hotWord('樱花')">樱花</span>
-      <span onclick="hotWord('汉服')">汉服</span>
-      <span onclick="hotWord('JK')">JK</span>
-      <span onclick="hotWord('浴衣')">浴衣</span>
-    </div>
-    <div class="header-right">
-      <button class="btn-login" onclick="openLogin()">登录 / 注册</button>
-      <div class="avatar-chip" onclick="go('profile')"><span class="ava" id="avaLetter">雪</span><span class="name" id="avaName">小雪</span></div>
-      <button class="btn-vip" data-go="vip">开通 VIP</button>
-      <button class="hamburger" onclick="toggleDrawer(true)">☰</button>
+    <nav class="nav">
+      <a data-go="home" class="on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 20z"/><path d="M9 21v-7h6v7"/></svg>首页</a>
+      <a data-go="albums"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>图集</a>
+      <a data-go="feed"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="10" rx="1.5"/><rect x="14" y="3" width="7" height="6" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>瀑布流</a>
+      <a data-go="tags"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1"/></svg>标签</a>
+      <a data-go="vip"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M3 8l4 3 5-7 5 7 4-3-2 11H5L3 8z"/></svg>会员</a>
+      <a data-go="notice"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>公告</a>
+    </nav>
+    <div class="hdr-right">
+      <div class="hsearch">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a8a95" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="navSearch" placeholder="搜索图集 / 标签 / 作者">
+      </div>
+      <button class="btn btn-red" id="btnLoginTop" onclick="openLogin()">登录 / 注册</button>
+      <div class="user-wrap">
+        <button class="ava-btn" id="avaBtn" onclick="toggleMenu(event)">希<span class="crown" id="crown" style="display:none">👑</span></button>
+        <div class="user-menu" id="userMenu">
+          <div class="u-head"><b id="umName">sylvie233</b><span id="umMail">sylvie@example.com</span></div>
+          <a onclick="goMe('center')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>个人中心</a>
+          <a onclick="goMe('notice')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>我的通知</a>
+          <a onclick="goMe('fav')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3.5 14.7 9l6 .9-4.4 4.2 1 6-5.3-2.8L6.7 20l1-6L3.3 9.9 9.3 9z"/></svg>我的收藏</a>
+          <a onclick="goMe('order')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>我的购买</a>
+          <a id="menuAdmin" style="display:none" onclick="openAdmin()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg>管理后台 · 发布图集</a>
+          <div class="sep"></div>
+          <a class="danger" onclick="logout()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>退出登录</a>
+        </div>
+      </div>
     </div>
   </div>
-  <nav class="header-nav">
-    <a data-go="home" class="active">首页</a>
-    <a data-go="discover">发现</a>
-    <a data-go="vip">VIP 会员</a>
-    <a data-go="profile">个人中心</a>
-    <span class="sep"></span>
-    <a class="cat" onclick="pickTag('日系清新')">日系清新</a>
-    <a class="cat" onclick="pickTag('古风汉服')">古风汉服</a>
-    <a class="cat" onclick="pickTag('JK 制服')">JK 制服</a>
-    <a class="cat" onclick="pickTag('洛丽塔')">洛丽塔</a>
-    <a class="cat" onclick="pickTag('和风浴衣')">和风浴衣</a>
-    <a class="cat" onclick="pickTag('街拍文艺')">街拍文艺</a>
-  </nav>
 </header>
 
-<!-- ===== 抽屉 ===== -->
-<div class="mask" id="mask" onclick="toggleDrawer(false)"></div>
-<aside class="drawer" id="drawer">
-  <a data-go="home" class="active">🏠 首页</a>
-  <a data-go="discover">🔍 发现</a>
-  <a data-go="vip">👑 VIP 会员</a>
-  <a data-go="profile">👤 个人中心</a>
-  <div class="drawer-foot">Sylvie Gallery v1 原型<br>仅作交互演示使用</div>
-</aside>
-
-<div class="wrap">
-  <!-- ================= 主内容列 ================= -->
-  <div class="main-col">
-
-    <!-- ===== 首页 ===== -->
-    <main class="view active" id="view-home">
-      <header class="hero" id="hero">
-        <h1>遇见每一帧<span class="grad">唯美瞬间</span></h1>
-        <p>精选优质二次元风格写真 · 每日更新 · 高清原图下载</p>
-        <a class="cta" data-go="discover">开始探索 ✨</a>
-      </header>
-
-      <section class="section">
-        <div class="sec-head"><h2>🔥 热门推荐</h2><a onclick="go('discover')">更多 ›</a></div>
-        <div class="wf c4" id="gridHot"></div>
-      </section>
-
-      <section class="section">
-        <div class="sec-head"><h2>🆕 最新上架</h2><a onclick="go('discover')">更多 ›</a></div>
-        <div class="wf" id="gridNew"></div>
-      </section>
-
-      <section class="section">
-        <div class="sec-head"><h2>⭐ 编辑精选</h2></div>
-        <div class="wf c4" id="gridPick"></div>
-      </section>
-    </main>
-
-    <!-- ===== 发现 ===== -->
-    <main class="view" id="view-discover">
-      <div class="toolbar">
-        <div class="search">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8b91a5" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input id="discSearch" placeholder="搜索图集 / 标签…">
-        </div>
-        <div class="sort">
-          <button data-sort="hot" class="active">最热</button>
-          <button data-sort="new">最新</button>
-          <button data-sort="rating">评分</button>
-        </div>
-        <span class="result-count" id="resultCount"></span>
-      </div>
-      <div class="chips" id="discChips"></div>
-      <div class="wf c4" id="gridDisc"></div>
-      <div class="empty" id="emptyDisc" style="display:none">
-        <div class="ico">🔍</div><p>没有找到相关图集，换个关键词试试吧</p>
-      </div>
-      <button class="load-more" id="btnMore" onclick="loadMore()">加载更多</button>
-    </main>
-
-    <!-- ===== 会员 ===== -->
-    <main class="view" id="view-vip">
-      <div class="vip-hero">
-        <h2>👑 解锁全部高清图集</h2>
-        <p id="vipStatus">VIP 畅享全站原图下载 · 无限浏览 · 新图抢先看</p>
-      </div>
-      <div class="price-row">
-        <div class="price-card" onclick="openPay('月度会员',18)">
-          <div class="pn">月度会员</div>
-          <div class="pp">¥18<small>/月</small></div>
-          <div class="pm">适合先体验一下</div>
-        </div>
-        <div class="price-card best" onclick="openPay('年度会员',128)">
-          <span class="ribbon">最受欢迎 · 立省 40%</span>
-          <div class="pn">年度会员</div>
-          <div class="pp">¥128<small>/年</small></div>
-          <div class="pm">折合 ¥10.7/月</div>
-        </div>
-        <div class="price-card" onclick="openPay('季度会员',45)">
-          <div class="pn">季度会员</div>
-          <div class="pp">¥45<small>/季</small></div>
-          <div class="pm">折合 ¥15/月</div>
-        </div>
-      </div>
-      <div class="rights">
-        <div class="right-item"><b>01</b>全站 VIP 图集无限浏览</div>
-        <div class="right-item"><b>02</b>高清原图打包下载</div>
-        <div class="right-item"><b>03</b>新图抢先看 · 提前 3 天</div>
-        <div class="right-item"><b>04</b>专属客服 · 优先工单</div>
-      </div>
-    </main>
-
-    <!-- ===== 个人中心 ===== -->
-    <main class="view" id="view-profile">
-      <div class="profile-head">
-        <div class="big-ava" id="bigAva">雪</div>
-        <div>
-          <h3 id="pfName">未登录</h3>
-          <div class="sub" id="pfSub">登录后可同步收藏与浏览历史</div>
-        </div>
-        <div class="stat-row">
-          <div class="stat"><b id="statFav">0</b><span>收藏</span></div>
-          <div class="stat"><b id="statLike">0</b><span>点赞</span></div>
-          <div class="stat"><b id="statHis">0</b><span>足迹</span></div>
-        </div>
-      </div>
-      <div class="ptabs">
-        <button class="active" data-ptab="fav">⭐ 我的收藏</button>
-        <button data-ptab="like">❤ 我的点赞</button>
-        <button data-ptab="his">🕐 浏览历史</button>
-      </div>
-      <div class="wf c4" id="gridProfile"></div>
-      <div class="empty" id="emptyProfile"><div class="ico">📭</div><p id="emptyProfileText">还没有收藏，去发现页逛逛吧</p></div>
-    </main>
-  </div>
-
-  <!-- ================= 右侧栏 ================= -->
-  <aside class="sidebar">
-    <div class="panel">
-      <h3>🏆 人气排行榜</h3>
-      <div class="rank-tabs">
-        <button class="active" data-rank="hot">热度榜</button>
-        <button data-rank="like">点赞榜</button>
-        <button data-rank="rating">高分榜</button>
-      </div>
-      <div id="rankList"></div>
-    </div>
-    <div class="panel">
-      <h3>🏷 热门标签</h3>
-      <div class="tagcloud" id="tagCloud"></div>
-    </div>
-    <div class="panel">
-      <h3>📢 站内公告</h3>
-      <ul class="notice-list">
-        <li>本周五晚 20:00 新图批量上架</li>
-        <li>年度会员限时 8 折进行中</li>
-        <li>新增「古风汉服」分类专区</li>
-        <li>下载通道已完成 CDN 加速</li>
-      </ul>
-    </div>
-  </aside>
-</div>
-
-<!-- ===== 页脚 ===== -->
-<footer class="footer">
-  <div class="links"><a>关于我们</a><a>用户协议</a><a>隐私政策</a><a>侵权投诉</a><a>联系我们</a></div>
-  <div>本站所有内容均为虚构插画风格演示素材 · 原型设计稿 v1</div>
-  <div>© 2026 Sylvie Gallery · 仅作原型演示使用</div>
-</footer>
-
-<!-- ===== 详情页：无限滚动阅读器 ===== -->
-<main class="view" id="view-detail">
-  <div class="d-top">
-    <button class="back-btn" onclick="backFromDetail()">‹ 返回</button>
-    <div class="d-title" id="dT">图集标题</div>
-    <span class="d-count" id="dCount">1 / 32</span>
-    <button class="icon-act syncLike" onclick="toggleLike()">♡</button>
-    <button class="icon-act syncFav" onclick="toggleFav()">☆</button>
-  </div>
-  <div class="d-wrap">
-    <div>
-      <div class="d-images" id="dImages"></div>
-      <div id="dSentinel"></div>
-      <div class="d-end" id="dEnd" style="display:none">
-        <div class="end-tip">— 已经到底啦，看看别的 —</div>
-        <div class="related-grid" id="dRelated"></div>
-        <button class="next-btn" onclick="nextAlbum()">⏭ 阅读下一个图集</button>
-      </div>
-    </div>
-    <aside class="d-side panel">
-      <span class="badge-lg" id="dBadge">VIP 专享</span>
-      <h3 id="dTitle">图集标题</h3>
-      <div class="meta-row" id="dMeta"></div>
-      <p class="desc">这是一套二次元唯美风格的写真图集。柔和的光影与细腻的笔触交织，记录下最温柔的画面。VIP 用户可打包下载原图。</p>
-      <div class="tagline" id="dTags"></div>
-      <div class="actions">
-        <button class="act dl" onclick="downloadAlbum()">⬇ 下载图集</button>
-      </div>
-      <div class="vip-hint" id="vipHint">开通 VIP 可下载全部原图</div>
-    </aside>
-  </div>
-</main>
-
-<!-- 悬浮操作栏（阅读器右侧，桌面端） -->
-<div class="rail">
-  <button class="syncLike" onclick="toggleLike()">♡</button>
-  <button class="syncFav" onclick="toggleFav()">☆</button>
-  <button onclick="downloadAlbum()" title="下载图集">⬇</button>
-  <button onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部">↑</button>
-</div>
-
-<!-- 移动端阅读器操作栏 -->
-<div class="d-mob-acts">
-  <button class="act ghost syncLike" data-label=" 点赞" onclick="toggleLike()">♡ 点赞</button>
-  <button class="act ghost syncFav" data-label=" 收藏" onclick="toggleFav()">☆ 收藏</button>
-  <button class="act dl" onclick="downloadAlbum()">⬇ 下载</button>
-</div>
-
-<!-- ===== 登录弹窗 ===== -->
-<div class="modal" id="modalLogin">
-  <div class="modal-box">
-    <div class="modal-head"><h3>登录 / 注册</h3><button class="close" onclick="closeModal('modalLogin')">✕</button></div>
-    <div class="login-body">
-      <p>登录后可收藏图集、同步浏览历史</p>
-      <div class="field"><label>邮箱</label><input id="loginEmail" type="email" placeholder="you@example.com"></div>
-      <div class="field"><label>密码</label><input id="loginPwd" type="password" placeholder="至少 6 位密码"></div>
-      <button class="btn-block" onclick="doLogin()">登 录</button>
-      <div class="login-tip">原型演示：任意邮箱 + 6 位以上密码即可登录</div>
-    </div>
-  </div>
-</div>
-
-<!-- ===== 支付弹窗 ===== -->
-<div class="modal" id="modalPay">
-  <div class="modal-box">
-    <div class="modal-head"><h3>确认订单</h3><button class="close" onclick="closeModal('modalPay')">✕</button></div>
-    <div class="pay-body">
-      <div class="pay-plan"><b id="payAmount">¥128</b><p id="payPlanName">年度会员</p></div>
-      <div class="pay-methods">
-        <div class="pay-m sel" onclick="selPay(this)"><span class="ico wx">微</span>微信支付<span class="radio"></span></div>
-        <div class="pay-m" onclick="selPay(this)"><span class="ico zfb">支</span>支付宝<span class="radio"></span></div>
-      </div>
-      <button class="btn-block" onclick="doPay()">立即支付</button>
-      <div class="login-tip">原型演示：点击后模拟支付成功流程</div>
-    </div>
-  </div>
-</div>
-
-<!-- ===== 移动端底部导航 ===== -->
-<nav class="tabbar">
-  <div class="tabs">
-    <a data-go="home" class="active">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>首页
-    </a>
-    <a data-go="discover">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>发现
-    </a>
-    <a data-go="vip">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8l5 4 5-8 5 8 5-4-2 12H4L2 8z"/></svg>会员
-    </a>
-    <a data-go="profile">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>我的
-    </a>
+<!-- 移动端标签条 -->
+<nav class="mnav">
+  <div class="mnav-in">
+    <a data-go="home" class="on">首页</a>
+    <a data-go="albums">图集</a>
+    <a data-go="feed">瀑布流</a>
+    <a data-go="tags">标签</a>
+    <a data-go="vip">会员</a>
+    <a data-go="notice">公告</a>
   </div>
 </nav>
+
+<div class="wrap">
+
+  <!-- ================= 首页 ================= -->
+  <main class="view on" id="view-home">
+    <section class="sec">
+      <div class="sec-head"><h2>最近更新</h2><span class="sub" id="recentSub"></span><a class="more" data-go="albums">查看全部 ›</a></div>
+      <div class="card-grid g6" id="homeRecent"></div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head red"><h2>个人写真</h2><span class="sub">图集作者 · 写真本人</span><a class="more" data-go="authors">查看全部 ›</a></div>
+      <div class="author-grid" id="homeAuthors"></div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head"><h2>公告</h2><a class="more" data-go="notice">全部公告 ›</a></div>
+      <div class="notice-box" id="homeNotice"></div>
+    </section>
+  </main>
+
+  <!-- ================= 图集 ================= -->
+  <main class="view" id="view-albums">
+    <div class="page-head">
+      <h1>图集</h1>
+      <p>全部图集由管理员统一发布 · 共 <b id="albumsTotal">0</b> 套</p>
+    </div>
+    <div class="toolbar">
+      <div class="sort" id="albumSort">
+        <button data-sort="new" class="on">最新</button>
+        <button data-sort="hot">热门</button>
+        <button data-sort="fav">收藏</button>
+      </div>
+      <span class="count" id="albumsCount"></span>
+    </div>
+    <div class="filters" id="albumFilters"></div>
+    <div class="card-grid g5" id="albumsGrid"></div>
+    <div id="albumsEmpty" style="display:none" class="empty"><b>没有找到相关图集</b>换个关键词或标签试试</div>
+    <div class="pager" id="albumsPager"></div>
+  </main>
+
+  <!-- ================= 瀑布流 ================= -->
+  <main class="view" id="view-feed">
+    <div class="page-head">
+      <h1>瀑布流</h1>
+      <p>根据你的浏览与收藏习惯推荐 · 下滑自动加载</p>
+    </div>
+    <div class="masonry" id="feedGrid"></div>
+    <div class="feed-tip" id="feedTip">下拉加载更多…</div>
+    <div id="feedSentinel" style="height:1px"></div>
+  </main>
+
+  <!-- ================= 标签 ================= -->
+  <main class="view" id="view-tags">
+    <div class="page-head">
+      <h1>标签</h1>
+      <p>点击标签查看对应图集 · 字号越大代表收录越多</p>
+    </div>
+    <div class="tagcloud" id="tagCloud"></div>
+  </main>
+
+  <!-- ================= 会员 ================= -->
+  <main class="view" id="view-vip">
+    <div class="page-head">
+      <h1>会员</h1>
+      <p>注册会员可用积分逐套解锁，付费会员全站畅看并支持打包下载</p>
+    </div>
+    <div class="vip-grid">
+      <div class="vip-card">
+        <div class="vt">注册会员</div>
+        <div class="vp"><b>免费</b><small>邮箱注册即得</small></div>
+        <div class="vdesc">解锁前每套可预览前 3 张</div>
+        <ul class="vip-rights">
+          <li><i>✓</i>每套图集可预览前 3 张</li>
+          <li><i>✓</i>收藏图集 / 关注作者 / 参与评论</li>
+          <li><i>✓</i>每日签到领取积分（可解锁单套）</li>
+          <li><i>✓</i>新图集更新提醒</li>
+        </ul>
+        <button class="vbtn btn-line" onclick="openLogin('register')">免费注册</button>
+      </div>
+      <div class="vip-card paid">
+        <div class="vt">付费会员</div>
+        <div class="vp"><b>¥19</b><small>/ 月</small></div>
+        <div class="vdesc">全站图集畅看 + 原图打包下载</div>
+        <ul class="vip-rights">
+          <li><i>✓</i>全站图集在线畅看，无限制浏览</li>
+          <li><i>✓</i>不限量打包下载（无水印 / 原图分辨率）</li>
+          <li><i>✓</i>新图提前 3 天抢先看</li>
+          <li><i>✓</i>专属客服 · 工单优先处理</li>
+        </ul>
+        <button class="vbtn btn-red" onclick="openPay('付费会员 · 月卡',19)">立即开通</button>
+      </div>
+    </div>
+    <div class="vip-note">· 按月付费，购买后立即生效，30 天后到期，可在「我的购买」中查看订单<br>· 图集由管理员发布，会员不可上传或发布内容</div>
+  </main>
+
+  <!-- ================= 公告 ================= -->
+  <main class="view" id="view-notice">
+    <div class="page-head"><h1>公告</h1><p>站点更新、活动与规则说明</p></div>
+    <div class="tools">
+      <div class="search-box">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a8a95" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="ntSearch" placeholder="搜索公告标题 / 内容" oninput="fillNotices(this.value)">
+      </div>
+      <span class="cnt" id="ntCount"></span>
+    </div>
+    <div class="notice-box" id="noticeList"></div>
+    <div class="empty" id="noticeEmpty" style="display:none"><b>没有找到相关公告</b>换个关键词试试</div>
+    <div class="pager" id="noticePager"></div>
+  </main>
+
+  <!-- ================= 详情 ================= -->
+  <main class="view" id="view-detail"></main>
+
+  <!-- ================= 作者主页 ================= -->
+  <main class="view" id="view-author"></main>
+
+  <!-- ================= 作者列表（个人写真） ================= -->
+  <main class="view" id="view-authors">
+    <div class="page-head">
+      <h1>个人写真</h1>
+      <p>图集作者 · 写真本人 · 点击进入作者主页</p>
+    </div>
+    <div class="tools">
+      <div class="search-box">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a8a95" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="auSearch" placeholder="搜索作者名 / 别名" oninput="fillAuthors(this.value)">
+      </div>
+      <span class="cnt" id="auCount"></span>
+    </div>
+    <div class="author-grid" id="authorsGrid"></div>
+    <div class="empty" id="authorsEmpty" style="display:none"><b>没有找到这位作者</b>换个名字或别名试试</div>
+  </main>
+
+  <!-- ================= 我的 ================= -->
+  <main class="view" id="view-me">
+    <div class="me-head">
+      <div class="big-ava" id="meAva">希</div>
+      <div>
+        <h3 id="meName">未登录 <span class="lv free" id="meLv" style="display:none">注册会员</span></h3>
+        <div class="sub" id="meMail">登录后可同步收藏、通知与购买记录</div>
+        <button class="me-edit" id="meEdit" style="display:none" onclick="openProfile()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+          编辑资料
+        </button>
+      </div>
+      <div class="me-stats">
+        <div class="ms"><b id="meFav">0</b><span>收藏</span></div>
+        <div class="ms"><b id="meOrder">0</b><span>购买</span></div>
+        <div class="ms"><b id="meSub">0</b><span>订阅</span></div>
+      </div>
+    </div>
+    <div class="mtabs" id="meTabs">
+      <button data-tab="center" class="on">个人中心</button>
+      <button data-tab="notice">我的通知</button>
+      <button data-tab="fav">我的收藏</button>
+      <button data-tab="order">我的购买</button>
+    </div>
+    <div id="meBody"></div>
+  </main>
+
+</div>
+
+<!-- ============ 页脚 ============ -->
+<footer class="ftr">
+  <div class="ftr-in">
+    <a class="ftr-brand" data-go="home">
+      <span class="mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.5s-7-4.3-9.3-8.6C1.2 8.4 3 5.2 6.2 5.2c2 0 3.5 1.1 5.8 3.4 2.3-2.3 3.8-3.4 5.8-3.4 3.2 0 5 3.2 3.5 6.7C19 16.2 12 20.5 12 20.5z" fill="#fff"/></svg>
+      </span>
+      <span>希尔薇图集</span>
+    </a>
+    <div class="ftr-links">
+      <span class="lb">友情链接</span>
+      <a class="flink" href="javascript:;">
+        <b>片舟</b><span>发现好剧 下载好剧</span>
+      </a>
+    </div>
+    <div class="ftr-copy">© 2020-2026 希尔薇图集. All rights reserved.</div>
+  </div>
+</footer>
+
+<!-- ============ 登录 / 注册 ============ -->
+<div class="modal" id="mLogin">
+  <div class="mbox">
+    <div class="mhead"><h3 id="loginTitle">登录</h3><button class="x" onclick="closeModal('mLogin')">✕</button></div>
+    <div class="mbody">
+      <div class="tab2" id="loginTabs">
+        <button data-t="login" class="on">登录</button>
+        <button data-t="register">注册</button>
+      </div>
+      <div id="regName" class="field" style="display:none"><label>昵称</label><input id="inName" placeholder="给自己起个名字"></div>
+      <div class="field"><label>邮箱</label><input id="inMail" type="email" placeholder="you@example.com"></div>
+      <div class="field"><label>密码</label><input id="inPwd" type="password" placeholder="至少 6 位"></div>
+      <button class="btn btn-red btn-block" id="loginSubmit" onclick="submitAuth()">登 录</button>
+      <div class="mtip">本站以邮箱注册为主 · 原型演示：任意邮箱 + 6 位密码即可<br>管理员演示账号：admin@sylvie.cc</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 支付 ============ -->
+<div class="modal" id="mPay">
+  <div class="mbox">
+    <div class="mhead"><h3>确认订单</h3><button class="x" onclick="closeModal('mPay')">✕</button></div>
+    <div class="mbody">
+      <div class="pay-plan"><b id="payAmt">¥19</b><p id="payName">付费会员 · 月卡</p></div>
+      <div class="pay-m sel"><span class="ic ali">支</span>支付宝<span class="rd"></span></div>
+      <button class="btn btn-red btn-block" style="margin-top:14px" onclick="doPay()">立即支付</button>
+      <div class="mtip">仅支持支付宝 · 原型演示：点击后模拟支付成功</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 公告详情 ============ -->
+<div class="modal" id="mNotice">
+  <div class="mbox wide">
+    <div class="mhead"><h3 id="nTitle">公告</h3><button class="x" onclick="closeModal('mNotice')">✕</button></div>
+    <div class="mbody n-body" id="nBody"></div>
+  </div>
+</div>
+
+<!-- ============ 通知详情 ============ -->
+<div class="modal" id="mNt">
+  <div class="mbox">
+    <div class="mhead"><h3>通知详情</h3><button class="x" onclick="closeModal('mNt')">✕</button></div>
+    <div class="mbody" id="ntBody"></div>
+  </div>
+</div>
+
+<!-- ============ 管理员发布 ============ -->
+<div class="modal" id="mAdmin">
+  <div class="mbox wide">
+    <div class="mhead"><h3>管理后台 · 发布图集</h3><button class="x" onclick="closeModal('mAdmin')">✕</button></div>
+    <div class="mbody">
+      <div class="admin-note">仅有管理员可发布图集。普通注册用户与付费会员均无发布权限。</div>
+      <div class="field"><label>图集标题</label><input id="adTitle" placeholder="如：2026.11.20 白裙与午后"></div>
+      <div class="field"><label>作者（写真本人）</label>
+        <select id="adAuthor" style="width:100%;padding:11px 13px;border-radius:9px;border:1px solid var(--line);background:var(--s2);color:var(--t1);font-size:14px"></select>
+      </div>
+      <div class="field"><label>标签（英文逗号分隔）</label><input id="adTags" placeholder="日系,白裙,清新"></div>
+      <div class="upload">点击上传图片 / 视频（支持批量拖入）<br>上传后自动生成多尺寸缩略图，进入审核队列</div>
+      <button class="btn btn-red btn-block" onclick="publishAlbum()">发布图集</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 编辑个人资料 ============ -->
+<div class="modal" id="mProfile">
+  <div class="mbox">
+    <div class="mhead"><h3>编辑个人资料</h3><button class="x" onclick="closeModal('mProfile')">✕</button></div>
+    <div class="mbody">
+      <div class="field">
+        <label>头像</label>
+        <div class="ava-picker" id="avaPicker"></div>
+        <div class="ava-up-row">
+          <button class="btn btn-line" style="font-size:13px;padding:7px 13px" onclick="$('#pfFile').click()">上传自定义头像</button>
+          <span class="hint">支持 jpg / png / webp，建议正方形，2MB 以内</span>
+          <input type="file" id="pfFile" accept="image/*" style="display:none" onchange="onPickAvatar(this)">
+        </div>
+      </div>
+      <div class="field">
+        <label>昵称</label>
+        <input id="pfName" maxlength="16" placeholder="1–16 个字符">
+      </div>
+      <div class="field">
+        <label>邮箱（登录账号，暂不支持修改）</label>
+        <input id="pfMail" disabled style="opacity:.6;cursor:not-allowed">
+      </div>
+      <button class="btn btn-red btn-block" onclick="saveProfile()">保存修改</button>
+      <div class="mtip">昵称会同步显示在评论与作者订阅列表</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 二次确认 ============ -->
+<div class="modal" id="mConfirm">
+  <div class="mbox sm">
+    <div class="mbody">
+      <div class="cf-ico" id="cfIcon">!</div>
+      <h3 class="cf-title" id="cfTitle">确认操作</h3>
+      <p class="cf-text" id="cfText"></p>
+      <div class="cf-btns">
+        <button class="btn btn-line" onclick="closeModal('mConfirm')">取消</button>
+        <button class="btn btn-red" id="cfOk">确认</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <button class="totop" id="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 <div class="toast" id="toast"></div>
 
+<!-- ============ 全屏相册 ============ -->
+<div class="lightbox" id="lightbox" onclick="lbBackdrop(event)">
+  <div class="lb-top">
+    <span class="lb-count"><b id="lbCur">1</b> / <span id="lbTotal">1</span></span>
+    <span class="lb-tip" id="lbTip"></span>
+    <button class="lb-close" onclick="closeLightbox()" aria-label="关闭">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <button class="lb-nav prev" onclick="lbGo(-1)" aria-label="上一张">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>
+  </button>
+  <div class="lb-stage"><div class="art" id="lbArt"></div></div>
+  <button class="lb-nav next" onclick="lbGo(1)" aria-label="下一张">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+  </button>
+  <div class="lb-thumbs" id="lbThumbs"></div>
+</div>
+
 <script>
-/* ================= 数据 ================= */
-const TAGS=["全部","日系清新","古风汉服","JK 制服","洛丽塔","和风浴衣","街拍文艺","人气模特"];
-const albums=[
- {id:1, title:"樱花树下的午后 · 日系写真", tag:"日系清新", views:12400, likes:3200, n:32, vip:false, art:"",  h:"s2", rating:4.8, date:11},
- {id:2, title:"仲夏夜之梦 · 洛丽塔特辑",   tag:"洛丽塔",   views:9800,  likes:2700, n:26, vip:true,  art:"v2", h:"s4", rating:4.7, date:10},
- {id:3, title:"秋日物语 · 和风浴衣漫步",   tag:"和风浴衣", views:8100,  likes:2100, n:24, vip:true,  art:"v3", h:"s1", rating:4.6, date:9},
- {id:4, title:"青空与白云 · 清新街拍",     tag:"街拍文艺", views:7600,  likes:1900, n:18, vip:false, art:"v4", h:"s3", rating:4.5, date:12},
- {id:5, title:"月夜花嫁 · 古风汉服大片",   tag:"古风汉服", views:15200, likes:4600, n:36, vip:true,  art:"v3", h:"s4", rating:4.9, date:8},
- {id:6, title:"放学后的天台 · JK 制服日记",tag:"JK 制服",  views:11000, likes:3000, n:28, vip:false, art:"v2", h:"s2", rating:4.7, date:11},
- {id:7, title:"冬日暖阳 · 居家慵懒风",     tag:"日系清新", views:6300,  likes:1500, n:20, vip:false, art:"v4", h:"s1", rating:4.4, date:7},
- {id:8, title:"星海之约 · 梦幻夜景特辑",   tag:"人气模特", views:13900, likes:4100, n:30, vip:true,  art:"",   h:"s3", rating:4.8, date:6},
- {id:9, title:"晨雾森林 · 生态写真集",     tag:"街拍文艺", views:1200,  likes:320,  n:22, vip:false, art:"v4", h:"s2", rating:4.3, date:13},
- {id:10,title:"蔷薇少女 · 哥特萝莉风",     tag:"洛丽塔",   views:980,   likes:256,  n:16, vip:true,  art:"v3", h:"s1", rating:4.5, date:13},
- {id:11,title:"海风与夏祭 · 浴衣回",       tag:"和风浴衣", views:2100,  likes:540,  n:26, vip:true,  art:"",   h:"s3", rating:4.6, date:14},
- {id:12,title:"教室的窗边 · JK 日常",      tag:"JK 制服",  views:1700,  likes:430,  n:19, vip:false, art:"v2", h:"s4", rating:4.4, date:14},
- {id:13,title:"初雪与红叶 · 汉服冬装",     tag:"古风汉服", views:3400,  likes:880,  n:24, vip:true,  art:"v3", h:"s2", rating:4.7, date:15},
- {id:14,title:"橘色黄昏 · 元气写真",       tag:"人气模特", views:5200,  likes:1400, n:22, vip:false, art:"",   h:"s1", rating:4.6, date:15},
- {id:15,title:"云端漫步 · 白裙特辑",       tag:"日系清新", views:2900,  likes:720,  n:18, vip:true,  art:"v2", h:"s3", rating:4.5, date:16},
- {id:16,title:"铁道与远方 · 旅拍纪实",     tag:"街拍文艺", views:1800,  likes:390,  n:20, vip:false, art:"v4", h:"s4", rating:4.2, date:16},
+/* =========================================================
+   数据
+   ========================================================= */
+const AUTHORS=[
+  {id:'suzuki',name:'铃木美咲',initial:'铃',color:'linear-gradient(135deg,#ff2d55,#ff7a52)',works:14,subs:2841,bio:'日系自然光 · 少女感',
+   since:'2025-03-18',alias:'咲酱、Suzuki',
+   about:'长期更新日系写真，擅长自然光与室内弱光场景，作品以通透的肤色和不做作的姿态见长。拍摄多为自拍与双人协作，后期只做基础调色，尽量保留原始质感。已连续更新四十余套，稳定每月两更，近期开始尝试胶片机与逆光系列。'},
+  {id:'bailu',  name:'白露',    initial:'白',color:'linear-gradient(135deg,#5b8def,#8fc3ff)',works:9, subs:1632,bio:'清新旅拍 · 胶片质感',
+   since:'2025-06-02',alias:'BaiLu、阿露',
+   about:'偏好户外旅拍与胶片质感，常在海边、公路、老城区取景。构图安静，色调偏冷，喜欢用大光圈压缩背景。作品多为 35mm 胶片与数码混拍，一整套里通常保留一小部分虚焦废片作为花絮。'},
+  {id:'nanzhi', name:'南栀',    initial:'南',color:'linear-gradient(135deg,#2fbf8f,#7fe3bd)',works:8, subs:1245,bio:'都市夜景 · 情绪人像',
+   since:'2025-09-14',alias:'Nanzhi',
+   about:'城市夜景与情绪人像方向的创作者，习惯在便利店、地铁口、天台等生活场景里拍摄。灯光多用现场光加一支小型补光棒，追求颗粒感与轻微欠曝的氛围。偶尔会写拍摄手记，说明每套图的选址与时间。'},
+  {id:'taoyao', name:'桃夭',    initial:'桃',color:'linear-gradient(135deg,#ff8a3d,#ffc46b)',works:11,subs:2108,bio:'制服 · 洛丽塔',
+   since:'2025-01-27',alias:'桃桃、Taoyao',
+   about:'制服与洛丽塔主题的常驻作者，服装与道具基本自备，一套图往往会准备三到四组造型。拍摄风格偏甜美，喜欢用大面积柔光和浅色背景，也会定期做主题企划，例如茶会、女仆日、万圣节特别篇。'},
+  {id:'qingzhi',name:'青栀',    initial:'青',color:'linear-gradient(135deg,#8c63f0,#c49bff)',works:7, subs:986, bio:'国风 · 汉服',
+   since:'2025-08-05',alias:'QingZhi、小青',
+   about:'专注国风与汉服，擅长把传统纹样、发饰与现代表情结合，场景多选园林、古建与竹林。拍摄前会做完整的造型设计稿，作品里常附服饰与妆造的说明，方便同好参考。'},
+  {id:'suhe',   name:'苏禾',    initial:'苏',color:'linear-gradient(135deg,#3f8fd6,#7fc4f0)',works:4, subs:742, bio:'校园 · 日系',
+   since:'2025-11-02',alias:'苏苏、Suhe',
+   about:'校园题材常驻作者，取景以图书馆、教室、操场为主，偏好下午三点的侧逆光。服装多为自备的JK与白衬衫，一套图里会保留几张走神、低头的抓拍，气质干净不刻意。'},
+  {id:'linxi',  name:'林溪',    initial:'林',color:'linear-gradient(135deg,#e0a53a,#f5d68a)',works:3, subs:618, bio:'户外 · 泳装',
+   since:'2026-02-11',alias:'溪溪、Linxi',
+   about:'户外与泳装方向的作者，作品多拍于海边、泳池与山间溪谷。习惯在日落前一小时开机，靠自然光做层次，色彩偏高饱和。夏季更新较密，冬季会转向温泉与旅拍系列。'}
+];
+const A=id=>AUTHORS.find(x=>x.id===id);
+const authorCount=id=>ALBUMS.filter(a=>a.authorId===id).length;
+
+/* 标题 / 作者索引 / 标签 / 图片数 / 视频数 / 发布日期 */
+const RAW=[
+['2026.11.17 绝对主观美少女Vol.6',0,['黑丝','内衣','日系'],37,1,'2026-11-17'],
+['2026.11.14 白裙与午后的窗',1,['白裙','日系','清新'],26,0,'2026-11-14'],
+['2026.11.12 冬夜暖光 · 居家私影',2,['居家','内衣','暖光'],31,1,'2026-11-12'],
+['2026.11.09 银座街头 · 都市夜景',0,['街拍','夜景','都市'],24,0,'2026-11-09'],
+['2026.11.05 猫耳女仆的下午茶',3,['女仆','洛丽塔','可爱'],33,1,'2026-11-05'],
+['2026.11.01 海边的泳装记忆',1,['泳装','海边','夏日'],28,2,'2026-11-01'],
+['2026.10.28 汉服 · 月上柳梢',4,['古风','汉服','国风'],40,0,'2026-10-28'],
+['2026.10.25 教室后排的秘密',2,['JK','校园','制服'],22,0,'2026-10-25'],
+['2026.10.21 现役JK的美脚连裤袜',0,['JK','白丝','制服'],29,0,'2026-10-21'],
+['2026.10.18 黑色蕾丝的诱惑',3,['黑丝','内衣','蕾丝'],36,1,'2026-10-18'],
+['2026.10.15 浮世花罗蝶（上卷）',0,['和风','浴衣','日系'],35,0,'2026-10-15'],
+['2026.10.11 秋日红叶和服',0,['和风','和服','秋日'],30,0,'2026-10-11'],
+['2026.10.05 白丝与过膝袜图鉴',1,['白丝','制服','图鉴'],34,0,'2026-10-05'],
+['2026.09.30 天台上的夏末',2,['日系','清新','校园'],25,0,'2026-09-30'],
+['2026.09.25 洛丽塔茶会',3,['洛丽塔','茶会','可爱'],32,1,'2026-09-25'],
+['2026.09.18 旗袍 · 旧上海',4,['国风','旗袍','复古'],39,0,'2026-09-18'],
+['2026.09.12 健身房私教时间',2,['运动','内衣','健身'],27,1,'2026-09-12'],
+['2026.09.06 雨天的透明伞',1,['日系','街拍','雨天'],23,0,'2026-09-06'],
+['2026.09.01 双马尾与百褶裙',3,['JK','制服','双马尾'],29,0,'2026-09-01'],
+['2026.08.25 温泉旅馆的一夜',0,['和风','浴衣','温泉'],35,1,'2026-08-25'],
+['2026.08.19 夏日祭典 · 浴衣回',4,['和风','浴衣','祭典'],31,0,'2026-08-19'],
+['2026.08.14 游龙清影 · 西施',4,['古风','国风','cos'],38,2,'2026-08-14'],
+['2026.08.09 白裙与海边公路',1,['白裙','旅拍','清新'],26,0,'2026-08-09'],
+['2026.08.03 深夜便利店的她',2,['街拍','夜景','便利店'],21,0,'2026-08-03'],
+['2026.07.28 蕾丝睡衣的清晨',3,['内衣','居家','蕾丝'],33,2,'2026-07-28'],
+['2026.07.22 剑道少女',4,['制服','运动','和风'],28,0,'2026-07-22'],
+['2026.07.16 樱花与制服',0,['日系','樱花','制服'],36,1,'2026-07-16'],
+['2026.07.10 摄影棚 · 黑白情绪',1,['艺术','黑白','情绪'],24,0,'2026-07-10'],
+['2026.07.04 猫系少女的午后',3,['日系','猫系','居家'],30,0,'2026-07-04'],
+['2026.06.28 美人女教师想和我谈恋爱',0,['JK','制服','剧情'],42,1,'2026-06-28'],
+['2026.11.16 海边日落泳装',6,['泳装','海边','夏日'],33,2,'2026-11-16'],
+['2026.11.10 图书馆的午后',5,['校园','日系','制服'],28,0,'2026-11-10'],
+['2026.10.30 泳池边的午后',6,['泳装','夏日','清新'],27,1,'2026-10-30'],
+['2026.10.19 白衬衫与百褶裙',5,['JK','制服','校园'],31,1,'2026-10-19'],
+['2026.09.28 秋日银杏小径',5,['秋日','日系','街拍'],25,0,'2026-09-28'],
+['2026.09.20 山间溪谷旅拍',6,['户外','旅拍','清新'],24,0,'2026-09-20'],
+['2026.09.08 教室窗边的她',5,['校园','日系','制服'],29,0,'2026-09-08']
+];
+const ALBUMS=RAW.map((r,i)=>{
+  const a=AUTHORS[r[1]];
+  return {
+    id:1000+i, title:r[0], authorId:a.id, tags:r[2], imgs:r[3], videos:r[4], date:r[5],
+    favs: 168+((i*263)%1520), views: 1260+((i*911)%4980),
+    points: i%4===0?2:1,
+    size: (300+((i*97)%620))+'.'+(((i*37)%80)+10)+' MB',
+    art:(i%8)+1, h:[300,336,372,404,320,352][i%6],
+    intro:`${a.name}的个人写真企划，本套以「${r[2][0]}」为主题，收录 ${r[3]} 张图片${r[4]?`与 ${r[4]} 段视频`:''}。全程自然光拍摄，保留原始肤色与质感，包含特写、半身与全身构图，部分为未公开花絮。`
+  };
+});
+const byId=id=>ALBUMS.find(a=>a.id===id);
+
+const NOTICES=[
+  {tag:'置顶',title:'关于图集发布与内容审核的说明',date:'2026-11-17',desc:'全站图集仅由管理员统一发布与审核，注册用户与会员均不提供上传入口。',body:[
+    '为保障内容质量与合规性，希尔薇图集所有图集均由管理员统一编排、发布与上架，站点不开放用户上传或发布入口。',
+    '作者如需合作投稿，请通过「联系我们」提交作品集与身份信息，审核通过后由管理员代为发布，并在图集页标注作者信息。',
+    '所有图片均经过人工复核后展示，违规内容一律不予上架。'
+  ]},
+  {tag:'更新',title:'11 月第三批图集已更新（6 套 / 189 张）',date:'2026-11-16',desc:'铃木美咲、白露、南栀三位作者的新图已上架，付费会员可打包下载原图。',body:[
+    '本次共更新 6 套图集，合计 189 张图片与 3 段视频。',
+    '付费会员可直接在详情页右侧点击「解锁 / 下载」获取整包原图；注册会员可用下载积分解锁单套图集。'
+  ]},
+  {tag:'活动',title:'月卡限时 8 折 · 至 11 月 30 日',date:'2026-11-12',desc:'付费会员月卡活动价 ¥15.2，活动结束后恢复 ¥19。',body:[
+    '活动期间开通付费会员月卡享 8 折优惠，权益与正价一致。',
+    '会员按月计费，30 天后到期，可随时手动续费。'
+  ]},
+  {tag:'维护',title:'图片 CDN 节点升级完成',date:'2026-11-08',desc:'本次升级后图片首屏加载平均提速约 40%，移动端体验改善明显。',body:[
+    '图片分发已切换至新的 CDN 节点，首屏加载速度提升约 40%。',
+    '如遇个别图片加载异常，可尝试刷新页面或清理缓存。'
+  ]},
+  {tag:'规则',title:'评论区规则：回复需管理员审核后展示',date:'2026-11-02',desc:'为减少广告与违规内容，评论回复将进入审核队列，通过后对所有人可见。',body:[
+    '发表的一级评论即时展示，他人的回复内容需经管理员审核后展示。',
+    '审核通常在 24 小时内完成，违规内容将被删除并记录。'
+  ]},
+  {tag:'更新',title:'新增「标签云」与「瀑布流」入口',date:'2026-10-26',desc:'首页导航新增标签与瀑布流，可按标签快速检索，也可无限下滑浏览推荐。',body:[
+    '标签页按收录数量排序，点击任一标签即可进入对应的卡片列表。',
+    '瀑布流根据浏览与收藏行为推荐，向下滚动自动加载更多。'
+  ]},
+  {tag:'更新',title:'瀑布流推荐算法优化，重复率下降',date:'2026-10-22',desc:'新版推荐会结合最近浏览与收藏，同一作者的作品不会连续出现。',body:[
+    '本次调整后，同一作者、同一标签的作品在首屏内不会重复出现。',
+    '已收藏的图集权重下调，避免首页一直推荐同一批内容。'
+  ]},
+  {tag:'规则',title:'图集标签规范化说明',date:'2026-10-17',desc:'标签统一为服饰、场景、风格三类，避免同义词重复建标。',body:[
+    '新增图集请优先复用已有标签，例如「白丝」不再另建「白色丝袜」。',
+    '标签由管理员在发布时维护，用户侧不可自行新增。'
+  ]},
+  {tag:'通知',title:'关于禁止倒卖站点资源的声明',date:'2026-10-12',desc:'任何形式的二次售卖、搬运、去水印转售均属违规，将封禁账号并追责。',body:[
+    '站内所有图集版权归作者与站点共有，仅限个人观看使用。',
+    '发现倒卖行为可向客服举报，核实后给予积分奖励。'
+  ]},
+  {tag:'活动',title:'万圣节主题图集上线',date:'2026-10-08',desc:'桃夭、青栀的万圣节特别企划已上架，会员可打包下载。',body:[
+    '本次共 3 套主题图集，包含哥特、女巫与南瓜灯三组造型。',
+    '活动期间付费会员下载不限速。'
+  ]},
+  {tag:'维护',title:'支付通道维护通知（10/05 02:00-04:00）',date:'2026-10-03',desc:'维护期间支付宝下单可能失败，结束后自动恢复。',body:[
+    '维护窗口为 10 月 5 日 02:00 至 04:00，期间下单可能失败。',
+    '维护结束后未支付的订单会自动取消，可重新下单。'
+  ]},
+  {tag:'规则',title:'作者入驻与投稿说明',date:'2026-09-28',desc:'站点不开放用户上传，作者合作统一走管理员代为发布。',body:[
+    '有意合作的作者请通过「联系我们」提交作品集与身份信息。',
+    '审核通过后由管理员代为编排、发布，并在作者页展示简介与别名。'
+  ]},
+  {tag:'更新',title:'移动端体验优化：图片加载与手势',date:'2026-09-22',desc:'详情页支持双击缩放与左右滑动切图，弱网下优先加载预览图。',body:[
+    '移动端详情页新增双击放大、双指缩放与滑动切换。',
+    '弱网环境先加载低清预览，滚动到位后再替换为高清图。'
+  ]},
+  {tag:'活动',title:'国庆活动：月卡 7 折',date:'2026-09-26',desc:'9 月 28 日至 10 月 8 日，付费会员月卡 ¥13.3。',body:[
+    '活动价仅限月卡，一次性开通一个月。',
+    '活动期间开通的会员，权益与正价一致。'
+  ]},
+  {tag:'规则',title:'评论区规范更新',date:'2026-09-15',desc:'新增禁止发布联系方式、引流链接等条款，违规将禁言 7 天起。',body:[
+    '评论区禁止发布任何联系方式、群号与外链。',
+    '首次违规禁言 7 天，累计三次永久关闭评论权限。'
+  ]},
+  {tag:'更新',title:'新增「订阅作者」功能',date:'2026-09-10',desc:'在作者页点订阅，该作者有新图时会收到站内通知。',body:[
+    '订阅后可在「我的通知」中查看作者更新提醒。',
+    '订阅不占用收藏额度，可随时取消。'
+  ]},
+  {tag:'通知',title:'站点域名与备案信息更新',date:'2026-09-04',desc:'站点已切换至新域名，旧域名将保留 301 跳转 90 天。',body:[
+    '请更新浏览器书签，旧链接会自动跳转到新域名。',
+    '备案信息已在页脚更新，如有疑问可联系客服。'
+  ]},
+  {tag:'规则',title:'压缩包下载失败的排查指引',date:'2026-08-30',desc:'下载中断多为网络波动或浏览器拦截，可按以下步骤排查。',body:[
+    '先确认剩余磁盘空间不小于压缩包体积的两倍。',
+    '若浏览器提示「不安全下载」，请在下载栏选择保留。',
+    '仍然失败可更换浏览器或使用手机热点重试。'
+  ]}
 ];
 
-/* ================= 状态 ================= */
-const store=JSON.parse(localStorage.getItem('sg_state')||'{}');
-const state={
-  view:'home', tag:'全部', kw:'', sort:'hot', shown:8, ptab:'fav',
-  liked:new Set(store.liked||[]),
-  favs:new Set(store.favs||[]),
-  history:store.history||[],
-  user:store.user||null,
-  vip:!!store.vip,
+/* 站内通知（我的通知） */
+const NOTIFIES=[
+  {id:'n1',type:'update',title:'铃木美咲 发布了新图集',desc:'2026.11.17 绝对主观美少女Vol.6 已上架，共 37 张图片 / 1 个视频',time:'2 小时前',albumId:1000},
+  {id:'n2',type:'audit',title:'你的回复已提交审核',desc:'在《2026.11.17 绝对主观美少女Vol.6》下的回复「12321」等待管理员审核',time:'刚刚'},
+  {id:'n3',type:'vip',title:'付费会员即将到期',desc:'你的付费会员将在 30 天后到期，到期前续费可连续享受权益',time:'5 小时前'},
+  {id:'n4',type:'update',title:'白露 发布了新图集',desc:'2026.11.14 白裙与午后的窗 已上架，共 26 张图片',time:'3 天前',albumId:1001},
+  {id:'n5',type:'vip',title:'付费会员权益更新',desc:'新增「新图提前 3 天抢先看」，你当前已可使用',time:'4 天前'},
+  {id:'n6',type:'sys',title:'图片节点升级完成',desc:'图片 CDN 节点升级完成，首屏加载平均提速约 40%',time:'9 天前'},
+  {id:'n7',type:'sys',title:'新设备登录提醒',desc:'检测到你在新设备登录，如非本人操作请及时修改密码',time:'12 天前'}
+];
+const NT_LABEL={audit:'审核',update:'更新',vip:'权益',sys:'系统'};
+const NT_ICON={
+  audit:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="m9 12 2 2 4-4"/></svg>',
+  update:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 16-5-5-9 9"/></svg>',
+  vip:'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 8l4 3 5-7 5 7 4-3-2 11H5L3 8z"/></svg>',
+  sys:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01"/><path d="M11 11.5h1V16"/></svg>'
 };
-let curAlbum=null,curImg=0;
-const save=()=>localStorage.setItem('sg_state',JSON.stringify({
-  liked:[...state.liked],favs:[...state.favs],history:state.history,user:state.user,vip:state.vip}));
+const CROWN_ICON='<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 8l4 3 5-7 5 7 4-3-2 11H5L3 8z"/></svg>';
 
-/* ================= 工具 ================= */
+/* =========================================================
+   状态
+   ========================================================= */
+const KEY='sylvie_v1_state';
+const cache=JSON.parse(localStorage.getItem(KEY)||'{}');
+const state={
+  view:'home',
+  sort:'new',
+  page:1,
+  ftag:null,
+  fauthor:null,
+  kw:'',
+  meTab:'center',
+  user:cache.user||null,
+  vip:!!cache.vip,
+  vipUntil:cache.vipUntil||null,
+  favs:new Set(cache.favs||[]),
+  subs:new Set(cache.subs||[]),
+  unlocked:new Set(cache.unlocked||[]),
+  readNotices:new Set(cache.readNotices||[]),
+  comments:cache.comments||{},
+  curId:null,
+  curAuthor:null,
+  apage:1
+};
+const save=()=>localStorage.setItem(KEY,JSON.stringify({
+  user:state.user,vip:state.vip,vipUntil:state.vipUntil,favs:[...state.favs],subs:[...state.subs],
+  unlocked:[...state.unlocked],readNotices:[...state.readNotices],comments:state.comments
+}));
+
+/* =========================================================
+   工具
+   ========================================================= */
 const $=s=>document.querySelector(s);
-const fmt=n=>n>=10000?(n/10000).toFixed(1)+'w':n>=1000?(n/1000).toFixed(1)+'k':n;
-const byId=id=>albums.find(a=>a.id===id);
-let toastTimer;
+const $$=s=>[...document.querySelectorAll(s)];
+const fmt=n=>n>=10000?(n/10000).toFixed(1)+'w':n>=1000?(n/1000).toFixed(1)+'k':String(n);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let tTimer;
 function toast(msg){
-  const t=$('#toast');t.textContent=msg;t.classList.add('show');
-  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),1800);
+  const t=$('#toast');t.textContent=msg;t.classList.add('on');
+  clearTimeout(tTimer);tTimer=setTimeout(()=>t.classList.remove('on'),1900);
 }
+function openModal(id){$('#'+id).classList.add('on');document.body.style.overflow='hidden'}
+function closeModal(id){$('#'+id).classList.remove('on');document.body.style.overflow=''}
+$$('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id)}));
 
-/* ================= 视图切换 ================= */
-function go(view){
-  if(view!=='detail')state.prevView=view;
-  state.view=view;
-  document.body.classList.toggle('in-detail',view==='detail');
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  $('#view-'+view).classList.add('active');
-  document.querySelectorAll('.header-nav a[data-go], .tabbar a, .drawer a').forEach(a=>
-    a.classList.toggle('active',a.dataset.go===view));
-  toggleDrawer(false);window.scrollTo({top:0});
-  if(view==='discover')renderDiscover();
-  if(view==='profile')renderProfile();
-  if(view==='vip')renderVipStatus();
+/* 二次确认 */
+let cfCallback=null;
+function confirmDo(opt){
+  $('#cfTitle').textContent=opt.title||'确认操作';
+  $('#cfText').textContent=opt.text||'';
+  $('#cfOk').textContent=opt.ok||'确认';
+  cfCallback=opt.onOk||null;
+  openModal('mConfirm');
+}
+$('#cfOk').onclick=()=>{
+  closeModal('mConfirm');
+  const fn=cfCallback;
+  cfCallback=null;
+  if(fn)fn();
+};
+
+/* =========================================================
+   路由
+   ========================================================= */
+function go(v){
+  state.view=v;
+  $$('.view').forEach(el=>el.classList.toggle('on',el.id==='view-'+v));
+  $$('.nav a,.mnav a').forEach(a=>a.classList.toggle('on',a.dataset.go===v));
+  document.body.classList.toggle('in-detail',v==='detail');
+  $('#userMenu').classList.remove('on');
+  window.scrollTo(0,0);
+  if(v==='home')renderHome();
+  if(v==='albums')renderAlbums();
+  if(v==='feed')renderFeed();
+  if(v==='tags')renderTags();
+  if(v==='notice')renderNotices();
+  if(v==='me')renderMe();
+  if(v==='author')renderAuthor();
+  if(v==='authors')renderAuthors();
 }
 document.addEventListener('click',e=>{
   const el=e.target.closest('[data-go]');
   if(el){e.preventDefault();go(el.dataset.go)}
+  if(!e.target.closest('.user-wrap'))$('#userMenu').classList.remove('on');
 });
-function toggleDrawer(open){
-  $('#drawer').classList.toggle('show',open);
-  $('#mask').classList.toggle('show',open);
-}
 
-/* ================= 卡片（瀑布流） ================= */
+/* =========================================================
+   卡片
+   ========================================================= */
 function cardHTML(a){
-  return `<div class="wf-item"><div class="card" onclick="openDetail(${a.id})">
-    <div class="thumb ${a.h}">
-      <div class="art ${a.art}"></div>
-      <span class="badge ${a.vip?'':'free'}">${a.vip?'VIP':'免费'}</span>
-      <span class="count">📷 ${a.n}P</span>
-      <div class="shade"><b>${a.title}</b></div>
+  const au=A(a.authorId);
+  const faved=state.favs.has(a.id);
+  return `<article class="card" onclick="openAlbum(${a.id})">
+    <div class="thumb">
+      <div class="art a${a.art}" style="--h:${a.h}px"></div>
+      <div class="badges">
+        <span class="pill">${a.imgs}P</span>
+        ${a.videos?`<span class="pill v">${a.videos}V</span>`:''}
+      </div>
     </div>
-    <div class="card-foot">
-      <span class="tag">${a.tag}</span>
-      <span>👁 ${fmt(a.views)}</span>
-      <span>❤ ${fmt(a.likes+(state.liked.has(a.id)?1:0))}</span>
-      <span class="sp"></span>
-      <span class="fav ${state.favs.has(a.id)?'on':''}" onclick="event.stopPropagation();quickFav(${a.id})">${state.favs.has(a.id)?'⭐':'☆'}</span>
+    <div class="cbody">
+      <h3 class="ctitle">${esc(a.title)}</h3>
+      <div class="cmeta">
+        <span class="ava" style="background:${au.color}">${au.initial}</span>
+        <span class="cname">${au.name}</span>
+        <span class="cfav ${faved?'on':''}" onclick="event.stopPropagation();toggleFav(${a.id},this)" title="收藏">
+          ${faved?'★':'☆'} ${fmt(a.favs+(faved?1:0))}
+        </span>
+      </div>
     </div>
-  </div></div>`;
+  </article>`;
 }
-function wfHTML(list){return list.map(cardHTML).join('')}
+
+/* =========================================================
+   作者列表 / 首页作者图卡
+   ========================================================= */
+function authorCardHTML(au){
+  const i=AUTHORS.indexOf(au);
+  return `<div class="author-card" onclick="openAuthor('${au.id}')">
+      <div class="au-cover">
+        <div class="art a${(i%8)+1}"></div>
+        <span class="au-badge">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="13" height="14" rx="2"/><path d="M7.5 2.5h11A2 2 0 0 1 20.5 4.5v11"/></svg>
+          ${authorCount(au.id)}
+        </span>
+      </div>
+      <div class="au-cname">${au.name}</div>
+    </div>`;
+}
+function renderAuthors(){
+  const input=$('#auSearch');
+  if(input)input.value='';
+  fillAuthors('');
+}
+function fillAuthors(kw){
+  const q=(kw||'').trim().toLowerCase();
+  const list=AUTHORS.filter(au=>!q||(au.name+' '+au.alias+' '+au.bio).toLowerCase().includes(q));
+  $('#auCount').textContent=`共 ${list.length} 位作者`;
+  $('#authorsGrid').innerHTML=list.map(authorCardHTML).join('');
+  $('#authorsGrid').style.display=list.length?'grid':'none';
+  $('#authorsEmpty').style.display=list.length?'none':'block';
+}
+
+/* =========================================================
+   首页
+   ========================================================= */
 function renderHome(){
-  $('#gridHot').innerHTML=wfHTML([...albums].sort((a,b)=>b.views-a.views).slice(0,8));
-  $('#gridNew').innerHTML=wfHTML([...albums].sort((a,b)=>b.date-a.date).slice(0,6));
-  $('#gridPick').innerHTML=wfHTML([...albums].sort((a,b)=>b.rating-a.rating).slice(0,4));
+  const recent=[...ALBUMS].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,24);
+  $('#homeRecent').innerHTML=recent.map(cardHTML).join('');
+  $('#recentSub').textContent=`今日新增 2 套 · 最近更新 ${recent[0].date.slice(5).replace('-','/')}`;
+
+  $('#homeAuthors').innerHTML=AUTHORS.map(authorCardHTML).join('');
+
+  $('#homeNotice').innerHTML=NOTICES.slice(0,4).map((n,i)=>`
+    <div class="notice-row" onclick="openNotice(${i})">
+      <span class="ntag ${n.tag==='置顶'?'':'gray'}">${n.tag}</span>
+      <span class="ntitle">${esc(n.title)}</span>
+      <span class="ndate">${n.date.slice(5).replace('-','/')}</span>
+    </div>`).join('');
 }
 
-/* ================= 分类 ================= */
-function renderChips(){
-  const html=TAGS.map(t=>`<button class="chip ${t===state.tag?'active':''}" onclick="pickTag('${t}')">${t}</button>`).join('');
-  $('#discChips').innerHTML=html;
-}
-function pickTag(t){
-  state.tag=t;state.shown=8;renderChips();
-  if(state.view!=='discover')go('discover');else renderDiscover();
-  toast(`分类：${t}`);
-}
-function hotWord(w){
-  state.kw=w;state.shown=8;
-  $('#discSearch').value=w;go('discover');
-}
-
-/* ================= 发现页 ================= */
-function filtered(){
-  let list=albums.filter(a=>
-    (state.tag==='全部'||a.tag===state.tag)&&
-    (!state.kw||(a.title+a.tag).toLowerCase().includes(state.kw.toLowerCase())));
+/* =========================================================
+   图集列表
+   ========================================================= */
+const PAGE=24;
+function filteredAlbums(){
+  let list=ALBUMS.slice();
+  if(state.ftag)list=list.filter(a=>a.tags.includes(state.ftag));
+  if(state.fauthor)list=list.filter(a=>a.authorId===state.fauthor);
+  if(state.kw){
+    const k=state.kw.toLowerCase();
+    list=list.filter(a=>(a.title+' '+a.tags.join(' ')+' '+A(a.authorId).name).toLowerCase().includes(k));
+  }
+  if(state.sort==='new')list.sort((a,b)=>b.date.localeCompare(a.date));
   if(state.sort==='hot')list.sort((a,b)=>b.views-a.views);
-  if(state.sort==='new')list.sort((a,b)=>b.date-a.date);
-  if(state.sort==='rating')list.sort((a,b)=>b.rating-a.rating);
+  if(state.sort==='fav')list.sort((a,b)=>b.favs-a.favs);
   return list;
 }
-function renderDiscover(){
-  const list=filtered();
-  $('#resultCount').textContent=`共 ${list.length} 个图集`;
-  $('#gridDisc').innerHTML=wfHTML(list.slice(0,state.shown));
-  $('#emptyDisc').style.display=list.length?'none':'block';
-  const more=$('#btnMore');
-  more.disabled=state.shown>=list.length;
-  more.textContent=state.shown>=list.length?'没有更多了':'加载更多';
-}
-function loadMore(){state.shown+=8;renderDiscover();toast('已加载更多 ✨')}
-document.querySelectorAll('.sort button').forEach(b=>b.addEventListener('click',()=>{
-  state.sort=b.dataset.sort;state.shown=8;
-  document.querySelectorAll('.sort button').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active');renderDiscover();
-}));
-$('#discSearch').addEventListener('input',e=>{state.kw=e.target.value;state.shown=8;renderDiscover()});
-$('#navSearch').addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&e.target.value.trim()){
-    hotWord(e.target.value.trim());e.target.blur();
+function renderAlbums(){
+  const list=filteredAlbums();
+  const pages=Math.max(1,Math.ceil(list.length/PAGE));
+  if(state.page>pages)state.page=pages;
+  const start=(state.page-1)*PAGE;
+  const shown=list.slice(start,start+PAGE);
+
+  $('#albumsTotal').textContent=ALBUMS.length;
+  $('#albumsCount').textContent=list.length
+    ? `共 ${list.length} 套 · 第 ${state.page} / ${pages} 页`
+    : '没有匹配的图集';
+  $('#albumsGrid').innerHTML=shown.map(cardHTML).join('');
+
+  // 当前筛选条件
+  let f='';
+  if(state.ftag)f+=`<span class="fchip">标签 <b>#${esc(state.ftag)}</b><span onclick="clearFilter('tag')">✕</span></span>`;
+  if(state.fauthor){const au=A(state.fauthor);f+=`<span class="fchip">作者 <b>${au.name}</b><span onclick="clearFilter('author')">✕</span></span>`}
+  if(state.kw)f+=`<span class="fchip">搜索 <b>${esc(state.kw)}</b><span onclick="clearFilter('kw')">✕</span></span>`;
+  if(f)f+=`<span class="fchip" style="background:transparent;border-color:var(--line);color:var(--t3)"><b style="color:var(--t3);font-weight:400">清除全部筛选</b><span onclick="clearFilter('all')" style="font-size:12px">✕</span></span>`;
+  $('#albumFilters').innerHTML=f;
+
+  $('#albumsEmpty').style.display=list.length?'none':'block';
+  $('#albumsGrid').style.display=list.length?'grid':'none';
+
+  // 分页
+  let p='';
+  if(pages>1){
+    p+=`<button ${state.page===1?'disabled':''} onclick="setPage(${state.page-1})">上一页</button>`;
+    for(let i=1;i<=pages;i++)p+=`<button class="${i===state.page?'on':''}" onclick="setPage(${i})">${i}</button>`;
+    p+=`<button ${state.page===pages?'disabled':''} onclick="setPage(${state.page+1})">下一页</button>`;
   }
+  $('#albumsPager').innerHTML=p;
+
+  // 排序态
+  $$('#albumSort button').forEach(b=>b.classList.toggle('on',b.dataset.sort===state.sort));
+}
+function setPage(n){
+  const pages=Math.max(1,Math.ceil(filteredAlbums().length/PAGE));
+  state.page=Math.min(Math.max(1,n),pages);
+  renderAlbums();
+  document.querySelector('#view-albums').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function clearFilter(k){
+  if(k==='tag'||k==='all')state.ftag=null;
+  if(k==='author'||k==='all')state.fauthor=null;
+  if(k==='kw'||k==='all'){state.kw='';$('#navSearch').value=''}
+  state.page=1;renderAlbums();
+}
+$$('#albumSort button').forEach(b=>b.addEventListener('click',()=>{
+  state.sort=b.dataset.sort;state.page=1;renderAlbums();
+}));
+function openTag(t){state.ftag=t;state.fauthor=null;state.kw='';state.page=1;go('albums')}
+function openAuthor(id){state.curAuthor=id;state.apage=1;go('author')}
+
+/* =========================================================
+   作者主页
+   ========================================================= */
+const AU_PAGE=12;
+function renderAuthor(){
+  const au=A(state.curAuthor);
+  if(!au){go('home');return}
+  const list=ALBUMS.filter(a=>a.authorId===au.id).sort((a,b)=>b.date.localeCompare(a.date));
+  const total=list.length;
+  const pages=Math.max(1,Math.ceil(total/AU_PAGE));
+  state.apage=Math.min(Math.max(1,state.apage),pages);
+  const shown=list.slice((state.apage-1)*AU_PAGE,state.apage*AU_PAGE);
+  const latest=list[0]?list[0].date:'—';
+  const subbed=state.subs.has(au.id);
+
+  let pager='';
+  if(pages>1){
+    pager+=`<button ${state.apage===1?'disabled':''} onclick="setAuthorPage(${state.apage-1})">上一页</button>`;
+    for(let i=1;i<=pages;i++)pager+=`<button class="${i===state.apage?'on':''}" onclick="setAuthorPage(${i})">${i}</button>`;
+    pager+=`<button ${state.apage===pages?'disabled':''} onclick="setAuthorPage(${state.apage+1})">下一页</button>`;
+  }
+
+  $('#view-author').innerHTML=`
+    <section class="au-card">
+      <div class="au-main">
+        <div class="au-ava" style="background:${au.color}">${au.initial}</div>
+        <div class="au-info">
+          <div class="au-top">
+            <h1 class="au-name">${au.name}</h1>
+            <button class="au-sub ${subbed?'on':''}" onclick="toggleSub('${au.id}')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+              ${subbed?'已订阅':'订阅'}
+            </button>
+          </div>
+          <div class="au-meta">
+            <span>${au.since}</span>
+            <span><b>收录 ${total} 套</b> · 当前可下载 ${total} 套</span>
+            <span>最近更新 ${latest}</span>
+            <span>别名：${au.alias}</span>
+          </div>
+          <p class="au-desc">其中 ${total} 套提供原图压缩包；积分解锁后可在线查看全部并下载，付费会员全站畅看。</p>
+          <p class="au-bio" id="auBio">${esc(au.about)}</p>
+          <button class="au-more" id="auMore" onclick="toggleBio()">展开更多 ∨</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="au-sec">
+      <div class="sec-head"><h2>相关图集</h2><span class="sub">共 ${total} 套</span></div>
+      <div class="card-grid">${shown.map(cardHTML).join('')}</div>
+      <div class="pager">${pager}</div>
+    </section>`;
+
+  // 简介未溢出时隐藏「展开更多」
+  const bio=$('#auBio'),more=$('#auMore');
+  if(bio&&more&&bio.scrollHeight<=bio.clientHeight+2)more.style.display='none';
+}
+function setAuthorPage(n){
+  const total=ALBUMS.filter(a=>a.authorId===state.curAuthor).length;
+  const pages=Math.max(1,Math.ceil(total/AU_PAGE));
+  state.apage=Math.min(Math.max(1,n),pages);
+  renderAuthor();
+  const el=document.querySelector('#view-author');
+  if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function toggleBio(){
+  const bio=$('#auBio'),more=$('#auMore');
+  if(!bio)return;
+  const open=bio.classList.toggle('open');
+  more.textContent=open?'收起 ∧':'展开更多 ∨';
+}
+
+/* 搜索 */
+$('#navSearch').addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  const v=e.target.value.trim();
+  if(!v)return;
+  state.kw=v;state.ftag=null;state.fauthor=null;state.page=1;
+  go('albums');e.target.blur();
 });
 
-/* ================= 侧栏：排行榜 / 标签云 ================= */
-function renderRank(key){
-  const sorters={hot:(a,b)=>b.views-a.views,like:(a,b)=>b.likes-a.likes,rating:(a,b)=>b.rating-a.rating};
-  const list=[...albums].sort(sorters[key]).slice(0,6);
-  const meta={hot:a=>`👁 ${fmt(a.views)}`,like:a=>`❤ ${fmt(a.likes)}`,rating:a=>`★ ${a.rating}`};
-  $('#rankList').innerHTML=list.map((a,i)=>`
-    <div class="rank-item" onclick="openDetail(${a.id})">
-      <span class="rank-num ${i<3?'n'+(i+1):''}">${i+1}</span>
-      <div class="rank-thumb"><div class="art ${a.art}"></div></div>
-      <div class="rank-info"><p>${a.title}</p><span>${meta[key](a)}</span></div>
-    </div>`).join('');
+/* =========================================================
+   瀑布流
+   ========================================================= */
+let feedPool=[],feedShown=0,feedObserver=null,feedDone=false;
+function buildPool(){
+  const base=[...ALBUMS];
+  const pool=[];
+  for(let i=0;i<3;i++){
+    base.forEach((a,j)=>{
+      pool.push({...a, art:((i*3+j)%8)+1, h:[300,340,376,300,410,344,368,320][(i*3+j)%8]});
+    });
+  }
+  return pool.sort(()=>Math.random()-.5);
 }
-document.querySelectorAll('.rank-tabs button').forEach(b=>b.addEventListener('click',()=>{
-  document.querySelectorAll('.rank-tabs button').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active');renderRank(b.dataset.rank);
-}));
-function renderTagCloud(){
-  const extra=['樱花','白裙','夜景','午后','天台','教室','旅拍','元气'];
-  $('#tagCloud').innerHTML=[...TAGS.slice(1),...extra].map(t=>
-    `<a onclick="hotWord('${t}')">${t}</a>`).join('');
+function renderFeed(){
+  feedPool=buildPool();feedShown=0;feedDone=false;
+  $('#feedGrid').innerHTML='';
+  $('#feedTip').textContent='下滑加载更多…';
+  loadFeed();
+  if(feedObserver)feedObserver.disconnect();
+  feedObserver=new IntersectionObserver(es=>{
+    if(es[0].isIntersecting)loadFeed();
+  },{rootMargin:'400px 0px'});
+  feedObserver.observe($('#feedSentinel'));
+}
+function loadFeed(){
+  if(feedDone)return;
+  $('#feedTip').textContent='正在加载…';
+  const size=feedShown===0?24:12;
+  const batch=feedPool.slice(feedShown,feedShown+size);
+  $('#feedGrid').insertAdjacentHTML('beforeend',batch.map(cardHTML).join(''));
+  feedShown+=batch.length;
+  if(feedShown>=48||!batch.length){
+    feedDone=true;
+    $('#feedTip').textContent='— 已经到底啦，去图集页看看全部 —';
+    if(feedObserver)feedObserver.disconnect();
+  }else{
+    $('#feedTip').textContent='下滑加载更多…';
+  }
 }
 
-/* ================= 详情页：无限滚动阅读器 ================= */
-let rendered=0,dObserver=null,idxTicking=false;
-function openDetail(id){
-  if(state.view!=='detail')state.prevView=state.view;
-  curAlbum=byId(id);rendered=0;
-  state.history=[id,...state.history.filter(x=>x!==id)].slice(0,20);save();
-  $('#dT').textContent=curAlbum.title;
-  $('#dTitle').textContent=curAlbum.title;
-  $('#dBadge').textContent=curAlbum.vip?'👑 VIP 专享':'免费图集';
-  $('#dBadge').className='badge-lg'+(curAlbum.vip?'':' free');
-  $('#dMeta').innerHTML=`<span>📷 ${curAlbum.n} 张</span><span>👁 ${fmt(curAlbum.views)}</span><span>❤ ${fmt(curAlbum.likes+(state.liked.has(id)?1:0))}</span><span>★ ${curAlbum.rating}</span>`;
-  $('#dTags').innerHTML=[curAlbum.tag,'人像','唯美','高清'].map(t=>`<span onclick="hotWord('${t}')">${t}</span>`).join('');
-  $('#vipHint').textContent=curAlbum.vip
-    ?(state.vip?'VIP 生效中 · 可打包下载全部原图':'VIP 专享 · 开通会员后可下载原图')
-    :'免费图集 · 登录后可下载';
-  $('#dImages').innerHTML='';
-  $('#dEnd').style.display='none';
-  $('#dCount').textContent=`1 / ${curAlbum.n}`;
-  syncActionBtns();
+/* =========================================================
+   标签
+   ========================================================= */
+function tagStat(){
+  const m={};
+  ALBUMS.forEach(a=>a.tags.forEach(t=>m[t]=(m[t]||0)+1));
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+}
+function renderTags(){
+  const list=tagStat();
+  const max=list[0][1];
+  $('#tagCloud').innerHTML=list.map(([t,n])=>{
+    const lv=Math.min(5,Math.max(1,Math.ceil(n/max*5)));
+    return `<a class="tz${lv}" onclick="openTag('${t}')">#${t}<span class="n">${n}</span></a>`;
+  }).join('');
+}
+
+/* =========================================================
+   公告
+   ========================================================= */
+const NT_PAGE=8;
+let ntKw='',ntPage=1;
+function renderNotices(){
+  ntKw='';ntPage=1;
+  const inp=$('#ntSearch');
+  if(inp)inp.value='';
+  fillNotices();
+}
+function fillNotices(kw){
+  if(typeof kw==='string'){ntKw=kw;ntPage=1;}
+  const q=ntKw.trim().toLowerCase();
+  const list=NOTICES.map((n,i)=>({n,i})).filter(o=>{
+    if(!q)return true;
+    const n=o.n;
+    return (n.title+' '+n.desc+' '+n.body.join(' ')+' '+n.tag).toLowerCase().includes(q);
+  });
+  const pages=Math.max(1,Math.ceil(list.length/NT_PAGE));
+  if(ntPage>pages)ntPage=pages;
+  const shown=list.slice((ntPage-1)*NT_PAGE,ntPage*NT_PAGE);
+
+  $('#ntCount').textContent=list.length?`共 ${list.length} 条 · 第 ${ntPage} / ${pages} 页`:'没有匹配的公告';
+  $('#noticeList').innerHTML=shown.map(o=>`
+    <div class="notice-row notice-page-row" onclick="openNotice(${o.i})">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+          <span class="ntag ${o.n.tag==='置顶'?'':'gray'}">${o.n.tag}</span>
+          <span class="ntitle">${esc(o.n.title)}</span>
+          <span class="ndate">${o.n.date}</span>
+        </div>
+        <div class="ndesc">${esc(o.n.desc)}</div>
+      </div>
+      <span style="color:var(--t3)">›</span>
+    </div>`).join('');
+  $('#noticeList').style.display=list.length?'block':'none';
+  $('#noticeEmpty').style.display=list.length?'none':'block';
+
+  let p='';
+  if(pages>1){
+    p+=`<button ${ntPage===1?'disabled':''} onclick="setNoticePage(${ntPage-1})">上一页</button>`;
+    for(let i=1;i<=pages;i++)p+=`<button class="${i===ntPage?'on':''}" onclick="setNoticePage(${i})">${i}</button>`;
+    p+=`<button ${ntPage===pages?'disabled':''} onclick="setNoticePage(${ntPage+1})">下一页</button>`;
+  }
+  $('#noticePager').innerHTML=p;
+}
+function setNoticePage(n){
+  ntPage=n;
+  fillNotices();
+  const el=$('#view-notice');
+  if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function openNotice(i){
+  const n=NOTICES[i];
+  $('#nTitle').textContent=n.title;
+  $('#nBody').innerHTML=`<div class="nd">${n.date} · ${n.tag}</div>`+n.body.map(p=>`<p>${esc(p)}</p>`).join('');
+  openModal('mNotice');
+}
+
+/* =========================================================
+   详情页
+   ========================================================= */
+function openAlbum(id){
+  state.curId=id;
+  renderDetail();
   go('detail');
-  appendImages(4);          // 首屏先渲染 4 张
-  setupObserver();          // 滚动接近底部时继续加载
 }
-function appendImages(k){
-  const variants=['','v2','v3','v4'];
-  let html='';
-  for(let i=0;i<k&&rendered<curAlbum.n;i++,rendered++){
-    html+=`<div class="d-img"><div class="art ${variants[rendered%4]}"></div><span class="idx">${rendered+1} / ${curAlbum.n}</span></div>`;
+function seedComments(){
+  const base=[
+    {id:'c1',user:'OB123',lv:'free',lvText:'注册会员',time:'15天前',text:'上古时代的宝贝',replies:[
+      {id:'c1r1',user:'sylvie233',lv:'free',lvText:'注册会员',time:'刚刚',text:'12321',to:'OB123',pending:true,mine:true},
+      {id:'c1r2',user:'sylvie233',lv:'free',lvText:'注册会员',time:'刚刚',text:'132123',to:'OB123',pending:true,mine:true},
+      {id:'c1r3',user:'sylvie233',lv:'free',lvText:'注册会员',time:'刚刚',text:'123123123',to:'OB123',pending:true,mine:true}
+    ]},
+    {id:'c2',user:'夜行猫',lv:'vip',lvText:'付费会员',time:'2天前',text:'这组的打光和构图是真的顶，第三张的窗边特写太干净了，期待下卷。',replies:[
+      {id:'c2r1',user:'南栀',lv:'free',lvText:'注册会员',time:'2天前',text:'谢谢喜欢，下卷会多放一些自然光的片子。',to:'夜行猫',pending:false}
+    ]},
+    {id:'c3',user:'一只咸鱼',lv:'free',lvText:'注册会员',time:'4天前',text:'已开月卡，打包下载速度很快，4K 原图没有压缩痕迹。',replies:[]}
+  ];
+  return base;
+}
+function getComments(id){
+  if(!state.comments[id]){
+    state.comments[id]=seedComments();
+    save();
   }
-  $('#dImages').insertAdjacentHTML('beforeend',html);
-  if(rendered>=curAlbum.n)finishAlbum();
+  return state.comments[id];
 }
-function setupObserver(){
-  if(dObserver)dObserver.disconnect();
-  dObserver=new IntersectionObserver(es=>{
-    if(es[0].isIntersecting&&rendered<curAlbum.n)appendImages(3);
-  },{rootMargin:'600px 0px'});
-  dObserver.observe($('#dSentinel'));
+function countComments(list){
+  return list.reduce((s,c)=>s+1+c.replies.length,0);
 }
-function finishAlbum(){
-  if(dObserver){dObserver.disconnect();dObserver=null}
-  let rel=albums.filter(a=>a.id!==curAlbum.id&&a.tag===curAlbum.tag);
-  rel=rel.concat(albums.filter(a=>a.id!==curAlbum.id&&!rel.includes(a)).sort((a,b)=>b.views-a.views));
-  $('#dRelated').innerHTML=rel.slice(0,4).map(a=>`
-    <div class="mini-card" onclick="openDetail(${a.id})">
-      <div class="rthumb"><div class="art ${a.art}"></div><span class="rtag">${a.vip?'VIP':'免费'}</span></div>
-      <p>${a.title}</p>
+function renderDetail(){
+  const a=byId(state.curId);
+  if(!a)return;
+  const au=A(a.authorId);
+  const faved=state.favs.has(a.id);
+  const subbed=state.subs.has(au.id);
+  const isGuest=!state.user;
+  const cmts=getComments(a.id);
+
+  const others=ALBUMS.filter(x=>x.authorId===au.id&&x.id!==a.id).slice(0,5);
+  const contTags=[...new Set(ALBUMS.filter(x=>x.tags.some(t=>a.tags.includes(t))).flatMap(x=>x.tags))].slice(0,6);
+
+  /* --- 媒体区 --- */
+  let media='';
+  if(a.videos>0){
+    media+=`<div class="media-item video">
+      <div class="art a${(a.art%8)+1}"><span class="play"></span></div>
+      <span class="vlabel">视频</span>
+      <span class="dur">00:42</span>
+    </div>`;
+  }
+  /* 未解锁：游客与注册会员都只给前 3 张；解锁（积分解锁 / 付费会员）后看全部并下载 */
+  const unlocked=state.vip||state.unlocked.has(a.id);
+  const visImgs=unlocked?a.imgs:Math.min(3,a.imgs);
+  for(let i=0;i<visImgs;i++){
+    media+=`<div class="media-item zoom" onclick="openLightbox(${i})">
+      <div class="art a${((a.art+i)%8)+1}"></div>
+      <span class="idx">${i+1} / ${a.imgs}</span>
+      <span class="zoom-hint">点击全屏查看</span>
+    </div>`;
+  }
+
+  const dlLabel = unlocked ? '下载全部' : (isGuest ? '登录解锁' : a.points+' 积分解锁');
+
+  const vipCard=`<div class="lock-card hot">
+      <h4>付费会员</h4>
+      <div class="lk-price"><b>¥19</b><small>/月</small></div>
+      <p>全站图集无限畅看，整包下载原图</p>
+      <button class="lk-btn solid" onclick="openPay('付费会员 · 月卡',19)">立即开通</button>
+    </div>`;
+
+  if(!unlocked){
+    media+=`<div class="lock">
+      <div class="lock-icon">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2.2a5.3 5.3 0 0 0-5.3 5.3v2.6h-.4A2.6 2.6 0 0 0 3.7 12.7v6.6a2.6 2.6 0 0 0 2.6 2.6h11.4a2.6 2.6 0 0 0 2.6-2.6v-6.6a2.6 2.6 0 0 0-2.6-2.6h-.4V7.5A5.3 5.3 0 0 0 12 2.2Zm3 7.9H9V7.5a3 3 0 0 1 6 0v2.6Z"/>
+        </svg>
+      </div>
+      <div class="lock-title">还有 <b>${a.imgs-visImgs}</b> 张图片未解锁</div>
+      <div class="lock-cards">
+        ${isGuest?`<div class="lock-card">
+          <h4>免费注册</h4>
+          <p>登录后用 ${a.points} 积分解锁完整 ${a.imgs} 张图集</p>
+          <button class="lk-btn" onclick="openLogin()">登录 / 注册</button>
+        </div>`:`<div class="lock-card">
+          <h4>${a.points} 积分看这一套</h4>
+          <p>解锁后可查看完整 ${a.imgs} 张，并支持下载</p>
+          <button class="lk-btn" onclick="doUnlock()">${a.points} 积分解锁</button>
+        </div>`}
+        ${vipCard}
+      </div>
+    </div>`;
+  }else{
+    media+=`<div class="d-done">已解锁全部 ${a.imgs} 张内容<button onclick="downloadAll()">打包下载（${a.size}）</button></div>`;
+  }
+
+  /* --- 评论区 --- */
+  const cmtHTML=cmts.map(c=>`
+    <div class="cmt-item">
+      <div class="ava" style="background:${c.mine?avatarStyle():'linear-gradient(135deg,#3a3a44,#22222a)'}">${c.mine?avaLetter(c.user):c.user.slice(0,1)}</div>
+      <div class="cmt-body">
+        <div class="cmt-top">
+          <b>${c.user}</b>
+          <span class="lv ${c.lv}">${c.lvText}</span>
+          <span class="t">${c.time}</span>
+          ${c.mine?`<span class="del" onclick="delComment('${c.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg>删除</span>`:''}
+        </div>
+        <div class="cmt-text">${esc(c.text)}</div>
+        <div class="cmt-acts">
+          <button onclick="startReply('${c.id}','${c.user}')">↳ 回复</button>
+        </div>
+        <div id="re-${c.id}"></div>
+        ${c.replies.length?`<div class="replies">
+          ${c.replies.map(r=>`
+            <div class="reply">
+              <div class="ava" style="background:${r.mine?avatarStyle():(r.user==='南栀'?A('nanzhi').color:'linear-gradient(135deg,#3a3a44,#22222a)')}">${r.mine?avaLetter(r.user):r.user.slice(0,1)}</div>
+              <div class="cmt-body">
+                <div class="cmt-top">
+                  <b>${r.user}</b>
+                  <span class="lv ${r.lv}">${r.lvText}</span>
+                  <span class="to">回复 <b>@${r.to}</b></span>
+                  ${r.pending?`<span class="pending">管理员审核后展示</span>`:''}
+                  <span class="t">${r.time}</span>
+                  ${r.mine?`<span class="del" onclick="delReply('${c.id}','${r.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg>删除</span>`:''}
+                </div>
+                <div class="cmt-text">${esc(r.text)}</div>
+                <div class="cmt-acts"><button onclick="startReply('${c.id}','${r.user}')">↳ 回复</button></div>
+              </div>
+            </div>`).join('')}
+        </div>`:''}
+      </div>
     </div>`).join('');
-  $('#dEnd').style.display='block';
-}
-function nextAlbum(){
-  const i=albums.indexOf(curAlbum);
-  openDetail(albums[(i+1)%albums.length].id);
-}
-function backFromDetail(){go(state.prevView||'home')}
-function updateIdx(){
-  if(!curAlbum)return;
-  const imgs=$('#dImages').children;
-  let cur=1;
-  for(let i=0;i<imgs.length;i++){
-    if(imgs[i].getBoundingClientRect().top<window.innerHeight*0.55)cur=i+1;else break;
-  }
-  $('#dCount').textContent=`${cur} / ${curAlbum.n}`;
-}
-function scrollImg(d){
-  const imgs=$('#dImages').children;if(!imgs.length)return;
-  let cur=0;
-  for(let i=0;i<imgs.length;i++){if(imgs[i].getBoundingClientRect().top<window.innerHeight*0.55)cur=i;else break}
-  const t=imgs[Math.min(Math.max(cur+d,0),imgs.length-1)];
-  window.scrollTo({top:t.offsetTop-90,behavior:'smooth'});
-}
-function syncActionBtns(){
-  const lk=state.liked.has(curAlbum.id),fv=state.favs.has(curAlbum.id);
-  document.querySelectorAll('.syncLike').forEach(el=>{
-    el.textContent=(lk?'❤':'♡')+(el.dataset.label||'');
-    el.classList.toggle('on',lk);
-  });
-  document.querySelectorAll('.syncFav').forEach(el=>{
-    el.textContent=(fv?'⭐':'☆')+(el.dataset.label||'');
-    el.classList.toggle('on',fv);
-  });
-}
-function toggleLike(){
-  const id=curAlbum.id;
-  state.liked.has(id)?state.liked.delete(id):state.liked.add(id);
-  save();syncActionBtns();refreshGrids();
-  toast(state.liked.has(id)?'已点赞 ❤':'已取消点赞');
-}
-function toggleFav(){
-  const id=curAlbum.id;
-  state.favs.has(id)?state.favs.delete(id):state.favs.add(id);
-  save();syncActionBtns();refreshGrids();
-  toast(state.favs.has(id)?'已加入收藏 ⭐':'已取消收藏');
-}
-function quickFav(id){
-  state.favs.has(id)?state.favs.delete(id):state.favs.add(id);
-  save();refreshGrids();
-  toast(state.favs.has(id)?'已加入收藏 ⭐':'已取消收藏');
-}
-function downloadAlbum(){
-  if(curAlbum.vip&&!state.vip){toast('该图集为 VIP 专享，请先开通会员 👑');go('vip');return}
-  if(!state.user){toast('请先登录后再下载');openLogin();return}
-  toast('开始打包下载…（原型演示）');
+
+  /* --- 侧边统计卡 --- */
+  const statCard=`
+    <div class="side-card">
+      <div class="sh"><h3>当前图集</h3><span class="r">浏览 ${fmt(a.views)}</span></div>
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="st"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 16-5-5-9 9"/></svg>图片</div>
+          <div class="sv">${a.imgs}</div>
+        </div>
+        <div class="stat">
+          <div class="st"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 11 6-3v8l-6-3z"/></svg>视频</div>
+          <div class="sv">${a.videos}</div>
+        </div>
+        <div class="stat">
+          <div class="st"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 21h16"/></svg>下载积分</div>
+          <div class="sv red">${a.points}</div>
+        </div>
+        <div class="stat">
+          <div class="st"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><path d="M2 8h20v3H2z"/><path d="M12 3v14"/></svg>压缩包</div>
+          <div class="sv">${a.size.split(' ')[0]}<small>MB</small></div>
+        </div>
+      </div>
+      <div class="act-row">
+        <button class="btn btn-red" onclick="doUnlock()">${dlLabel}</button>
+        <button class="act-icon ${faved?'on':''}" onclick="toggleFav(${a.id},true)" title="收藏">${faved?'★':'☆'}</button>
+        <button class="act-icon" onclick="shareAlbum()" title="分享">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.6 6.8-4.2M8.6 13.4l6.8 4.2"/></svg>
+        </button>
+      </div>
+    </div>`;
+
+  const sideCard=`
+    <div class="side-card">
+      <div class="sh"><h3>作者 / 合集</h3><span class="r" onclick="openAuthor('${au.id}')">查看全部 ›</span></div>
+      <div class="side-author" onclick="openAuthor('${au.id}')">
+        <div class="big-ava" style="background:${au.color}">${au.initial}</div>
+        <div>
+          <div class="sn">${au.name}</div>
+          <div class="ss">共收录 ${authorCount(au.id)} 套</div>
+        </div>
+      </div>
+      <div class="side-tip">优先浏览同合集内容</div>
+    </div>`;
+
+  const worksCard=others.length?`
+    <div class="side-card">
+      <div class="sh"><h3>TA 的其他作品</h3><span class="r" onclick="openAuthor('${au.id}')">查看更多 ›</span></div>
+      ${others.map(o=>`
+        <div class="work-row" onclick="openAlbum(${o.id})">
+          <div class="wt"><div class="art a${o.art}"></div></div>
+          <div class="wi">
+            <div class="wn">${esc(o.title)}</div>
+            <div class="wc">${o.imgs}P</div>
+          </div>
+        </div>`).join('')}
+    </div>`:'';
+
+  const contCard=`
+    <div class="side-card">
+      <div class="sh"><h3>继续浏览</h3></div>
+      <div class="cont-tags">
+        <a onclick="openAuthor('${au.id}')">${au.name}</a>
+        ${contTags.map(t=>`<a onclick="openTag('${t}')">#${t}</a>`).join('')}
+      </div>
+    </div>`;
+
+  $('#view-detail').innerHTML=`
+  <div class="detail">
+    <div class="d-main">
+      <div class="crumb">
+        <a data-go="home">首页</a><i>›</i>
+        <a data-go="albums">图集</a><i>›</i>
+        <a onclick="openAuthor('${au.id}')">${au.name}</a><i>›</i>
+        <span>${esc(a.title)}</span>
+      </div>
+
+      <section class="al-head">
+        <div class="al-top">
+          <h1 class="al-title">${esc(a.title)}</h1>
+          <div class="al-acts">
+            <button class="al-btn ${faved?'on':''}" onclick="toggleFav(${a.id})">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="${faved?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7-4.3-9.3-8.6C1.2 8.4 3 5.2 6.2 5.2c2 0 3.5 1.1 5.8 3.4 2.3-2.3 3.8-3.4 5.8-3.4 3.2 0 5 3.2 3.5 6.7C19 16.2 12 20.5 12 20.5z"/></svg>
+              ${faved?'已收藏':'收藏'}
+            </button>
+            <button class="al-btn" onclick="shareAlbum()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.6 6.8-4.2M8.6 13.4l6.8 4.2"/></svg>
+              分享
+            </button>
+          </div>
+        </div>
+        <div class="al-meta">${a.date} ${pubTime(a)} · 浏览 ${fmt(a.views)}</div>
+        <p class="al-desc">收录 ${a.imgs} 张高清图片。${unlocked
+          ? '已解锁全部，可在线查看；原图压缩包 ' + a.size.replace(' MB','') + 'MB，可打包下载。'
+          : (isGuest ? '未登录仅可预览 ' : '可预览 ') + visImgs + ' 张，解锁后在线看全部并支持下载；原图压缩包 ' + a.size.replace(' MB','') + 'MB。'}</p>
+        <p class="al-intro">${esc(a.intro)}</p>
+        <div class="al-chips">
+          <a class="chip author" onclick="openAuthor('${au.id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff2d55" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h11l-2 3.5L16 11H5"/></svg>
+            ${au.name}
+          </a>
+          <button class="chip sub ${subbed?'on':''}" onclick="toggleSub('${au.id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+            ${subbed?'已订阅':'订阅'}
+          </button>
+          <span class="chip num">${a.imgs}P</span>
+          ${a.tags.map(t=>`<a class="chip" onclick="openTag('${t}')">#${t}</a>`).join('')}
+        </div>
+      </section>
+
+      <div class="m-stat">
+        <div><b>${a.imgs}</b><span>图片</span></div>
+        <div><b>${a.videos}</b><span>视频</span></div>
+        <div><b style="color:var(--red2)">${a.points}</b><span>下载积分</span></div>
+        <div><b>${a.size.split(' ')[0]}</b><span>MB 压缩包</span></div>
+      </div>
+
+      <div class="media" id="dMedia">${media}</div>
+
+      <section class="cmt">
+        <div class="cmt-head"><h2>评论</h2><span>${countComments(cmts)} 条</span></div>
+        <div class="cmt-editor">
+          <div class="ava" style="background:${state.user?avatarStyle():'#2a2a32'}">${state.user?avaLetter(state.user.name):'游'}</div>
+          <div class="cmt-input">
+            <textarea id="cmtText" placeholder="${state.user?'说点什么…':'登录后参与讨论…'}" ${state.user?'':'onfocus="openLogin()"' }></textarea>
+            <div class="cmt-bar">
+              <span class="tip">评论与回复经管理员审核后展示</span>
+              <button class="btn btn-red" onclick="addComment()">发布评论</button>
+            </div>
+          </div>
+        </div>
+        <div id="cmtList">${cmtHTML}</div>
+      </section>
+    </div>
+
+    <aside class="d-side">
+      ${statCard}
+      ${sideCard}
+      ${worksCard}
+      ${contCard}
+    </aside>
+  </div>
+
+  <div class="m-acts">
+    <button class="btn btn-red" onclick="doUnlock()">${dlLabel}</button>
+    <button class="act-icon ${faved?'on':''}" onclick="toggleFav(${a.id},true)">${faved?'★':'☆'}</button>
+    <button class="act-icon" onclick="shareAlbum()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.6 6.8-4.2M8.6 13.4l6.8 4.2"/></svg>
+    </button>
+  </div>`;
 }
 
-/* ================= 登录 ================= */
-function openLogin(){openModal('modalLogin')}
-function doLogin(){
-  const email=$('#loginEmail').value.trim(),pwd=$('#loginPwd').value;
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){toast('请输入有效的邮箱地址');return}
+/* 详情页交互 */
+function myLevel(){
+  return state.vip ? {lv:'vip',text:'付费会员'} : {lv:'free',text:'注册会员'};
+}
+function pubTime(a){
+  const n=Number(a.id)||1;
+  return String(9+(n%11)).padStart(2,'0')+':'+String((n*13)%60).padStart(2,'0')+':'+String((n*7)%60).padStart(2,'0');
+}
+function memberText(){
+  return state.vip ? `付费会员 · 有效期至 ${dstr(vipUntil())}` : '注册会员（免费）';
+}
+function vipUntil(){
+  return new Date(state.vipUntil||Date.now()+30*86400000);
+}
+function dstr(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function doUnlock(){
+  const a=byId(state.curId);
+  if(!state.user){toast('登录后可解锁全部内容');openLogin();return}
+  if(state.vip||state.unlocked.has(a.id)){downloadAll();return}
+  const pts=state.user.points||12;
+  if(pts<a.points){toast('下载积分不足，可签到或开通付费会员');return}
+  confirmDo({
+    title:`消耗 ${a.points} 积分解锁本套？`,
+    text:`解锁后可查看全部 ${a.imgs} 张图片${a.videos?`与 ${a.videos} 段视频`:''}，并支持打包下载。当前积分 ${pts} 分，解锁后剩余 ${pts-a.points} 分。`,
+    ok:`确认解锁`,
+    onOk(){
+      state.user.points=pts-a.points;
+      state.unlocked.add(a.id);save();applyUser();
+      renderDetail();
+      toast(`解锁成功，消耗 ${a.points} 积分，已可查看全部并下载`);
+    }
+  });
+}
+function downloadAll(){toast('开始打包下载…（原型演示）')}
+
+/* ---------- 全屏相册 ---------- */
+let lbList=[],lbIndex=0;
+function openLightbox(i){
+  const a=byId(state.curId);
+  if(!a)return;
+  const unlocked=state.vip||state.unlocked.has(a.id);
+  const n=unlocked?a.imgs:Math.min(3,a.imgs);
+  lbList=[];
+  for(let k=0;k<n;k++)lbList.push({art:((a.art+k)%8)+1});
+  lbIndex=Math.max(0,Math.min(i,n-1));
+  $('#lbTip').textContent=unlocked?'':`预览模式 · 解锁看全部 ${a.imgs} 张`;
+  renderLightbox();
+  $('#lightbox').classList.add('on');
+  document.body.classList.add('lb-open');
+}
+function renderLightbox(){
+  const it=lbList[lbIndex];
+  if(!it)return;
+  $('#lbArt').className='art a'+it.art;
+  $('#lbCur').textContent=lbIndex+1;
+  $('#lbTotal').textContent=lbList.length;
+  $('#lbThumbs').innerHTML=lbList.length>1?lbList.map((x,i)=>
+    `<button class="lb-thumb ${i===lbIndex?'on':''}" onclick="lbJump(${i})"><span class="art a${x.art}"></span></button>`
+  ).join(''):'';
+  const kids=$('#lbThumbs').children;
+  if(kids[lbIndex])kids[lbIndex].scrollIntoView({inline:'center',block:'nearest'});
+}
+function lbGo(d){
+  if(!lbList.length)return;
+  lbIndex=(lbIndex+d+lbList.length)%lbList.length;
+  renderLightbox();
+}
+function lbJump(i){lbIndex=i;renderLightbox();}
+function closeLightbox(){
+  $('#lightbox').classList.remove('on');
+  document.body.classList.remove('lb-open');
+}
+function lbBackdrop(e){
+  if(e.target.closest('.lb-stage .art')||e.target.closest('.lb-nav')||e.target.closest('.lb-thumb')||e.target.closest('.lb-top'))return;
+  closeLightbox();
+}
+function shareAlbum(){
+  const url=location.href;
+  if(navigator.clipboard)navigator.clipboard.writeText(url).then(()=>toast('链接已复制到剪贴板')).catch(()=>toast('分享链接：'+url));
+  else toast('分享链接：'+url);
+}
+function toggleFav(id,el){
+  if(state.favs.has(id)){state.favs.delete(id);toast('已取消收藏')}
+  else{state.favs.add(id);toast('已加入收藏 ⭐')}
+  save();
+  const on=state.favs.has(id);
+  if(state.view==='detail'){renderDetail();return}
+  if(el&&el.classList&&el.classList.contains('cfav')){
+    // 瀑布流等场景：只更新当前图标，避免重新渲染打乱滚动位置
+    el.classList.toggle('on',on);
+    el.textContent=(on?'★ ':'☆ ')+fmt(byId(id).favs+(on?1:0));
+    if(state.view==='home'||state.view==='albums')renderCurrent();
+    if(state.view==='me')renderMe();
+    return;
+  }
+  renderCurrent();
+  if(state.view==='me')renderMe();
+}
+function toggleSub(aid){
+  if(!state.user){toast('请先登录后订阅');openLogin();return}
+  if(state.subs.has(aid)){state.subs.delete(aid);toast('已取消订阅')}
+  else{state.subs.add(aid);toast('订阅成功，新图第一时间通知你')}
+  save();
+  if(state.view==='author')renderAuthor();
+  else if(state.view==='detail')renderDetail();
+}
+function renderCurrent(){
+  if(state.view==='home')renderHome();
+  if(state.view==='albums')renderAlbums();
+  if(state.view==='feed'){
+    // 只更新收藏图标，避免重排瀑布流
+    $$('#feedGrid .card').forEach(()=>{});
+  }
+}
+
+/* 评论 */
+let replyTarget=null;
+function startReply(cid,user){
+  if(!state.user){toast('请先登录后回复');openLogin();return}
+  replyTarget={cid,user};
+  const slot=$('#re-'+cid);
+  if(!slot)return;
+  slot.innerHTML=`<div class="reply-editor">
+    <input id="reInput" placeholder="回复 @${user}…" autofocus>
+    <button class="btn btn-red" onclick="submitReply('${cid}','${user}')">回复</button>
+  </div>`;
+  const i=$('#reInput');if(i)i.focus();
+}
+function submitReply(cid,user){
+  const input=$('#reInput');
+  const text=(input&&input.value||'').trim();
+  if(!text){toast('回复内容不能为空');return}
+  const list=getComments(state.curId);
+  const p=list.find(c=>c.id===cid);
+  if(!p)return;
+  p.replies.push({
+    id:'r'+Date.now(), user:state.user.name, lv:myLevel().lv,
+    lvText:myLevel().text, time:'刚刚', text, to:user, pending:true, mine:true
+  });
+  save();renderDetail();
+  setTimeout(()=>{const el=$('#cmtList');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},60);
+  toast('回复已提交，管理员审核后展示');
+}
+function delReply(cid,rid){
+  confirmDo({
+    title:'删除这条回复？',
+    text:'删除后不可恢复，其他人将看不到这条回复。',
+    ok:'删除',
+    onOk(){
+      const list=getComments(state.curId);
+      const p=list.find(c=>c.id===cid);
+      if(!p)return;
+      p.replies=p.replies.filter(r=>r.id!==rid);
+      save();renderDetail();toast('已删除');
+    }
+  });
+}
+function delComment(cid){
+  confirmDo({
+    title:'删除这条评论？',
+    text:'删除后不可恢复，该评论下的回复也会一起消失。',
+    ok:'删除',
+    onOk(){
+      const list=getComments(state.curId);
+      state.comments[state.curId]=list.filter(c=>c.id!==cid);
+      save();renderDetail();toast('已删除');
+    }
+  });
+}
+function addComment(){
+  if(!state.user){toast('请先登录后评论');openLogin();return}
+  const t=$('#cmtText').value.trim();
+  if(!t){toast('说点什么吧');return}
+  const list=getComments(state.curId);
+  list.unshift({
+    id:'c'+Date.now(), user:state.user.name, lv:myLevel().lv,
+    lvText:myLevel().text, time:'刚刚', text:t, replies:[], mine:true
+  });
+  save();renderDetail();toast('评论已发布');
+}
+
+/* =========================================================
+   登录 / 注册
+   ========================================================= */
+let authMode='login';
+function openLogin(mode){
+  authMode=mode||'login';
+  setAuthMode(authMode);
+  openModal('mLogin');
+}
+function setAuthMode(m){
+  authMode=m;
+  $$('#loginTabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===m));
+  $('#regName').style.display=m==='register'?'block':'none';
+  $('#loginTitle').textContent=m==='register'?'注册':'登录';
+  $('#loginSubmit').textContent=m==='register'?'注 册':'登 录';
+}
+$$('#loginTabs button').forEach(b=>b.onclick=()=>setAuthMode(b.dataset.t));
+
+function submitAuth(){
+  const mail=$('#inMail').value.trim();
+  const pwd=$('#inPwd').value;
+  const name=$('#inName').value.trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)){toast('请输入有效的邮箱地址');return}
   if(pwd.length<6){toast('密码至少 6 位');return}
-  state.user={name:email.split('@')[0],email};
-  save();applyUser();closeModal('modalLogin');
-  toast(`欢迎回来，${state.user.name} 🎉`);
+  if(authMode==='register'&&!name){toast('请填写昵称');return}
+
+  const isAdmin=mail.toLowerCase()==='admin@sylvie.cc';
+  const uname=authMode==='register'?name:(cache.user&&cache.user.mail===mail?cache.user.name:mail.split('@')[0]);
+  state.user={name:uname,mail,points:12,admin:isAdmin,avatar:0};
+  save();applyUser();closeModal('mLogin');
+  toast(authMode==='register'?'注册成功，已自动登录 🎉':`欢迎回来，${uname}`);
+  if(state.view==='detail')renderDetail();
+  if(state.view==='me')renderMe();
+}
+function logout(){
+  $('#userMenu').classList.remove('on');
+  confirmDo({
+    title:'退出登录？',
+    text:'退出后需要重新登录才能收藏、评论与下载，本地已解锁记录会保留。',
+    ok:'退出登录',
+    onOk(){
+      state.user=null;save();applyUser();
+      $('#meName').firstChild.textContent='未登录 ';
+      $('#meMail').textContent='登录后可同步收藏、通知与购买记录';
+      if(state.view==='me')renderMe();
+      if(state.view==='detail')renderDetail();
+      toast('已退出登录');
+    }
+  });
 }
 function applyUser(){
-  document.body.classList.toggle('logged-in',!!state.user);
-  const disp=state.user?state.user.name.slice(0,4):'';
-  $('#avaName').textContent=disp;
-  $('#avaLetter').textContent=(state.user?state.user.name[0]:'游').toUpperCase();
-  $('#bigAva').textContent=(state.user?state.user.name[0]:'游').toUpperCase();
-  $('#pfName').innerHTML=state.user?`${disp}${state.vip?' <span class="vip-tag">VIP</span>':''}`:'未登录';
-  $('#pfSub').textContent=state.user?(state.vip?'VIP 会员生效中':'当前为免费用户'):'登录后可同步收藏与浏览历史';
+  const logged=!!state.user;
+  document.body.classList.toggle('logged',logged);
+  if(logged){
+    $('#avaBtn').firstChild.textContent=isUpAva()?'':state.user.name.slice(0,1).toUpperCase();
+    $('#avaBtn').style.background=avatarStyle();
+    $('#crown').style.display=state.vip?'block':'none';
+    $('#umName').textContent=state.user.name;
+    $('#umMail').textContent=state.user.mail;
+    $('#menuAdmin').style.display=state.user.admin?'flex':'none';
+  }
+  const lv=$('#meLv');
+  if(lv){
+    const m=myLevel();
+    lv.style.display=logged?'inline-block':'none';
+    lv.className='lv '+m.lv;
+    lv.textContent=m.text;
+  }
+  const ed=$('#meEdit');
+  if(ed)ed.style.display=logged?'inline-flex':'none';
+  if(logged){
+    $('#meName').firstChild.textContent=state.user.name+' ';
+    $('#meAva').textContent=isUpAva()?'':state.user.name.slice(0,1).toUpperCase();
+    $('#meAva').style.background=avatarStyle();
+  }
 }
 
-/* ================= VIP ================= */
-let payPlan={name:'年度会员',price:128};
-function openPay(name,price){
-  if(state.vip){toast('您已是 VIP 会员，无需重复开通 👑');return}
-  if(!state.user){toast('请先登录后再开通');openLogin();return}
-  payPlan={name,price};
-  $('#payAmount').textContent='¥'+price;
-  $('#payPlanName').textContent=name;
-  openModal('modalPay');
+/* ---------- 个人资料 ---------- */
+const AVATARS=[
+  'linear-gradient(135deg,#ff2d55,#ff7a52)',
+  'linear-gradient(135deg,#5b8def,#8fc3ff)',
+  'linear-gradient(135deg,#2fbf8f,#7fe3bd)',
+  'linear-gradient(135deg,#8c63f0,#c49bff)',
+  'linear-gradient(135deg,#e0a53a,#f5d68a)',
+  'linear-gradient(135deg,#ff8a3d,#ffc46b)',
+  'linear-gradient(135deg,#3f8fd6,#7fc4f0)',
+  'linear-gradient(135deg,#565663,#9a9aa6)'
+];
+function avatarStyle(){
+  const a=state.user&&state.user.avatar;
+  if(typeof a==='string')return `url("${a}") center/cover`;
+  const i=typeof a==='number'?a:0;
+  return AVATARS[i]||AVATARS[0];
 }
-function selPay(el){
-  document.querySelectorAll('.pay-m').forEach(m=>m.classList.remove('sel'));
-  el.classList.add('sel');
+function isUpAva(){return !!(state.user&&typeof state.user.avatar==='string')}
+function avaLetter(name){return isUpAva()?'':name.slice(0,1)}
+let pfAvatar=0;
+function openProfile(){
+  if(!state.user){toast('请先登录');openLogin();return}
+  pfAvatar=(typeof state.user.avatar==='number'||typeof state.user.avatar==='string')?state.user.avatar:0;
+  $('#pfName').value=state.user.name;
+  $('#pfMail').value=state.user.mail;
+  renderAvaPicker();
+  openModal('mProfile');
+}
+function renderAvaPicker(){
+  const initial=(state.user&&state.user.name?state.user.name.slice(0,1):'U').toUpperCase();
+  let h='';
+  if(typeof pfAvatar==='string'){
+    h+=`<button class="ava-opt on" title="当前上传的头像"><img src="${pfAvatar}" alt=""></button>`;
+  }
+  h+=AVATARS.map((g,i)=>
+    `<button class="ava-opt ${i===pfAvatar?'on':''}" style="background:${g}" onclick="pickAvatar(${i})">${initial}</button>`
+  ).join('');
+  $('#avaPicker').innerHTML=h;
+}
+function pickAvatar(i){
+  pfAvatar=i;
+  renderAvaPicker();
+}
+function onPickAvatar(inp){
+  const f=inp.files&&inp.files[0];
+  inp.value='';
+  if(!f)return;
+  if(!/^image\//.test(f.type)){toast('请选择图片文件');return}
+  if(f.size>2*1024*1024){toast('图片不能超过 2MB');return}
+  const rd=new FileReader();
+  rd.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      // 居中裁成正方形并压缩到 256×256，控制本地存储体积
+      const S=256, cv=document.createElement('canvas');
+      cv.width=S;cv.height=S;
+      const ctx=cv.getContext('2d');
+      const side=Math.min(img.width,img.height);
+      ctx.drawImage(img,(img.width-side)/2,(img.height-side)/2,side,side,0,0,S,S);
+      pfAvatar=cv.toDataURL('image/jpeg',0.86);
+      renderAvaPicker();
+      toast('头像已选择，点「保存修改」生效');
+    };
+    img.onerror=()=>toast('图片读取失败，请换一张');
+    img.src=e.target.result;
+  };
+  rd.readAsDataURL(f);
+}
+function saveProfile(){
+  const name=$('#pfName').value.trim();
+  if(!name){toast('昵称不能为空');return}
+  if(name.length>16){toast('昵称最多 16 个字符');return}
+  state.user.name=name;
+  state.user.avatar=pfAvatar;
+  save();applyUser();
+  closeModal('mProfile');
+  toast('资料已更新');
+  if(state.view==='me')renderMe();
+  if(state.view==='detail')renderDetail();
+}
+function toggleMenu(e){
+  e.stopPropagation();
+  $('#userMenu').classList.toggle('on');
+}
+
+/* =========================================================
+   会员 / 支付
+   ========================================================= */
+let payPlan={name:'付费会员 · 月卡',amt:19};
+function openPay(name,amt,renew){
+  if(state.vip&&!renew){toast('你已经是付费会员了 👑');return}
+  if(!state.user){toast('请先登录后开通会员');openLogin();return}
+  payPlan={name,amt,renew:!!renew};
+  $('#payAmt').textContent='¥'+amt;
+  $('#payName').textContent=name;
+  openModal('mPay');
 }
 function doPay(){
-  state.vip=true;save();applyUser();renderVipStatus();closeModal('modalPay');
-  toast('支付成功，VIP 已开通 👑');
+  const renew=payPlan&&payPlan.renew&&state.vip;
+  const base=renew&&state.vipUntil?Math.max(state.vipUntil,Date.now()):Date.now();
+  state.vip=true;
+  state.vipUntil=base+30*86400000;
+  save();applyUser();closeModal('mPay');
+  toast(renew?'续费成功，有效期已延长 30 天 👑':'支付成功，付费会员已开通 👑');
+  if(state.view==='me')renderMe();
+  if(state.view==='detail')renderDetail();
 }
-function renderVipStatus(){
-  $('#vipStatus').textContent=state.vip?'✅ 您已是 VIP 会员，全站图集畅享无阻':'VIP 畅享全站原图下载 · 无限浏览 · 新图抢先看';
-}
-
-/* ================= 个人中心 ================= */
-document.querySelectorAll('.ptabs button').forEach(b=>b.addEventListener('click',()=>{
-  document.querySelectorAll('.ptabs button').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active');state.ptab=b.dataset.ptab;renderProfile();
-}));
-function renderProfile(){
-  const ids=state.ptab==='fav'?state.favs:state.ptab==='like'?state.liked:state.history;
-  const list=[...ids].map(byId).filter(Boolean);
-  $('#statFav').textContent=state.favs.size;
-  $('#statLike').textContent=state.liked.size;
-  $('#statHis').textContent=state.history.length;
-  $('#gridProfile').innerHTML=wfHTML(list);
-  const tips={fav:'还没有收藏，去发现页逛逛吧',like:'还没有点赞过任何图集',his:'暂无浏览记录'};
-  $('#emptyProfile').style.display=list.length?'none':'block';
-  $('#emptyProfileText').textContent=tips[state.ptab];
-}
-function refreshGrids(){
-  renderHome();
-  if(state.view==='discover')renderDiscover();
-  if(state.view==='profile')renderProfile();
-}
-
-/* ================= 弹窗 / 键盘 / 滚动 ================= */
-function openModal(id){$('#'+id).classList.add('open');document.body.style.overflow='hidden'}
-function closeModal(id){$('#'+id).classList.remove('open');document.body.style.overflow=''}
-document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id)}));
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){
-    const open=document.querySelector('.modal.open');
-    if(open)closeModal(open.id);
-    else if(state.view==='detail')backFromDetail();
+function renderMe(){
+  if(!state.user){
+    $('#meName').firstChild.textContent='未登录 ';
+    $('#meMail').textContent='登录后可同步收藏、通知与购买记录';
+    $('#meAva').textContent='希';
+    $('#meAva').style.background='linear-gradient(135deg,#3a3a44,#22222a)';
+  }else{
+    $('#meAva').textContent=isUpAva()?'':state.user.name.slice(0,1).toUpperCase();
+    $('#meAva').style.background=avatarStyle();
+    $('#meMail').textContent=state.user.mail;
   }
-  if(state.view==='detail'&&!document.querySelector('.modal.open')){
-    if(e.key==='ArrowLeft')scrollImg(-1);
-    if(e.key==='ArrowRight')scrollImg(1);
+  const ed=$('#meEdit');
+  if(ed)ed.style.display=state.user?'inline-flex':'none';
+  $('#meFav').textContent=state.favs.size;
+  $('#meOrder').textContent=(state.vip?1:0)+state.unlocked.size;
+  $('#meSub').textContent=state.subs.size;
+  $$('#meTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===state.meTab));
+  renderMeBody();
+}
+function goMe(tab){
+  state.meTab=tab;
+  meNtPage=1;meOdPage=1;meFavPage=1;meSubPage=1;
+  go('me');
+  renderMe();
+}
+$$('#meTabs button').forEach(b=>b.onclick=()=>{state.meTab=b.dataset.tab;meNtPage=1;meOdPage=1;meFavPage=1;meSubPage=1;renderMe()});
+
+let ntFilter='all';
+const ME_NT_PAGE=5, ME_OD_PAGE=6, ME_FAV_PAGE=12, ME_SUB_PAGE=12;
+let meNtPage=1, meOdPage=1, meFavPage=1, meSubPage=1;
+function mePager(pages,cur,fn){
+  if(pages<=1)return '';
+  let p='<div class="pager" style="margin-top:16px">';
+  p+=`<button ${cur===1?'disabled':''} onclick="${fn}(${cur-1})">上一页</button>`;
+  for(let i=1;i<=pages;i++)p+=`<button class="${i===cur?'on':''}" onclick="${fn}(${i})">${i}</button>`;
+  p+=`<button ${cur===pages?'disabled':''} onclick="${fn}(${cur+1})">下一页</button>`;
+  return p+'</div>';
+}
+function setMeNtPage(n){meNtPage=n;renderMeBody();}
+function setMeOdPage(n){meOdPage=n;renderMeBody();}
+function setMeFavPage(n){meFavPage=n;renderMeBody();}
+function setMeSubPage(n){meSubPage=n;renderMeBody();}
+function setNtFilter(f){ntFilter=f;meNtPage=1;renderMeBody();}
+function readOneNotice(id){
+  if(state.readNotices.has(id))return;
+  state.readNotices.add(id);save();renderMeBody();
+}
+function openNtItem(id){
+  readOneNotice(id);
+  const n=NOTIFIES.find(x=>x.id===id);
+  if(!n)return;
+  const a=n.albumId?byId(n.albumId):null;
+  $('#ntBody').innerHTML=`
+    <div class="nt-dhead">
+      <div class="nt-ico ${n.type}">${NT_ICON[n.type]}</div>
+      <div class="nt-dmeta">
+        <div class="nt-dtags"><span class="ntag ${n.type==='update'?'':'gray'}">${NT_LABEL[n.type]}</span><span class="nt-time">${n.time}</span></div>
+        <h3>${esc(n.title)}</h3>
+      </div>
+    </div>
+    <p class="nt-dfull">${esc(n.desc)}</p>
+    ${a?`<div class="nt-dalbum" onclick="gotoNtAlbum(${a.id})">
+      <div class="ord-thumb"><div class="art a${a.art}"></div></div>
+      <div class="nt-dalb">
+        <b>${esc(a.title)}</b>
+        <span>${a.imgs}P${a.videos?' · '+a.videos+'V':''} · ${A(a.authorId).name} · ${a.date}</span>
+        <em>点击查看图集详情 ›</em>
+      </div>
+    </div>`:''}`;
+  openModal('mNt');
+}
+function gotoNtAlbum(id){
+  closeModal('mNt');
+  openAlbum(id);
+}
+function readAllNotice(){
+  NOTIFIES.forEach(n=>state.readNotices.add(n.id));
+  save();renderMeBody();toast('已全部标为已读');
+}
+function renderMeBody(){
+  const box=$('#meBody');
+  if(!state.user){
+    box.innerHTML=`<div class="empty"><b>还没有登录</b>登录后可查看个人信息、通知、收藏与购买记录
+      <div style="margin-top:16px"><button class="btn btn-red" onclick="openLogin()">登录 / 注册</button></div></div>`;
+    return;
+  }
+  if(state.meTab==='center'){
+    const favList=[...state.favs].map(byId).filter(Boolean).slice(0,4);
+    const subList=[...state.subs].map(A).filter(Boolean);
+    const subPages=Math.max(1,Math.ceil(subList.length/ME_SUB_PAGE));
+    if(meSubPage>subPages)meSubPage=subPages;
+    const subShown=subList.slice((meSubPage-1)*ME_SUB_PAGE,meSubPage*ME_SUB_PAGE);
+    box.innerHTML=`
+      <div class="list-box" style="margin-bottom:18px">
+        <div class="list-row"><div class="li"><div class="lt">账号邮箱</div></div><div style="font-size:13px;color:var(--t2)">${state.user.mail}</div></div>
+        <div class="list-row"><div class="li"><div class="lt">会员状态</div></div>
+          <div style="font-size:13px;color:${state.vip?'var(--red2)':'var(--t2)'}">${memberText()}</div></div>
+        <div class="list-row"><div class="li"><div class="lt">下载积分</div><div class="ld">每日签到可得 2 积分，用于解锁单套图集（查看全部 + 下载）</div></div>
+          <div style="font-size:13px;color:var(--red2)">${state.user.points||12} 分</div></div>
+        <div class="list-row"><div class="li"><div class="lt">已订阅作者</div></div>
+          <div style="font-size:13px;color:var(--t2)">${subList.length} 位 · 更新时会收到通知</div></div>
+      </div>
+      <div class="sec-head"><h2>最近收藏</h2><a class="more" onclick="goMe('fav')">全部收藏 ›</a></div>
+      ${favList.length?`<div class="card-grid">${favList.map(cardHTML).join('')}</div>`
+        :`<div class="empty" style="padding:40px 0"><b>还没有收藏</b>图集卡片右下角的 ☆ 即可收藏</div>`}
+      <div class="sec-head" style="margin-top:28px"><h2>已订阅作者</h2><span class="sub">${subList.length} 位${subPages>1?` · 第 ${meSubPage} / ${subPages} 页`:''}</span></div>
+      ${subList.length?`<div class="author-grid">${subShown.map(authorCardHTML).join('')}</div>${mePager(subPages,meSubPage,'setMeSubPage')}`
+        :`<div class="empty" style="padding:32px 0"><b>还没有订阅作者</b>进入作者主页点「订阅」，更新时会第一时间通知你</div>`}`;
+    return;
+  }
+  if(state.meTab==='notice'){
+    const unread=NOTIFIES.filter(n=>!state.readNotices.has(n.id)).length;
+    const list=ntFilter==='unread'?NOTIFIES.filter(n=>!state.readNotices.has(n.id)):NOTIFIES;
+    const pages=Math.max(1,Math.ceil(list.length/ME_NT_PAGE));
+    if(meNtPage>pages)meNtPage=pages;
+    const shown=list.slice((meNtPage-1)*ME_NT_PAGE,meNtPage*ME_NT_PAGE);
+    box.innerHTML=`
+      <div class="nt-bar">
+        <div class="nt-seg">
+          <button class="${ntFilter==='all'?'on':''}" onclick="setNtFilter('all')">全部 ${NOTIFIES.length}</button>
+          <button class="${ntFilter==='unread'?'on':''}" onclick="setNtFilter('unread')">未读 ${unread}</button>
+        </div>
+        <span class="nt-pginfo">共 ${list.length} 条 · 第 ${meNtPage} / ${pages} 页</span>
+        <button class="nt-allread" onclick="readAllNotice()">全部标为已读</button>
+      </div>
+      ${list.length?`<div class="nt-list">${shown.map(n=>{
+        const read=state.readNotices.has(n.id);
+        return `<div class="nt-item ${read?'read':''}" onclick="openNtItem('${n.id}')">
+          <div class="nt-ico ${n.type}">${NT_ICON[n.type]}</div>
+          <div class="nt-main">
+            <div class="nt-top">
+              <b>${esc(n.title)}</b>
+              <span class="nt-tag">${NT_LABEL[n.type]}</span>
+              <span class="nt-time">${n.time}</span>
+            </div>
+            <div class="nt-desc">${esc(n.desc)}</div>
+          </div>
+          ${read?'':'<span class="nt-dot"></span>'}
+        </div>`;
+      }).join('')}</div>${mePager(pages,meNtPage,'setMeNtPage')}`
+      :`<div class="empty"><b>没有未读通知</b>审核结果、作者更新与权益变更会出现在这里</div>`}`;
+    return;
+  }
+  if(state.meTab==='fav'){
+    const list=[...state.favs].map(byId).filter(Boolean);
+    const pages=Math.max(1,Math.ceil(list.length/ME_FAV_PAGE));
+    if(meFavPage>pages)meFavPage=pages;
+    const shown=list.slice((meFavPage-1)*ME_FAV_PAGE,meFavPage*ME_FAV_PAGE);
+    box.innerHTML=list.length
+      ? `<div class="fav-count">共 ${list.length} 套${pages>1?` · 第 ${meFavPage} / ${pages} 页`:''}</div>
+         <div class="card-grid">${shown.map(cardHTML).join('')}</div>
+         ${mePager(pages,meFavPage,'setMeFavPage')}`
+      : `<div class="empty"><b>还没有收藏任何图集</b>在图集卡片右下角点 ☆ 收藏，登录后可跨设备同步</div>`;
+    return;
+  }
+  // 我的购买
+  const albums=[...state.unlocked].map(byId).filter(Boolean);
+  const spent=(state.vip?19:0)+albums.length*0;
+  let html='';
+  if(state.vip||albums.length){
+    html+=`<div class="ord-sum">
+      <div><b>¥${spent}</b><span>累计消费</span></div>
+      <div><b>${state.vip?1:0}</b><span>会员订单</span></div>
+      <div><b>${albums.length}</b><span>已解锁图集</span></div>
+    </div>`;
+  }
+  if(state.vip){
+    html+=`<div class="ord-sec">
+      <h4>会员订单</h4>
+      <div class="ord-card">
+        <div class="ord-ico">${CROWN_ICON}</div>
+        <div class="ord-main">
+          <div class="ord-t">付费会员 · 月卡</div>
+          <div class="ord-d">订单号 SV${String(Date.now()).slice(-10)} · ${dstr(new Date())} 支付成功 · 30 天有效</div>
+        </div>
+        <div class="ord-right">
+          <span class="ord-amt">¥19</span>
+          <span class="ord-stat">已生效 · 至 ${dstr(vipUntil())}</span>
+          <button class="ord-btn" onclick="openPay('付费会员 · 月卡',19,true)">续费</button>
+        </div>
+      </div>
+    </div>`;
+  }
+  if(albums.length){
+    const pages=Math.max(1,Math.ceil(albums.length/ME_OD_PAGE));
+    if(meOdPage>pages)meOdPage=pages;
+    const shown=albums.slice((meOdPage-1)*ME_OD_PAGE,meOdPage*ME_OD_PAGE);
+    html+=`<div class="ord-sec">
+      <h4>图集解锁 <span style="font-weight:400;font-size:12px;color:var(--t3)">共 ${albums.length} 条 · 第 ${meOdPage} / ${pages} 页</span></h4>
+      ${shown.map(a=>`
+        <div class="ord-card">
+          <div class="ord-thumb"><div class="art a${a.art}"></div></div>
+          <div class="ord-main">
+            <div class="ord-t">${esc(a.title)}</div>
+            <div class="ord-d">${a.imgs}P${a.videos?' · '+a.videos+'V':''} · ${a.size} · ${A(a.authorId).name}</div>
+          </div>
+          <div class="ord-right">
+            <span class="ord-amt">${a.points} 积分</span>
+            <span class="ord-stat">已解锁 · 可重复下载</span>
+            <button class="ord-btn" onclick="openAlbum(${a.id})">查看</button>
+          </div>
+        </div>`).join('')}
+      ${mePager(pages,meOdPage,'setMeOdPage')}
+    </div>`;
+  }
+  box.innerHTML=html||`<div class="empty"><b>暂无购买记录</b>开通付费会员或用积分解锁图集后会显示在这里<div style="margin-top:16px"><button class="btn btn-red" onclick="go('vip')">去看看会员</button></div></div>`;
+}
+
+/* =========================================================
+   管理员发布
+   ========================================================= */
+function openAdmin(){
+  if(!state.user||!state.user.admin){toast('仅管理员可发布图集');return}
+  const sel=$('#adAuthor');
+  sel.innerHTML=AUTHORS.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+  openModal('mAdmin');
+}
+function publishAlbum(){
+  const title=$('#adTitle').value.trim();
+  const tags=$('#adTags').value.split(/[,，\s]+/).filter(Boolean);
+  if(!title){toast('请填写图集标题');return}
+  const authorId=$('#adAuthor').value;
+  const a={
+    id:Date.now(), title, authorId, tags:tags.length?tags:['写真'],
+    imgs:24, videos:0, date:new Date().toISOString().slice(0,10),
+    favs:0, views:0, points:1, size:'520.00 MB', art:(ALBUMS.length%8)+1, h:340,
+    intro:`${A(authorId).name}的个人写真新作，管理员发布。`
+  };
+  confirmDo({
+    title:'确认发布这套图集？',
+    text:`《${title}》将发布到「${A(authorId).name}」名下并进入审核队列，发布后站内用户即可看到。`,
+    ok:'确认发布',
+    onOk(){
+      ALBUMS.unshift(a);
+      closeModal('mAdmin');
+      $('#adTitle').value='';$('#adTags').value='';
+      state.sort='new';state.page=1;state.ftag=null;state.fauthor=null;state.kw='';$('#navSearch').value='';
+      toast('发布成功，已进入审核队列并置顶展示');
+      go('albums');
+    }
+  });
+}
+
+/* =========================================================
+   初始化
+   ========================================================= */
+$('#totop').onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
+window.addEventListener('scroll',()=>{
+  $('#totop').classList.toggle('on',window.scrollY>500);
+},{passive:true});
+document.addEventListener('keydown',e=>{
+  const lb=$('#lightbox');
+  if(lb&&lb.classList.contains('on')){
+    if(e.key==='Escape')closeLightbox();
+    else if(e.key==='ArrowLeft')lbGo(-1);
+    else if(e.key==='ArrowRight')lbGo(1);
+    return;
+  }
+  if(e.key==='Escape'){
+    const open=$('.modal.on');
+    if(open)closeModal(open.id);
+    else if(state.view==='detail')go('albums');
+    else if(state.view==='author')go('home');
+    else if(state.view==='authors')go('home');
   }
 });
-window.addEventListener('scroll',()=>{
-  $('#totop').classList.toggle('show',window.scrollY>400);
-  if(state.view==='detail'&&!idxTicking){
-    idxTicking=true;
-    requestAnimationFrame(()=>{updateIdx();idxTicking=false});
-  }
-}, {passive:true});
 
-/* ================= 樱花 ================= */
-const hero=$('#hero');
-for(let i=0;i<10;i++){
-  const p=document.createElement('span');
-  p.className='petal';
-  const s=6+Math.random()*9;
-  p.style.cssText=`left:${Math.random()*100}%;width:${s}px;height:${s*0.8}px;
-    background:${['#c9d6fb','#e4e9fb','#dcd6fb'][i%3]};
-    animation-duration:${7+Math.random()*8}s;animation-delay:${-Math.random()*10}s`;
-  hero.appendChild(p);
-}
-
-/* ================= 初始化 ================= */
-renderChips();renderHome();renderDiscover();renderProfile();
-renderRank('hot');renderTagCloud();applyUser();
+applyUser();
+renderHome();
+renderTags();
+renderNotices();
 </script>
 </body>
 </html>
