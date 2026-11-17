@@ -1,0 +1,1574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>希尔薇图集 · 管理后台原型 v1</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ff2d55'/%3E%3Cstop offset='1' stop-color='%23ff7a52'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Ctext x='16' y='23' font-size='18' font-weight='bold' fill='%23fff' text-anchor='middle' font-family='sans-serif'%3E希%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0b0b0e;
+  --s1:#141417;
+  --s2:#1a1a1f;
+  --s3:#222228;
+  --line:#26262d;
+  --line2:#34343d;
+  --t1:#ececee;
+  --t2:#9c9ca6;
+  --t3:#6d6d78;
+  --red:#ff2d55;
+  --red2:#ff5b78;
+  --reddim:rgba(255,45,85,.12);
+  --green:#3fbf62;
+  --amber:#f5a623;
+  --blue:#3a8ef0;
+  --r:14px;
+  --shadow:0 10px 30px rgba(0,0,0,.45);
+  --side:224px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+  background:var(--bg);color:var(--t1);font-size:14px;line-height:1.5;min-height:100vh;
+}
+a{text-decoration:none;color:inherit;cursor:pointer}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+[onclick]{cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:14px;color:var(--t1);
+  background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;outline:none;transition:border-color .18s}
+input:focus,select:focus,textarea:focus{border-color:var(--line2)}
+input::placeholder,textarea::placeholder{color:var(--t3)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
+
+/* ===== 布局 ===== */
+.layout{display:flex;min-height:100vh}
+.side{
+  width:var(--side);flex:none;background:var(--s1);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.logo{display:flex;align-items:center;gap:10px;padding:20px 18px 16px}
+.logo .dot{width:30px;height:30px;border-radius:9px;flex:none;
+  background:linear-gradient(135deg,#ff2d55,#ff7a45);display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:15px;color:#fff}
+.logo b{font-size:15px;display:block}
+.logo span{font-size:11px;color:var(--t3);display:block}
+.nav{flex:1;padding:6px 10px}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
+  color:var(--t2);font-size:13.5px;margin-bottom:2px;transition:.18s;position:relative}
+.nav a svg{width:16px;height:16px;flex:none;opacity:.72}
+.nav a:hover{color:var(--t1);background:var(--s2)}
+.nav a.on{color:var(--red2);background:var(--reddim);font-weight:600}
+.nav a.on svg{opacity:1}
+.nav a .bdg{margin-left:auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;
+  background:var(--red);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.side-foot{padding:12px 14px;border-top:1px solid var(--line)}
+.side-foot a{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--t3);padding:7px 4px;border-radius:8px}
+.side-foot a:hover{color:var(--t2)}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{
+  height:58px;flex:none;display:flex;align-items:center;gap:14px;padding:0 24px;
+  border-bottom:1px solid var(--line);background:rgba(20,20,23,.9);backdrop-filter:blur(10px);
+  position:sticky;top:0;z-index:20;
+}
+.crumb{font-size:13px;color:var(--t3)}
+.crumb b{color:var(--t1);font-weight:600}
+.topbar .sp{flex:1}
+.adm{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--t2)}
+.adm .ava{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#fff;background:linear-gradient(135deg,#ff2d55,#7a3cff)}
+.adm .role{font-size:11px;color:var(--red2);border:1px solid rgba(255,45,85,.4);border-radius:6px;padding:1px 6px}
+.content{flex:1;padding:24px;max-width:1240px;width:100%;margin:0 auto}
+.sec{display:none;animation:fade .25s}
+.sec.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ===== 通用组件 ===== */
+.p-head{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.p-head h1{font-size:19px}
+.p-head .sub{font-size:12.5px;color:var(--t3)}
+.p-head .sp{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:9px 16px;border-radius:10px;font-size:13.5px;font-weight:600;transition:.18s}
+.btn-red{background:var(--red);color:#fff}
+.btn-red:hover{background:var(--red2)}
+.btn-line{border:1px solid var(--line2);color:var(--t2)}
+.btn-line:hover{color:var(--t1);border-color:#4a4a55}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:8px}
+.btn-green{border:1px solid rgba(63,191,98,.4);color:var(--green)}
+.btn-green:hover{background:rgba(63,191,98,.12)}
+.btn-amber{border:1px solid rgba(245,166,35,.4);color:var(--amber)}
+.btn-amber:hover{background:rgba(245,166,35,.12)}
+.btn-ghost-red{border:1px solid rgba(255,45,85,.45);color:var(--red2)}
+.btn-ghost-red:hover{background:var(--reddim)}
+
+.panel{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.panel+.panel{margin-top:16px}
+.p-t{font-size:14.5px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.p-t .n{font-size:12px;font-weight:500;color:var(--t3)}
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{padding:7px 14px;border-radius:9px;font-size:13px;color:var(--t2);
+  border:1px solid transparent;transition:.18s}
+.tabs button:hover{color:var(--t1)}
+.tabs button.on{color:var(--red2);background:var(--reddim);font-weight:600}
+
+.seg{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.seg input[type=text]{width:230px}
+
+table.tb{width:100%;border-collapse:collapse;font-size:13px}
+.tb th{text-align:left;padding:9px 10px;color:var(--t3);font-weight:500;font-size:12px;
+  border-bottom:1px solid var(--line);white-space:nowrap}
+.tb td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+.tb tr:last-child td{border-bottom:none}
+.tb tbody tr{transition:background .15s}
+.tb tbody tr:hover{background:var(--s2)}
+.tb .tt{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:var(--t1)}
+.tb .ops{display:flex;gap:6px}
+
+.thumb{width:44px;height:58px;border-radius:8px;flex:none;overflow:hidden}
+.thumb .art{width:100%;height:100%}
+.art{background-size:cover}
+.a0{background:linear-gradient(135deg,#ff2d55,#7a3cff)}
+.a1{background:linear-gradient(135deg,#ff7a45,#ff2d55)}
+.a2{background:linear-gradient(135deg,#3a8ef0,#3fbf62)}
+.a3{background:linear-gradient(135deg,#f5a623,#ff2d55)}
+.a4{background:linear-gradient(135deg,#8e7cff,#3a8ef0)}
+.a5{background:linear-gradient(135deg,#3fbf62,#0ea5a5)}
+.a6{background:linear-gradient(135deg,#ff5b78,#f5a623)}
+.a7{background:linear-gradient(135deg,#0ea5a5,#8e7cff)}
+/* 作者方形头像 */
+.au-ava{border-radius:8px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;letter-spacing:1px}
+.ava-sq-row{display:flex;align-items:center;gap:12px}
+.ava-up-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.ava-up-ops{display:flex;flex-direction:column;gap:7px;align-items:flex-start}
+.ava-sq-pick{display:flex;gap:8px;flex-wrap:wrap}
+.ava-sq{width:34px;height:34px;border-radius:8px;cursor:pointer;opacity:.5;transition:opacity .15s,box-shadow .15s;border:2px solid transparent}
+.ava-sq:hover{opacity:.85}
+.ava-sq.on{opacity:1;border-color:#fff;box-shadow:0 0 0 3px rgba(255,45,85,.28)}
+.ava-sq-hint{font-size:11.5px;color:var(--t3)}
+
+.badge{display:inline-block;padding:2px 9px;border-radius:7px;font-size:11.5px;font-weight:600}
+.bg-pub{background:rgba(63,191,98,.15);color:var(--green)}
+.bg-draft{background:rgba(156,156,166,.14);color:var(--t2)}
+.bg-off{background:rgba(255,45,85,.14);color:var(--red2)}
+.bg-pend{background:rgba(245,166,35,.15);color:var(--amber)}
+.bg-rej{background:rgba(255,45,85,.14);color:var(--red2)}
+.bg-vip{background:rgba(255,45,85,.14);color:var(--red2)}
+.bg-mem{background:rgba(156,156,166,.14);color:var(--t2)}
+.bg-adm{background:rgba(58,142,240,.15);color:var(--blue)}
+.ban{background:rgba(255,45,85,.14);color:var(--red2);border-radius:7px;padding:2px 8px;font-size:11.5px}
+
+.empty{padding:46px 0;text-align:center;color:var(--t3);font-size:13px}
+.empty b{display:block;color:var(--t2);font-size:14px;margin-bottom:5px}
+
+/* 弹窗 */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:100;
+  align-items:center;justify-content:center;padding:20px}
+.modal.on{display:flex}
+.mbox{background:var(--s1);border:1px solid var(--line2);border-radius:16px;width:520px;max-width:100%;
+  max-height:88vh;overflow-y:auto;box-shadow:var(--shadow);animation:pop .22s}
+.mbox.wide{width:640px}
+@keyframes pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+.mhead{display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.mhead h3{font-size:15.5px;flex:1}
+.mhead .x{width:28px;height:28px;border-radius:8px;color:var(--t3);font-size:15px}
+.mhead .x:hover{background:var(--s2);color:var(--t1)}
+.mbody{padding:18px 20px}
+.mfoot{display:flex;gap:10px;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--line)}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12.5px;color:var(--t2);margin-bottom:6px}
+.field label i{color:var(--red2);font-style:normal}
+.field input,.field select,.field textarea{width:100%}
+.field textarea{resize:vertical;min-height:80px}
+.frow{display:flex;gap:12px}
+.frow .field{flex:1}
+.ferr{font-size:12px;color:var(--red2);margin-top:5px;display:none}
+.ferr.on{display:block}
+
+/* toast */
+#toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%) translateY(20px);
+  background:var(--s3);border:1px solid var(--line2);color:var(--t1);padding:10px 18px;border-radius:11px;
+  font-size:13px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.25s;z-index:200}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ===== 看板 ===== */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.stat{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px}
+.stat .k{font-size:12.5px;color:var(--t3);display:flex;align-items:center;gap:7px}
+.stat .v{font-size:24px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums}
+.stat .d{font-size:11.5px;margin-top:4px;color:var(--green)}
+.stat .d.warn{color:var(--amber)}
+.dash2{display:grid;grid-template-columns:1fr 300px;gap:16px}
+.quick a{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);
+  border-radius:11px;margin-bottom:9px;font-size:13px;color:var(--t2);transition:.18s}
+.quick a:hover{border-color:var(--line2);color:var(--t1);background:var(--s2)}
+.quick a .ic{width:32px;height:32px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;
+  background:var(--reddim);color:var(--red2);font-size:15px}
+.quick a .go{margin-left:auto;color:var(--t3)}
+.mini-log{font-size:12px;color:var(--t3);padding:7px 0;border-bottom:1px dashed var(--line)}
+.mini-log:last-child{border-bottom:none}
+.mini-log b{color:var(--t2);font-weight:600}
+
+/* ===== 发布图集 ===== */
+.pub-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.up-zone{border:1.5px dashed var(--line2);border-radius:12px;padding:18px;text-align:center;color:var(--t3);
+  font-size:12.5px;cursor:pointer;transition:.18s;margin-bottom:12px}
+.up-zone:hover{border-color:var(--red);color:var(--t2)}
+.up-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:9px;margin-bottom:12px}
+.up-item{aspect-ratio:3/4;border-radius:9px;position:relative;overflow:hidden;cursor:pointer}
+.up-item .no{position:absolute;right:5px;bottom:4px;font-size:10px;color:rgba(255,255,255,.85);
+  background:rgba(0,0,0,.4);border-radius:5px;padding:1px 5px}
+.up-item .rm{position:absolute;right:4px;top:4px;width:18px;height:18px;border-radius:50%;
+  background:rgba(0,0,0,.55);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center}
+.up-item .rm:hover{background:var(--red)}
+.tag-sel{display:flex;flex-wrap:wrap;gap:7px;min-height:30px}
+.tag-sel .tg{padding:4px 10px;border-radius:15px;font-size:12px;background:var(--reddim);color:var(--red2);
+  display:flex;align-items:center;gap:6px}
+.tag-sel .tg b{cursor:pointer;color:rgba(255,143,166,.8);font-weight:400}
+/* ===== 标签搜索下拉 ===== */
+.tag-dd{position:relative}
+.tag-dd input{width:100%}
+.tag-dd-list{position:absolute;top:calc(100% + 5px);left:0;right:0;background:var(--s2);
+  border:1px solid var(--line2);border-radius:11px;max-height:190px;overflow:auto;z-index:40;
+  display:none;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.tag-dd.open .tag-dd-list{display:block}
+.tag-dd-it{padding:8px 13px;font-size:13px;color:var(--t2);cursor:pointer;transition:.12s}
+.tag-dd-it:hover{background:var(--reddim);color:var(--red2)}
+.tag-dd-it.on{color:var(--red2);font-weight:600}
+.tag-dd-it i{font-style:normal;margin-right:6px;font-weight:700}
+.tag-dd-empty{padding:14px;font-size:12.5px;color:var(--t3);text-align:center}
+/* 弹窗内空间有限，列表高度收窄，避免贴到弹窗底边被裁 */
+.mbody .tag-dd-list{max-height:132px}
+.pub-tip{font-size:12px;color:var(--t3);background:var(--s2);border:1px solid var(--line);
+  border-radius:10px;padding:10px 13px;line-height:1.7}
+
+/* ===== 评论审核 ===== */
+.cmt{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.cmt:last-child{border-bottom:none}
+.cmt .ava{width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#fff}
+.cmt .bd{flex:1;min-width:0}
+.cmt .m1{font-size:12.5px;color:var(--t3);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cmt .m1 b{color:var(--t1);font-size:13px}
+.cmt .ct{margin:5px 0 9px;font-size:13.5px;color:var(--t1);line-height:1.6}
+.cmt .ops{display:flex;gap:8px}
+
+/* ===== 配置 ===== */
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.fl-row{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);
+  border-radius:10px;margin-bottom:8px;font-size:13px}
+.fl-row b{color:var(--t1)}
+.fl-row .sl{color:var(--t3);font-size:12px}
+.fl-row .rm{margin-left:auto;color:var(--t3);font-size:12px}
+.fl-row .rm:hover{color:var(--red2)}
+.switch{position:relative;width:38px;height:21px;border-radius:11px;background:var(--s3);
+  border:1px solid var(--line2);cursor:pointer;transition:.2s;flex:none}
+.switch.on{background:var(--red);border-color:var(--red)}
+.switch::after{content:'';position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;
+  background:#fff;transition:.2s}
+.switch.on::after{left:19px}
+
+/* 分页 */
+.pager{display:flex;gap:6px;justify-content:center;padding:16px 0 4px}
+.pager button{min-width:32px;height:32px;padding:0 8px;border-radius:8px;font-size:13px;color:var(--t2);
+  border:1px solid var(--line)}
+.pager button:hover{color:var(--t1);border-color:var(--line2)}
+.pager button.on{color:#fff;background:var(--red);border-color:var(--red);font-weight:600}
+.pager button:disabled{opacity:.35;cursor:default}
+
+/* ===== 响应式 ===== */
+@media (max-width:1080px){
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+  .dash2,.pub-grid,.cfg-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- ===== 左侧导航 ===== -->
+  <aside class="side">
+    <div class="logo">
+      <div class="dot">希</div>
+      <div><b>希尔薇图集</b><span>管理后台 · v1</span></div>
+    </div>
+    <nav class="nav">
+      <a data-k="dash" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>数据看板</a>
+      <a data-k="albums"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="M4 19l5.5-5 4 3.5L17 14l3 3"/></svg>图集管理</a>
+      <a data-k="publish"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>发布图集</a>
+      <a data-k="comments"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a8 8 0 01-8 8H4l2.2-3A8 8 0 1121 12z"/></svg>评论审核<span class="bdg" id="cmtBdg">5</span></a>
+      <a data-k="notices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 9a6 6 0 10-12 0c0 6-2 7-2 7h16s-2-1-2-7"/><path d="M10.5 20a2 2 0 003 0"/></svg>公告管理</a>
+      <a data-k="authors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>作者管理</a>
+      <a data-k="pay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6 14.5h4"/></svg>支付流水</a>
+      <a data-k="users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1.2-3.2 3.6-5 6.5-5s5.3 1.8 6.5 5"/><circle cx="17.5" cy="9.5" r="2.5"/><path d="M16 15.5c2.8.2 4.7 1.8 5.5 4.5"/></svg>用户管理</a>
+      <a data-k="config"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1 1.55V21a2 2 0 11-4 0v-.09a1.7 1.7 0 00-1-1.55 1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.7 1.7 0 00.34-1.87 1.7 1.7 0 00-1.55-1H3a2 2 0 110-4h.09a1.7 1.7 0 001.55-1 1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06a1.7 1.7 0 001.87.34h0a1.7 1.7 0 001-1.55V3a2 2 0 114 0v.09a1.7 1.7 0 001 1.55h0a1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06a1.7 1.7 0 00-.34 1.87v0a1.7 1.7 0 001.55 1H21a2 2 0 110 4h-.09a1.7 1.7 0 00-1.55 1z"/></svg>友链与配置</a>
+      <a data-k="logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>操作日志</a>
+    </nav>
+    <div class="side-foot">
+      <a onclick="toast('已切换到前台原型')">← 返回前台首页</a>
+      <a onclick="confirmDo('退出登录','确定要退出管理后台吗？','退出',()=>toast('已退出登录（演示）'))">退出登录</a>
+    </div>
+  </aside>
+
+  <!-- ===== 主区域 ===== -->
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">管理后台 / <b id="crumbCur">数据看板</b></div>
+      <div class="sp"></div>
+      <div class="adm">
+        <div class="ava">管</div>
+        <span>admin@sylvie.cc</span>
+        <span class="role">管理员</span>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ========= 数据看板 ========= -->
+      <div class="sec on" id="sec-dash">
+        <div class="p-head"><h1>数据看板</h1><span class="sub" id="dashDate"></span></div>
+        <div class="stat-grid">
+          <div class="stat"><div class="k">图集总数</div><div class="v" id="stAlbums">0</div><div class="d" id="stAlbumsD">今日 +0</div></div>
+          <div class="stat"><div class="k">注册用户</div><div class="v">12,847</div><div class="d">今日 +86</div></div>
+          <div class="stat"><div class="k">付费会员</div><div class="v">1,203</div><div class="d">本月新增 58</div></div>
+          <div class="stat"><div class="k">待审核评论</div><div class="v" id="stPend" style="color:var(--amber)">0</div><div class="d warn">需尽快处理</div></div>
+        </div>
+        <div class="dash2">
+          <div class="panel">
+            <div class="p-t">最近发布 <span class="n">最新 6 条</span><a onclick="go('albums')" style="margin-left:auto;font-size:12px;color:var(--t3);cursor:pointer">全部图集 ›</a></div>
+            <table class="tb"><thead><tr><th>图集</th><th class="hide-m">作者</th><th>规格</th><th class="hide-m">发布时间</th><th>状态</th></tr></thead>
+            <tbody id="dashAlbums"></tbody></table>
+          </div>
+          <div>
+            <div class="panel">
+              <div class="p-t">快捷操作</div>
+              <div class="quick">
+                <a onclick="go('publish')"><span class="ic">＋</span>发布新图集<span class="go">›</span></a>
+                <a onclick="go('comments')"><span class="ic">✓</span>审核待处理评论<span class="go">›</span></a>
+                <a onclick="openNoticeModal()"><span class="ic">📢</span>发布公告<span class="go">›</span></a>
+                <a onclick="go('config')"><span class="ic">⚙</span>修改站点配置<span class="go">›</span></a>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="p-t">今日概览</div>
+              <div class="mini-log"><b>PV 3,284</b> · UV 912</div>
+              <div class="mini-log" id="ovUnlock"><b>下载 214</b> 次 · 积分解锁 0 套</div>
+              <div class="mini-log" id="ovOrders"><b>新订单 0</b> 笔 · 营收 ¥0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========= 图集管理 ========= -->
+      <div class="sec" id="sec-albums">
+        <div class="p-head">
+          <h1>图集管理</h1><span class="sub" id="alCount"></span>
+          <div class="sp"></div>
+          <button class="btn btn-red" onclick="go('publish')">＋ 发布图集</button>
+        </div>
+        <div class="panel">
+          <div class="p-head" style="margin-bottom:14px">
+            <div class="tabs" id="alTabs">
+              <button class="on" data-f="all">全部</button>
+              <button data-f="published">已发布</button>
+              <button data-f="draft">草稿</button>
+              <button data-f="offline">已下架</button>
+            </div>
+            <div class="sp"></div>
+            <div class="seg"><input type="text" id="alKw" placeholder="搜索标题 / 作者"><button class="btn btn-line btn-sm" onclick="alSearch()">搜索</button></div>
+          </div>
+          <table class="tb">
+            <thead><tr><th>图集</th><th>作者</th><th>规格</th><th class="hide-m">积分</th><th class="hide-m">浏览 / 收藏</th><th class="hide-m">发布时间</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody id="alBody"></tbody>
+          </table>
+          <div class="empty" id="alEmpty" style="display:none"><b>没有符合条件的图集</b>换个筛选条件试试</div>
+          <div class="pager" id="alPager"></div>
+        </div>
+      </div>
+
+      <!-- ========= 发布图集 ========= -->
+      <div class="sec" id="sec-publish">
+        <div class="p-head"><h1>发布图集</h1><span class="sub">所有图集仅管理员可发布 · 发布后自动生成缩略图并进入审核队列</span></div>
+        <div class="pub-grid">
+          <div class="panel">
+            <div class="p-t">基本信息</div>
+            <div class="field"><label>标题 <i>*</i></label><input type="text" id="pbTitle" placeholder="如：绝对主观美少女 Vol.7"><div class="ferr" id="pbTitleErr">请输入标题（1-60 字）</div></div>
+            <div class="frow">
+              <div class="field"><label>归属作者 <i>*</i></label><select id="pbAuthor"></select></div>
+              <div class="field"><label>解锁积分</label><input type="number" id="pbPoints" value="15" min="0" max="99"></div>
+            </div>
+            <div class="field"><label>简介</label><textarea id="pbDesc" placeholder="一段展示在详情页的说明文字"></textarea></div>
+            <div class="field"><label>标签（搜索添加，最多 8 个）</label>
+              <div class="tag-sel" id="pbSel"></div>
+              <div class="tag-dd" id="pbTagDd" style="margin-top:9px">
+                <input type="text" id="pbTagKw" placeholder="搜索标签，如：日系 / 胶片" autocomplete="off">
+                <div class="tag-dd-list" id="pbTagList"></div>
+              </div>
+            </div>
+            <div class="pub-tip">· 发布后默认状态「已发布」，可随时在图集管理中下架<br>· 压缩包大小由系统按原图体积自动汇总，无需填写<br>· 视频数量在右侧媒体区上传视频文件后自动计入</div>
+          </div>
+          <div class="panel">
+            <div class="p-t">媒体上传 <span class="n" id="pbMediaN">图片 0 · 视频 0</span></div>
+            <div class="up-zone" id="upZone">点击或拖拽图片到此处批量上传<br>支持 jpg / png / webp，单张 ≤ 20MB</div>
+            <div class="up-grid" id="upGrid"></div>
+            <div class="field"><label>视频（可选，0-3 个）</label><input type="number" id="pbVideos" value="0" min="0" max="3"></div>
+            <div class="field"><label>封面</label>
+              <div class="seg"><span style="font-size:12.5px;color:var(--t3)" id="pbCoverTip">默认取第 1 张图片为封面</span></div>
+            </div>
+            <button class="btn btn-red btn-block" style="width:100%" onclick="submitPublish()">发布图集</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========= 评论审核 ========= -->
+      <div class="sec" id="sec-comments">
+        <div class="p-head"><h1>评论审核</h1><span class="sub">评论区先审后发 · 审核通过后前台可见</span></div>
+        <div class="panel">
+          <div class="p-head" style="margin-bottom:6px">
+            <div class="tabs" id="cmtTabs">
+              <button class="on" data-f="pending">待审核</button>
+              <button data-f="approved">已通过</button>
+              <button data-f="rejected">已拒绝</button>
+            </div>
+            <div class="sp"></div>
+            <div class="seg"><input type="text" id="cmtKw" placeholder="搜索用户 / 内容 / 图集"><button class="btn btn-line btn-sm" onclick="cmtSearch()">搜索</button></div>
+          </div>
+          <div id="cmtList"></div>
+          <div class="empty" id="cmtEmpty" style="display:none"><b>没有待审核的评论</b>新评论提交后会出现在这里</div>
+          <div class="empty" id="cmtNoKw" style="display:none"><b>没有匹配的评论</b>换个关键词试试</div>
+          <div class="pager" id="cmtPager"></div>
+        </div>
+      </div>
+
+      <!-- ========= 公告管理 ========= -->
+      <div class="sec" id="sec-notices">
+        <div class="p-head">
+          <h1>公告管理</h1><span class="sub" id="ntSub">置顶公告排首位</span>
+          <div class="sp"></div>
+          <button class="btn btn-red" onclick="openNoticeModal()">＋ 新建公告</button>
+        </div>
+        <div class="panel">
+          <table class="tb">
+            <thead><tr><th>标题</th><th>类型</th><th class="hide-m">摘要</th><th>发布时间</th><th class="hide-m">状态</th><th>操作</th></tr></thead>
+            <tbody id="ntBody"></tbody>
+          </table>
+          <div class="empty" id="ntEmpty" style="display:none"><b>没有公告</b>点击右上角「新建公告」发布第一条</div>
+          <div class="pager" id="ntPager"></div>
+        </div>
+      </div>
+
+      <!-- ========= 作者管理 ========= -->
+      <div class="sec" id="sec-authors">
+        <div class="p-head">
+          <h1>作者管理</h1><span class="sub" id="auCount"></span>
+          <div class="sp"></div>
+          <button class="btn btn-red" onclick="openAuthorModal()">＋ 新建作者</button>
+        </div>
+        <div class="panel">
+          <table class="tb">
+            <thead><tr><th>作者</th><th class="hide-m">别名</th><th>收录</th><th class="hide-m">风格</th><th class="hide-m">入驻日期</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody id="auBody"></tbody>
+          </table>
+          <div class="empty" id="auEmpty" style="display:none"><b>暂无作者</b>点击右上角「新建作者」创建</div>
+          <div class="pager" id="auPager"></div>
+        </div>
+      </div>
+
+      <!-- ========= 支付流水 ========= -->
+      <div class="sec" id="sec-pay">
+        <div class="p-head"><h1>支付流水</h1><span class="sub" id="payCount"></span></div>
+        <div class="stat-grid">
+          <div class="stat"><div class="k">累计营收</div><div class="v" id="pyTotal" style="color:var(--red2)">¥0</div><div class="d">会员 + 解锁全部现金收入</div></div>
+          <div class="stat"><div class="k">今日营收</div><div class="v" id="pyToday">¥0</div><div class="d" id="pyTodayD">今日 0 笔</div></div>
+          <div class="stat"><div class="k">会员订单</div><div class="v" id="pyVipN">0</div><div class="d" id="pyVipD">¥0</div></div>
+          <div class="stat"><div class="k">积分解锁</div><div class="v" id="pyUnN">0</div><div class="d" id="pyUnD">消耗 0 积分</div></div>
+        </div>
+        <div class="panel">
+          <div class="p-head" style="margin-bottom:6px">
+            <div class="tabs" id="payTabs">
+              <button class="on" data-f="all">全部</button>
+              <button data-f="vip">会员开通</button>
+              <button data-f="unlock">积分解锁</button>
+            </div>
+            <div class="sp"></div>
+            <div class="seg"><input type="text" id="payKw" placeholder="搜索订单号 / 用户昵称"><button class="btn btn-line btn-sm" onclick="paySearch()">搜索</button></div>
+          </div>
+          <div class="p-head" style="margin:0 0 10px;flex-wrap:wrap">
+            <div class="seg" style="flex-wrap:wrap">
+              <span style="font-size:12.5px;color:var(--t3)">时间</span>
+              <input type="date" id="payFrom" style="padding:6px 10px;width:140px">
+              <span style="color:var(--t3);font-size:12px">至</span>
+              <input type="date" id="payTo" style="padding:6px 10px;width:140px">
+              <div class="tabs" id="payQuick">
+                <button class="on" data-q="all">全部时间</button>
+                <button data-q="today">今天</button>
+                <button data-q="7">近7天</button>
+                <button data-q="30">近30天</button>
+              </div>
+              <button class="btn btn-line btn-sm" onclick="clearPayDate()">清除</button>
+            </div>
+            <div class="sp"></div>
+            <button class="btn btn-green btn-sm" onclick="exportPay()" id="payExportBtn">⬇ 导出 CSV</button>
+          </div>
+          <table class="tb">
+            <thead><tr><th>订单号</th><th>用户</th><th>业务</th><th>图集 / 套餐</th><th class="hide-m">支付方式</th><th>金额</th><th>状态</th><th class="hide-m">支付时间</th><th>操作</th></tr></thead>
+            <tbody id="payBody"></tbody>
+          </table>
+          <div class="empty" id="payEmpty" style="display:none"><b>没有符合条件的订单</b>换个筛选条件试试</div>
+          <div class="pager" id="payPager"></div>
+        </div>
+      </div>
+
+      <!-- ========= 用户管理 ========= -->
+      <div class="sec" id="sec-users">
+        <div class="p-head"><h1>用户管理</h1><span class="sub" id="usSub">只读查看 + 封禁控制 · 无内容发布权限分配</span></div>
+        <div class="panel">
+          <div class="p-head" style="margin-bottom:6px">
+            <div class="seg"><input type="text" id="usKw" placeholder="搜索昵称 / 邮箱"><button class="btn btn-line btn-sm" onclick="usSearch()">搜索</button></div>
+          </div>
+          <table class="tb">
+            <thead><tr><th>用户</th><th>角色</th><th class="hide-m">积分</th><th class="hide-m">会员到期</th><th class="hide-m">注册时间</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody id="usBody"></tbody>
+          </table>
+          <div class="empty" id="usEmpty" style="display:none"><b>没有找到该用户</b>换个昵称或邮箱试试</div>
+          <div class="pager" id="usPager"></div>
+        </div>
+      </div>
+
+      <!-- ========= 友链与配置 ========= -->
+      <div class="sec" id="sec-config">
+        <div class="p-head"><h1>友链与配置</h1><span class="sub">页脚友链 + 站点合规文案</span></div>
+        <div class="cfg-grid">
+          <div class="panel">
+            <div class="p-t">友情链接 <span class="n">页脚胶囊展示</span></div>
+            <div id="flList"></div>
+            <div class="frow" style="margin-top:12px">
+              <div class="field" style="margin:0"><input type="text" id="flName" placeholder="站名"></div>
+              <div class="field" style="margin:0"><input type="text" id="flSlogan" placeholder="一句简介"></div>
+              <button class="btn btn-line btn-sm" style="align-self:center" onclick="addFriend()">添加</button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="p-t">站点配置</div>
+            <div class="field"><label>页脚版权文案</label><input type="text" id="cfgCopy"></div>
+            <div class="field"><label>ICP 备案号</label><input type="text" id="cfgIcp" placeholder="备案后填写"></div>
+            <div class="field"><label>年龄声明</label><input type="text" id="cfgAge"></div>
+            <div class="field"><label>内容免责声明</label><input type="text" id="cfgDisc"></div>
+            <div class="field"><label>图片水印</label>
+              <div class="seg"><div class="switch on" id="swWm" onclick="this.classList.toggle('on')"></div><span style="font-size:12.5px;color:var(--t3)" id="swWmTip">开启后预览图与下载图均带水印</span></div>
+            </div>
+            <button class="btn btn-red" style="width:100%" onclick="saveConfig()">保存配置</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========= 操作日志 ========= -->
+      <div class="sec" id="sec-logs">
+        <div class="p-head"><h1>操作日志</h1><span class="sub" id="lgSub">管理员操作留痕 · 最新在前</span></div>
+        <div class="panel">
+          <table class="tb">
+            <thead><tr><th>时间</th><th>操作人</th><th>动作</th><th>目标</th><th class="hide-m">详情</th></tr></thead>
+            <tbody id="lgBody"></tbody>
+          </table>
+          <div class="empty" id="lgEmpty" style="display:none"><b>暂无操作日志</b>管理操作发生后将自动记录</div>
+          <div class="pager" id="lgPager"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== 弹窗：新建/编辑公告 ===== -->
+<div class="modal" id="mNotice">
+  <div class="mbox wide">
+    <div class="mhead"><h3 id="ntModalT">新建公告</h3><button class="x" onclick="closeModal('mNotice')">✕</button></div>
+    <div class="mbody">
+      <div class="frow">
+        <div class="field"><label>类型 <i>*</i></label>
+          <select id="ntType">
+            <option value="notice">通知</option><option value="update">更新</option>
+            <option value="activity">活动</option><option value="maintain">维护</option>
+            <option value="rule">规则</option><option value="top">置顶</option>
+          </select>
+        </div>
+        <div class="field"><label>置顶</label>
+          <div style="padding-top:8px"><div class="switch" id="ntTop" onclick="this.classList.toggle('on')"></div></div>
+        </div>
+      </div>
+      <div class="field"><label>标题 <i>*</i></label><input type="text" id="ntTitle" placeholder="公告标题"><div class="ferr" id="ntTitleErr">请输入公告标题</div></div>
+      <div class="field"><label>摘要</label><input type="text" id="ntSummary" placeholder="列表中展示的一句话摘要"></div>
+      <div class="field"><label>正文（空行分段）</label><textarea id="ntContent" style="min-height:120px" placeholder="公告全文，空行自动分段展示"></textarea></div>
+    </div>
+    <div class="mfoot"><button class="btn btn-line" onclick="closeModal('mNotice')">取消</button>
+      <button class="btn btn-red" id="ntSaveB" onclick="saveNotice()">发布公告</button></div>
+  </div>
+</div>
+
+<!-- ===== 弹窗：新建作者 ===== -->
+<div class="modal" id="mAuthor">
+  <div class="mbox">
+    <div class="mhead"><h3 id="auModalT">新建作者</h3><button class="x" onclick="closeModal('mAuthor')">✕</button></div>
+    <div class="mbody">
+      <div class="frow">
+        <div class="field"><label>作者名 <i>*</i></label><input type="text" id="auName" placeholder="如：铃木美咲"><div class="ferr" id="auNameErr">请输入作者名</div></div>
+        <div class="field"><label>别名</label><input type="text" id="auAlias" placeholder="拼音 / 英文名，用于搜索"></div>
+      </div>
+      <div class="field"><label>作者头像 <span style="color:var(--t3);font-weight:400;font-size:12px">支持上传图片 · 未上传时以色卡 + 首字显示</span></label>
+        <div class="ava-up-row">
+          <div class="art a0 au-ava" id="auAvaPrev" style="width:56px;height:56px;font-size:24px">希</div>
+          <div class="ava-up-ops">
+            <button class="btn btn-line btn-sm" onclick="document.getElementById('auAvatarFile').click()">⬆ 上传头像</button>
+            <button class="btn btn-ghost-red btn-sm" id="auAvaRm" style="display:none" onclick="clearAuAvatar()">移除图片</button>
+          </div>
+          <div class="ava-sq-pick" id="auColorPick"></div>
+        </div>
+        <input type="file" id="auAvatarFile" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="onAuAvatarFile(this)">
+        <div class="ava-sq-hint" style="margin-top:8px">方形 1:1 展示 · 建议 ≥ 200×200 · jpg / png / webp ≤ 5MB<br>未上传图片时以色卡 + 首字呈现，前台按 1:1 方形展示同一张头像</div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>入驻日期</label><input type="date" id="auSince"></div>
+        <div class="field"><label>风格标签</label><input type="text" id="auStyle" placeholder="逗号分隔，如：日系,胶片"></div>
+      </div>
+      <div class="field"><label>简介</label><textarea id="auBio" placeholder="展示在作者主页介绍卡"></textarea></div>
+    </div>
+    <div class="mfoot"><button class="btn btn-line" onclick="closeModal('mAuthor')">取消</button>
+      <button class="btn btn-red" onclick="saveAuthor()">保存</button></div>
+  </div>
+</div>
+
+<!-- ===== 弹窗：编辑图集 ===== -->
+<div class="modal" id="mEdit">
+  <div class="mbox" style="width:560px">
+    <div class="mhead"><h3>编辑图集 <span style="font-size:12px;color:var(--t3);font-weight:400;margin-left:6px" id="edId"></span></h3><button class="x" onclick="closeModal('mEdit')">✕</button></div>
+    <div class="mbody">
+      <div class="field"><label>标题 <i>*</i></label><input type="text" id="edTitle"><div class="ferr" id="edTitleErr">请输入标题（1-60 字）</div></div>
+      <div class="frow">
+        <div class="field"><label>归属作者 <i>*</i></label><select id="edAuthor"></select></div>
+        <div class="field"><label>解锁积分</label><input type="number" id="edPoints" min="0" max="99"></div>
+      </div>
+      <div class="field"><label>简介</label><textarea id="edDesc" placeholder="展示在详情页的说明文字"></textarea></div>
+      <div class="field"><label>标签（搜索添加，最多 8 个）</label>
+        <div class="tag-sel" id="edSel"></div>
+        <div class="tag-dd" id="edTagDd" style="margin-top:9px">
+          <input type="text" id="edTagKw" placeholder="搜索标签，如：国风 / 旅拍" autocomplete="off">
+          <div class="tag-dd-list" id="edTagList"></div>
+        </div>
+      </div>
+      <div class="pub-tip">· 媒体文件（图片 / 视频 / 封面）v1 暂不支持在编辑中替换，如需更换请删除后重新发布</div>
+    </div>
+    <div class="mfoot"><button class="btn btn-line" onclick="closeModal('mEdit')">取消</button>
+      <button class="btn btn-red" onclick="saveEdit()">保存修改</button></div>
+  </div>
+</div>
+
+<!-- ===== 弹窗：二次确认 ===== -->
+<div class="modal" id="mConfirm">
+  <div class="mbox" style="width:400px">
+    <div class="mbody" style="text-align:center;padding:28px 24px 20px">
+      <div style="width:52px;height:52px;border-radius:50%;background:var(--reddim);color:var(--red2);
+        font-size:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px">!</div>
+      <h3 id="cfTitle" style="font-size:16px;margin-bottom:8px">确认操作</h3>
+      <p id="cfText" style="font-size:13px;color:var(--t2);margin-bottom:20px"></p>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button class="btn btn-line" onclick="closeModal('mConfirm')">取消</button>
+        <button class="btn btn-red" id="cfOk">确认</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 弹窗：重置密码结果 ===== -->
+<div class="modal" id="mPwd">
+  <div class="mbox" style="width:410px">
+    <div class="mhead"><h3>密码已重置</h3><button class="x" onclick="closeModal('mPwd')">✕</button></div>
+    <div class="mbody">
+      <div style="font-size:13px;color:var(--t2)">用户 <b id="pwdUser" style="color:var(--t1)"></b> 的临时密码为：</div>
+      <div style="display:flex;gap:10px;align-items:stretch;margin-top:12px">
+        <code id="pwdVal" style="flex:1;font-size:15px;letter-spacing:1.5px;background:var(--s2);border:1px dashed var(--line2);border-radius:10px;padding:12px 14px;color:var(--red2);font-weight:700;text-align:center"></code>
+        <button class="btn btn-line" onclick="copyPwd()">复制</button>
+      </div>
+      <div class="pub-tip" style="margin-top:12px">· 临时密码仅本次展示，请线下告知用户<br>· 用户下次登录将强制修改密码<br>· 重置后原密码立即失效</div>
+    </div>
+    <div class="mfoot"><button class="btn btn-red" onclick="closeModal('mPwd')">知道了</button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================= 数据 ================= */
+let AUTHORS=[
+  {id:1,name:'铃木美咲',alias:'suzuki,Misaki',style:'日系,胶片,人像',color:'a0',since:'2024-03-01',bio:'日系写真人像，专注胶片质感与自然光。'},
+  {id:2,name:'白露',alias:'',style:'清新,室内,私房',color:'a4',since:'2024-05-12',bio:'清新自然风格，常拍室内窗景与私房写真。'},
+  {id:3,name:'南栀',alias:'nanzhi',style:'街拍,都市',color:'a1',since:'2024-08-20',bio:'都市感写真与街拍，色彩浓烈。'},
+  {id:4,name:'桃夭',alias:'taoyao',style:'甜美,少女',color:'a6',since:'2025-01-15',bio:'甜美少女风，致力于捕捉最自然的一瞬间。'},
+  {id:5,name:'青芷',alias:'qingzhi',style:'国风,汉服',color:'a5',since:'2025-02-28',bio:'国风与汉服写真。'},
+  {id:6,name:'素荷',alias:'suhe',style:'黑白,极简',color:'a7',since:'2025-06-01',bio:'极简光影，黑白与低饱和色调。'},
+  {id:7,name:'林熙',alias:'linxi',style:'旅拍,外景',color:'a3',since:'2025-09-09',bio:'旅拍与外景写真。'},
+  {id:8,name:'绫濑',alias:'ayase',style:'Cos,漫展',color:'a0',since:'2025-10-01',bio:'Cosplay 与漫展现场写真。'},
+  {id:9,name:'苏离',alias:'suli',style:'胶片,旅拍',color:'a4',since:'2026-01-20',bio:'胶片旅拍，记录路上的光影。'},
+  {id:10,name:'安晴',alias:'anqing',style:'甜美,室内',color:'a6',since:'2026-04-06',bio:'室内甜美写真，光线控。'}
+];
+let ALBUMS=[
+  {id:1001,title:'绝对主观美少女 Vol.6',authorId:1,imgs:37,videos:1,points:15,views:18234,favs:1204,cover:'a0',status:'published',date:'2026-11-17 14:20',tags:['日系','甜美','少女','室内']},
+  {id:1002,title:'白裙与午后的窗',authorId:2,imgs:26,videos:0,points:12,views:9521,favs:733,cover:'a4',status:'published',date:'2026-11-14 10:05',tags:['清新','日系','室内']},
+  {id:1003,title:'都市霓虹漫游记',authorId:3,imgs:42,videos:2,points:18,views:12305,favs:986,cover:'a1',status:'published',date:'2026-11-12 18:40',tags:['都市','街拍','人像']},
+  {id:1004,title:'汉服·朱砂记',authorId:5,imgs:31,videos:0,points:12,views:6720,favs:511,cover:'a5',status:'published',date:'2026-11-10 09:12',tags:['国风','汉服','外景']},
+  {id:1005,title:'胶片夏日纪念册',authorId:1,imgs:29,videos:1,points:15,views:8801,favs:642,cover:'a6',status:'draft',date:'—',tags:['胶片','旅拍','外景']},
+  {id:1006,title:'黑白光影手札',authorId:6,imgs:24,videos:0,points:10,views:4110,favs:305,cover:'a7',status:'offline',date:'2026-10-28 16:00',tags:['黑白','极简','人像']},
+  {id:1007,title:'海边的风与长发',authorId:7,imgs:33,videos:0,points:12,views:7422,favs:566,cover:'a3',status:'published',date:'2026-11-08 11:30',tags:['旅拍','外景','清新']},
+];
+let COMMENTS=[
+  {id:501,user:'白夜行',badge:'vip',color:'#ff2d55',album:'绝对主观美少女 Vol.6',content:'这组光影太绝了，终于等到更新！',time:'10 分钟前',status:'pending'},
+  {id:502,user:'柠檬茶',badge:'member',color:'#3a8ef0',album:'白裙与午后的窗',content:'第 12 张构图真的绝，收藏了。',time:'32 分钟前',status:'pending'},
+  {id:503,user:'晚风',badge:'vip',color:'#f5a623',album:'都市霓虹漫游记',content:'求作者下次出夜景人像专题！',time:'1 小时前',status:'pending'},
+  {id:504,user:'临水',badge:'member',color:'#3fbf62',album:'汉服·朱砂记',content:'妆造好精致，请问摄影师是谁呀',time:'2 小时前',status:'pending'},
+  {id:505,user:'山雾',badge:'member',color:'#8e7cff',album:'海边的风与长发',content:'已积分解锁，原图包很值！',time:'3 小时前',status:'pending'},
+  {id:506,user:'竹里',badge:'vip',color:'#0ea5a5',album:'日系胶片·夏末',content:'色调好舒服，蹲一个下一组！',time:'4 小时前',status:'pending'},
+  {id:507,user:'南音',badge:'member',color:'#ff7a45',album:'汉服·朱砂记',content:'求一套冬季汉服外景！',time:'6 小时前',status:'pending'},
+  {id:508,user:'西洲',badge:'vip',color:'#8e7cff',album:'绝对主观美少女 Vol.6',content:'视频部分也拍得好稳，支持！',time:'昨天',status:'pending'},
+  {id:509,user:'青梧',badge:'member',color:'#3fbf62',album:'白裙与午后的窗',content:'这个系列越拍越好了',time:'昨天',status:'pending'},
+  {id:510,user:'望舒',badge:'vip',color:'#f5a623',album:'都市霓虹漫游记',content:'已经收藏，等解锁活动',time:'2 天前',status:'approved'},
+  {id:511,user:'白夜行',badge:'vip',color:'#ff2d55',album:'海边的风与长发',content:'逆光那几张太有氛围感了',time:'3 天前',status:'approved'},
+  {id:512,user:'竹里',badge:'vip',color:'#0ea5a5',album:'日系胶片·夏末',content:'冲扫的颗粒感好喜欢',time:'4 天前',status:'approved'},
+  {id:513,user:'匿名用户',badge:'member',color:'#5a5a66',album:'绝对主观美少女 Vol.6',content:'加我微信看全部高清 xxx-xxxx',time:'5 天前',status:'rejected'},
+  {id:514,user:'推广号A',badge:'member',color:'#5a5a66',album:'汉服·朱砂记',content:'低价代拍联系我们 → 网址',time:'6 天前',status:'rejected'}
+];
+let NOTICES=[
+  {id:1,type:'top',title:'v1 全站公测正式开启',summary:'注册即领 12 积分，付费会员限时 ¥19/月',date:'2026-11-15',status:1},
+  {id:2,type:'update',title:'铃木美咲 发布了新图集',summary:'绝对主观美少女 Vol.6 已上架',date:'2026-11-17',status:1},
+  {id:3,type:'activity',title:'双倍积分签到周',summary:'11/20-11/26 每日签到积分翻倍',date:'2026-11-14',status:1},
+  {id:4,type:'maintain',title:'支付通道维护通知',summary:'11/18 02:00-04:00 支付宝下单可能失败',date:'2026-11-10',status:1},
+  {id:5,type:'rule',title:'社区评论规范 v1.2',summary:'禁止引流、盗图与辱骂，违者视情节封禁',date:'2026-11-05',status:1},
+  {id:6,type:'notice',title:'积分商城即将上线',summary:'解锁券、专属头像框等兑换商品筹备中',date:'2026-11-02',status:1},
+  {id:7,type:'activity',title:'万圣节主题图集特辑',summary:'南栀街拍万圣节特辑已上架',date:'2026-10-31',status:0},
+  {id:8,type:'update',title:'全站搜索功能升级',summary:'现支持按作者别名与标签搜索',date:'2026-10-25',status:1},
+  {id:9,type:'maintain',title:'图片 CDN 切换公告',summary:'已切换至新 CDN，原图下载速度提升',date:'2026-10-18',status:1},
+  {id:10,type:'notice',title:'关于打击盗版的声明',summary:'发现盗版站点请通过页脚邮箱举报',date:'2026-10-10',status:1}
+];
+let FRIENDS=[
+  {name:'片舟',slogan:'发现好剧 下载好剧',url:'https://example.com'}
+];
+let USERS=[
+  {id:1,name:'admin',mail:'admin@sylvie.cc',role:'admin',points:0,vip:'—',date:'2026-01-01',banned:0},
+  {id:2,name:'白夜行',mail:'baiyexing@mail.com',role:'vip',points:36,vip:'2026-12-17',date:'2026-03-14',banned:0},
+  {id:3,name:'柠檬茶',mail:'ningmeng@mail.com',role:'member',points:8,vip:'—',date:'2026-05-02',banned:0},
+  {id:4,name:'晚风',mail:'wanfeng@mail.com',role:'vip',points:22,vip:'2027-01-08',date:'2026-04-20',banned:0},
+  {id:5,name:'灌篮高手',mail:'lanqiu@mail.com',role:'member',points:2,vip:'—',date:'2026-08-11',banned:1},
+  {id:6,name:'临水',mail:'linshui@mail.com',role:'member',points:15,vip:'—',date:'2026-09-30',banned:0},
+  {id:7,name:'山雾',mail:'shanwu@mail.com',role:'vip',points:41,vip:'2026-11-17',date:'2026-02-09',banned:0},
+  {id:8,name:'竹里',mail:'zhuli@mail.com',role:'vip',points:18,vip:'2026-12-02',date:'2026-03-27',banned:0},
+  {id:9,name:'南音',mail:'nanyin@mail.com',role:'member',points:5,vip:'—',date:'2026-06-18',banned:0},
+  {id:10,name:'西洲',mail:'xizhou@mail.com',role:'member',points:12,vip:'—',date:'2026-07-04',banned:0},
+  {id:11,name:'青梧',mail:'qingwu@mail.com',role:'vip',points:33,vip:'2026-12-25',date:'2026-08-22',banned:0},
+  {id:12,name:'望舒',mail:'wangshu@mail.com',role:'member',points:0,vip:'—',date:'2026-09-13',banned:1},
+  {id:13,name:'临安',mail:'linan@mail.com',role:'member',points:7,vip:'—',date:'2026-10-05',banned:0},
+  {id:14,name:'初雪',mail:'chuxue@mail.com',role:'member',points:3,vip:'—',date:'2026-10-29',banned:0}
+];
+let PAYORDERS=[
+  {no:'SV20261118001',user:'白夜行',biz:'vip',item:'付费会员 · 月卡',pay:'alipay',amount:1900,status:'paid',time:'2026-11-18 09:12'},
+  {no:'SV20261118002',user:'柠檬茶',biz:'unlock',item:'绝对主观美少女 Vol.6',pay:'points',amount:0,points:15,status:'paid',time:'2026-11-18 10:05'},
+  {no:'SV20261118003',user:'晚风',biz:'vip',item:'付费会员 · 月卡（续费）',pay:'alipay',amount:1900,status:'paid',time:'2026-11-18 11:40'},
+  {no:'SV20261117004',user:'临水',biz:'unlock',item:'汉服·朱砂记',pay:'points',amount:0,points:12,status:'paid',time:'2026-11-17 15:22'},
+  {no:'SV20261117005',user:'山雾',biz:'unlock',item:'海边的风与长发',pay:'points',amount:0,points:12,status:'paid',time:'2026-11-17 18:01'},
+  {no:'SV20261117006',user:'山雾',biz:'vip',item:'付费会员 · 月卡',pay:'alipay',amount:1900,status:'paid',time:'2026-11-17 18:03'},
+  {no:'SV20261117007',user:'柠檬茶',biz:'vip',item:'付费会员 · 月卡',pay:'alipay',amount:1900,status:'created',time:'—'},
+  {no:'SV20261116008',user:'白夜行',biz:'unlock',item:'都市霓虹漫游记',pay:'points',amount:0,points:18,status:'paid',time:'2026-11-16 20:44'},
+  {no:'SV20261116009',user:'晚风',biz:'vip',item:'付费会员 · 月卡（续费）',pay:'alipay',amount:1900,status:'refunded',time:'2026-11-16 13:10'},
+  {no:'SV20261115010',user:'临水',biz:'vip',item:'付费会员 · 月卡',pay:'alipay',amount:1900,status:'paid',time:'2026-11-15 08:31'},
+  {no:'SV20261115011',user:'山雾',biz:'unlock',item:'白裙与午后的窗',pay:'points',amount:0,points:12,status:'paid',time:'2026-11-15 12:19'},
+  {no:'SV20261114012',user:'柠檬茶',biz:'unlock',item:'胶片夏日纪念册',pay:'points',amount:0,points:15,status:'closed',time:'—'}
+];
+let LOGS=[
+  {time:'2026-11-17 14:20',admin:'admin',action:'album.publish',target:'图集 #1001',detail:'发布「绝对主观美少女 Vol.6」'},
+  {time:'2026-11-14 10:05',admin:'admin',action:'album.publish',target:'图集 #1002',detail:'发布「白裙与午后的窗」'},
+  {time:'2026-11-10 12:00',admin:'admin',action:'comment.review',target:'评论 #88',detail:'拒绝：含外链引流'},
+  {time:'2026-10-28 16:00',admin:'admin',action:'album.offline',target:'图集 #1006',detail:'下架「黑白光影手札」'},
+  {time:'2026-10-25 11:30',admin:'admin',action:'announcement.publish',target:'公告 #8',detail:'发布「全站搜索功能升级」'},
+  {time:'2026-10-20 09:15',admin:'admin',action:'author.create',target:'作者 #7',detail:'新建作者「林熙」'},
+  {time:'2026-10-15 16:42',admin:'admin',action:'comment.review',target:'评论 #76',detail:'通过「竹里」的评论'},
+  {time:'2026-10-12 10:08',admin:'admin',action:'config.update',target:'站点配置',detail:'更新年龄声明文案'},
+  {time:'2026-10-08 14:55',admin:'admin',action:'user.封禁',target:'用户 #5',detail:'封禁「灌篮高手」：发布违规内容'},
+  {time:'2026-10-02 18:20',admin:'admin',action:'friend.create',target:'友链「片舟」',detail:'添加友链'},
+  {time:'2026-09-26 09:40',admin:'admin',action:'album.publish',target:'图集 #998',detail:'发布「校园运动会特辑」'},
+  {time:'2026-09-20 13:05',admin:'admin',action:'order.refund',target:'订单 SV20260920003',detail:'退款 ¥19.00 · 用户申请'}
+];
+const TAG_POOL=['日系','胶片','清新','私房','街拍','都市','甜美','少女','国风','汉服','黑白','极简','旅拍','外景','室内','人像'];
+let pbTags=[];let pbImgs=[];
+const AL_PAGE=6;let alPage=1,alFilter='all';
+const NT_PAGE=6;let ntPage=1;
+const AU_PAGE=6;let auPage=1;
+const US_PAGE=8;let usPage=1;
+const LG_PAGE=8;let lgPage=1;
+let cmtFilter='pending';
+let nextAlbumId=1008,noticeId=11,authorId=11;
+
+/* ================= 工具 ================= */
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const A=id=>AUTHORS.find(a=>a.id==id);
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2200)}
+let cfCb=null;
+function confirmDo(title,text,okText,cb){
+  $('#cfTitle').textContent=title+'？';$('#cfText').textContent=text;
+  $('#cfOk').textContent=okText;cfCb=cb;openModal('mConfirm');
+}
+$('#cfOk').onclick=()=>{closeModal('mConfirm');try{cfCb&&cfCb()}catch(e){toast('操作失败：'+e.message)}cfCb=null};
+function openModal(id){$('#'+id).classList.add('on')}
+function closeModal(id){$('#'+id).classList.remove('on')}
+$$('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on')}));
+function log(action,target,detail){
+  LOGS.unshift({time:now(),admin:'admin',action,target,detail});
+  lgPage=1;
+  renderLogs();
+}
+function now(){
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+const STATUS={published:['bg-pub','已发布'],draft:['bg-draft','草稿'],offline:['bg-off','已下架']};
+const NT_L={top:['bg-pub','置顶'],update:['bg-pub','更新'],activity:['bg-draft','活动'],maintain:['bg-draft','维护'],rule:['bg-draft','规则'],notice:['bg-draft','通知']};
+const ROLE={admin:['bg-adm','管理员'],vip:['bg-vip','付费会员'],member:['bg-mem','注册会员']};
+const AVA_COLORS=['#ff2d55','#3a8ef0','#f5a623','#3fbf62','#8e7cff','#ff7a45','#0ea5a5'];
+
+/* ================= 导航 ================= */
+const CRUMB={dash:'数据看板',albums:'图集管理',publish:'发布图集',comments:'评论审核',notices:'公告管理',authors:'作者管理',pay:'支付流水',users:'用户管理',config:'友链与配置',logs:'操作日志'};
+function go(k){
+  $$('.sec').forEach(s=>s.classList.remove('on'));
+  $('#sec-'+k).classList.add('on');
+  $$('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.k===k));
+  $('#crumbCur').textContent=CRUMB[k];
+  window.scrollTo({top:0});
+}
+$$('.nav a').forEach(a=>a.addEventListener('click',()=>go(a.dataset.k)));
+
+/* ================= 看板 ================= */
+function renderDash(){
+  const pub=ALBUMS.filter(a=>a.status==='published');
+  $('#stAlbums').textContent=ALBUMS.length;
+  $('#stAlbumsD').textContent='已发布 '+pub.length+' · 草稿 '+(ALBUMS.length-pub.length);
+  const pend=COMMENTS.filter(c=>c.status==='pending').length;
+  $('#stPend').textContent=pend;
+  $('#cmtBdg').textContent=pend;
+  $('#cmtBdg').style.display=pend?'':'none';
+  $('#dashAlbums').innerHTML=ALBUMS.slice(0,6).map(a=>{
+    const [cls,txt]=STATUS[a.status];
+    const au=A(a.authorId);
+    return `<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="thumb"><div class="art ${a.cover}"></div></div><span class="tt">${esc(a.title)}</span></div></td>
+    <td class="hide-m">${esc(au?au.name:'—')}</td>
+    <td>${a.imgs}P${a.videos?' · '+a.videos+'V':''}</td>
+    <td class="hide-m">${a.date}</td>
+    <td><span class="badge ${cls}">${txt}</span></td></tr>`;
+  }).join('');
+  // 今日概览：订单/营收与支付流水页同口径实时计算
+  const today=now().slice(0,10);
+  const tPaid=PAYORDERS.filter(o=>o.status==='paid'&&o.time&&o.time.startsWith(today));
+  const tCash=tPaid.filter(o=>o.pay==='alipay');
+  const tUnlock=tPaid.filter(o=>o.biz==='unlock');
+  $('#ovOrders').innerHTML=`<b>新订单 ${tPaid.length}</b> 笔 · 营收 ${yuan(tCash.reduce((s,o)=>s+o.amount,0))}`;
+  $('#ovUnlock').innerHTML=`<b>下载 214</b> 次 · 积分解锁 ${tUnlock.length} 套`;
+}
+
+/* ================= 图集管理 ================= */
+$('#alTabs').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  $$('#alTabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  alFilter=b.dataset.f;alPage=1;renderAlbums();
+});
+$('#alKw').addEventListener('keydown',e=>{if(e.key==='Enter')alSearch()});
+function alSearch(){alPage=1;renderAlbums()}
+function alFiltered(){
+  const kw=$('#alKw').value.trim().toLowerCase();
+  return ALBUMS.filter(a=>{
+    if(alFilter!=='all'&&a.status!==alFilter)return false;
+    if(kw){
+      const au=A(a.authorId);
+      if(!a.title.toLowerCase().includes(kw)&&!(au&&au.name.toLowerCase().includes(kw)))return false;
+    }
+    return true;
+  });
+}
+function renderAlbums(){
+  const list=alFiltered();
+  const pages=Math.max(1,Math.ceil(list.length/AL_PAGE));
+  if(alPage>pages)alPage=pages;
+  const slice=list.slice((alPage-1)*AL_PAGE,alPage*AL_PAGE);
+  $('#alCount').textContent='共 '+list.length+' 套';
+  $('#alEmpty').style.display=list.length?'none':'';
+  $('#alBody').innerHTML=slice.map(a=>{
+    const [cls,txt]=STATUS[a.status],au=A(a.authorId);
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:10px"><div class="thumb"><div class="art ${a.cover}"></div></div>
+        <div><div class="tt">${esc(a.title)}</div><div style="font-size:11px;color:var(--t3);margin-top:2px">#${a.id}</div></div></div></td>
+      <td>${esc(au?au.name:'—')}</td>
+      <td>${a.imgs}P${a.videos?' · '+a.videos+'V':''}</td>
+      <td class="hide-m">${a.points} 分</td>
+      <td class="hide-m">${fmt(a.views)} / ${fmt(a.favs)}</td>
+      <td class="hide-m">${a.date}</td>
+      <td><span class="badge ${cls}">${txt}</span></td>
+      <td><div class="ops">
+        ${a.status==='published'
+          ?`<button class="btn btn-amber btn-sm" onclick="toggleAlbum(${a.id})">下架</button>`
+          :`<button class="btn btn-green btn-sm" onclick="toggleAlbum(${a.id})">${a.status==='draft'?'发布':'上架'}</button>`}
+        <button class="btn btn-line btn-sm" onclick="openEdit(${a.id})">编辑</button>
+        <button class="btn btn-ghost-red btn-sm" onclick="delAlbum(${a.id})">删除</button>
+      </div></td></tr>`;
+  }).join('');
+  renderPager($('#alPager'),pages,alPage,n=>{alPage=n;renderAlbums()});
+}
+function fmt(n){return n>=10000?(n/10000).toFixed(1)+'w':n}
+function renderPager(el,pages,cur,cb){
+  if(pages<=1){el.innerHTML='';return}
+  let h=`<button ${cur===1?'disabled':''} onclick="_pg(${cur-1})">‹</button>`;
+  for(let i=1;i<=pages;i++)h+=`<button class="${i===cur?'on':''}" onclick="_pg(${i})">${i}</button>`;
+  h+=`<button ${cur===pages?'disabled':''} onclick="_pg(${cur+1})">›</button>`;
+  el.innerHTML=h;el._cb=cb;el._pages=pages;
+}
+function _pg(n){const el=event.currentTarget.closest('.pager');if(n<1||n>el._pages)return;el._cb(n)}
+function toggleAlbum(id){
+  const a=ALBUMS.find(x=>x.id===id);if(!a)return;
+  const to=a.status==='published'?'offline':'published';
+  const txt=to==='offline'?'下架':'上架';
+  confirmDo(txt+'图集',`「${a.title}」${to==='offline'?'下架后前台将不可见':'上架后前台恢复可见'}`,txt,()=>{
+    a.status=to;if(to==='published'&&!a.date.includes('-'))a.date=now();
+    log(to==='offline'?'album.offline':'album.online','图集 #'+id,(to==='offline'?'下架「':'上架「')+a.title+'」');
+    toast(txt+'成功');renderAlbums();renderDash();
+  });
+}
+/* ================= 编辑图集 ================= */
+let editId=null,editTags=[];
+function openEdit(id){
+  const a=ALBUMS.find(x=>x.id===id);if(!a)return;
+  editId=id;editTags=a.tags?[...a.tags]:[];
+  $('#edId').textContent='#'+id;
+  $('#edTitle').value=a.title;
+  $('#edAuthor').innerHTML=AUTHORS.map(x=>`<option value="${x.id}" ${x.id==a.authorId?'selected':''}>${esc(x.name)}</option>`).join('');
+  $('#edPoints').value=a.points;
+  $('#edDesc').value=a.desc||'';
+  $('#edTagKw').value='';
+  setupTagDrop('edTagDd','edTagKw','edTagList','etoggleTag',()=>editTags);
+  renderTagDrop('edTagList','edTagKw','etoggleTag',editTags);
+  renderEdTags();
+  openModal('mEdit');
+}
+function etoggleTag(t){
+  const i=editTags.indexOf(t);
+  if(i>=0)editTags.splice(i,1);else{if(editTags.length>=8){toast('最多选择 8 个标签');return}editTags.push(t)}
+  renderTagDrop('edTagList','edTagKw','etoggleTag',editTags);
+  renderEdTags();
+}
+function renderEdTags(){
+  $('#edSel').innerHTML=editTags.length
+    ?editTags.map(t=>`<span class="tg">#${t}<b onclick="etoggleTag('${t}')">✕</b></span>`).join('')
+    :'<span style="font-size:12px;color:var(--t3)">未选择标签</span>';
+}
+function saveEdit(){
+  const a=ALBUMS.find(x=>x.id===editId);if(!a)return;
+  const title=$('#edTitle').value.trim();
+  const err=$('#edTitleErr');
+  if(!title||title.length>60){err.classList.add('on');$('#edTitle').focus();return}
+  err.classList.remove('on');
+  const au=A($('#edAuthor').value);
+  const points=+$('#edPoints').value||0;
+  const desc=$('#edDesc').value.trim();
+  const changed=[];
+  if(title!==a.title)changed.push('标题');
+  if(au.id!=a.authorId)changed.push('作者');
+  if(points!==a.points)changed.push('积分');
+  if(desc!==(a.desc||''))changed.push('简介');
+  if(JSON.stringify(editTags)!==JSON.stringify(a.tags||[]))changed.push('标签');
+  a.title=title;a.authorId=au.id;a.points=points;a.desc=desc;a.tags=[...editTags];
+  log('album.edit','图集 #'+a.id,'编辑「'+title+'」'+(changed.length?'（'+changed.join(' / ')+'）':''));
+  closeModal('mEdit');
+  toast('修改已保存，前台同步更新');
+  renderAlbums();renderDash();
+}
+function delAlbum(id){
+  const a=ALBUMS.find(x=>x.id===id);if(!a)return;
+  confirmDo('删除图集',`「${a.title}」删除后不可恢复，确认删除？`,'删除',()=>{    ALBUMS=ALBUMS.filter(x=>x.id!==id);
+    log('album.delete','图集 #'+id,'删除「'+a.title+'」');
+    toast('已删除');renderAlbums();renderDash();
+  });
+}
+
+/* ================= 标签搜索下拉 ================= */
+function renderTagDrop(listId,kwId,fn,selArr){
+  const kw=$('#'+kwId).value.trim().toLowerCase();
+  const items=TAG_POOL.filter(t=>!kw||t.toLowerCase().includes(kw));
+  $('#'+listId).innerHTML=items.length
+    ?items.map(t=>`<div class="tag-dd-it${selArr.includes(t)?' on':''}" onclick="${fn}('${t}')">${selArr.includes(t)?'<i>✓</i>':''}${t}</div>`).join('')
+    :'<div class="tag-dd-empty">没有匹配的标签，试试其它关键词</div>';
+}
+function setupTagDrop(ddId,kwId,listId,fn,selGetter){
+  const inp=$('#'+kwId),dd=$('#'+ddId);
+  if(inp._ddBound)return;inp._ddBound=true;
+  inp.addEventListener('focus',()=>{dd.classList.add('open');renderTagDrop(listId,kwId,fn,selGetter())});
+  inp.addEventListener('input',()=>{dd.classList.add('open');renderTagDrop(listId,kwId,fn,selGetter())});
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();
+      const it=$('#'+listId+' .tag-dd-it:not(.on)')||$('#'+listId+' .tag-dd-it');
+      it&&it.click();
+    }
+    if(e.key==='Escape')dd.classList.remove('open');
+  });
+}
+document.addEventListener('click',e=>{
+  $$('.tag-dd.open').forEach(dd=>{if(!dd.contains(e.target))dd.classList.remove('open')});
+});
+
+/* ================= 发布图集 ================= */
+function initPublish(){
+  refreshAuthorsDropdown();
+  setupTagDrop('pbTagDd','pbTagKw','pbTagList','toggleTag',()=>pbTags);
+  renderTagDrop('pbTagList','pbTagKw','toggleTag',pbTags);
+  renderPbTags();renderUpGrid();
+  $('#upZone').onclick=addFakeImg;
+}
+function refreshAuthorsDropdown(){
+  $('#pbAuthor').innerHTML=AUTHORS.map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join('');
+}
+function toggleTag(t){
+  const i=pbTags.indexOf(t);
+  if(i>=0)pbTags.splice(i,1);else{if(pbTags.length>=8){toast('最多选择 8 个标签');return}pbTags.push(t)}
+  renderTagDrop('pbTagList','pbTagKw','toggleTag',pbTags);
+  renderPbTags();
+}
+function renderPbTags(){
+  $('#pbSel').innerHTML=pbTags.length
+    ?pbTags.map(t=>`<span class="tg">#${t}<b onclick="toggleTag('${t}')">✕</b></span>`).join('')
+    :'<span style="font-size:12px;color:var(--t3)">未选择标签</span>';
+}
+function addFakeImg(){
+  if(pbImgs.length>=99){toast('图片数量已达上限');return}
+  pbImgs.push('a'+(pbImgs.length%8));renderUpGrid();
+}
+function renderUpGrid(){
+  $('#upGrid').innerHTML=pbImgs.map((c,i)=>`
+    <div class="up-item"><div class="art ${c}" style="width:100%;height:100%"></div>
+      <span class="no">${i+1}</span><span class="rm" onclick="rmImg(${i})">✕</span></div>`).join('');
+  $('#pbMediaN').textContent=`图片 ${pbImgs.length} · 视频 ${$('#pbVideos').value||0}`;
+}
+$('#pbVideos').addEventListener('input',renderUpGrid);
+function rmImg(i){pbImgs.splice(i,1);renderUpGrid()}
+function submitPublish(){
+  const title=$('#pbTitle').value.trim();
+  const err=$('#pbTitleErr');
+  if(!title||title.length>60){err.classList.add('on');$('#pbTitle').focus();return}
+  err.classList.remove('on');
+  const au=A($('#pbAuthor').value);
+  confirmDo('发布图集',`将发布「${title}」（作者：${au.name}，图片 ${pbImgs.length} 张），确认发布？`,'发布',()=>{
+    ALBUMS.unshift({
+      id:nextAlbumId++,title,authorId:au.id,
+      imgs:pbImgs.length||12,videos:+$('#pbVideos').value||0,
+      points:+$('#pbPoints').value||0,views:0,favs:0,
+      desc:$('#pbDesc').value.trim(),tags:[...pbTags],
+      cover:pbImgs[0]||'a'+(nextAlbumId%8),status:'published',date:now()
+    });
+    log('album.publish','图集 #'+(nextAlbumId-1),'发布「'+title+'」· '+pbTags.map(t=>'#'+t).join(' '));
+    toast('发布成功，已在前台展示');
+    // 重置表单
+    $('#pbTitle').value='';$('#pbDesc').value='';pbTags=[];pbImgs=[];
+    $('#pbTagKw').value='';
+    renderTagDrop('pbTagList','pbTagKw','toggleTag',pbTags);
+    renderPbTags();renderUpGrid();
+    alFilter='all';alPage=1;$$('#alTabs button').forEach(x=>x.classList.toggle('on',x.dataset.f==='all'));
+    $('#alKw').value='';
+    renderAlbums();renderDash();
+  });
+}
+
+/* ================= 评论审核 ================= */
+const CMT_PAGE=5;let cmtPage=1;
+$('#cmtTabs').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  $$('#cmtTabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  cmtFilter=b.dataset.f;cmtPage=1;renderComments();
+});
+$('#cmtKw').addEventListener('keydown',e=>{if(e.key==='Enter')cmtSearch()});
+function cmtSearch(){cmtPage=1;renderComments()}
+function renderComments(){
+  const kw=$('#cmtKw').value.trim().toLowerCase();
+  let list=COMMENTS.filter(c=>c.status===cmtFilter);
+  if(kw)list=list.filter(c=>(c.user+c.content+c.album).toLowerCase().includes(kw));
+  const pages=Math.max(1,Math.ceil(list.length/CMT_PAGE));
+  if(cmtPage>pages)cmtPage=pages;
+  const view=list.slice((cmtPage-1)*CMT_PAGE,cmtPage*CMT_PAGE);
+  $('#cmtEmpty').style.display=(cmtFilter==='pending'&&!list.length&&!kw)?'':'none';
+  $('#cmtNoKw').style.display=(kw&&!list.length)?'':'none';
+  $('#cmtList').innerHTML=view.map(c=>{
+    const ops=c.status==='pending'
+      ?`<button class="btn btn-green btn-sm" onclick="reviewComment(${c.id},'approved')">通过</button>
+        <button class="btn btn-ghost-red btn-sm" onclick="reviewComment(${c.id},'rejected')">拒绝</button>`
+      :`<span class="badge ${c.status==='approved'?'bg-pub':'bg-rej'}">${c.status==='approved'?'已通过':'已拒绝'}</span>`;
+    return `<div class="cmt">
+      <div class="ava" style="background:${c.color}">${esc(c.user.slice(0,1))}</div>
+      <div class="bd">
+        <div class="m1"><b>${esc(c.user)}</b><span class="badge ${c.badge==='vip'?'bg-vip':'bg-mem'}">${c.badge==='vip'?'付费会员':'注册会员'}</span>
+          <span>评论于「${esc(c.album)}」</span><span>${c.time}</span></div>
+        <div class="ct">${esc(c.content)}</div>
+        <div class="ops">${ops}</div>
+      </div></div>`;
+  }).join('')||'';
+  renderPager($('#cmtPager'),pages,cmtPage,n=>{cmtPage=n;renderComments()});
+  renderDash();
+}
+function reviewComment(id,st){
+  const c=COMMENTS.find(x=>x.id===id);if(!c)return;
+  const txt=st==='approved'?'通过':'拒绝';
+  confirmDo(txt+'评论',`来自「${c.user}」的评论将${st==='approved'?'展示在前台评论区':'不会展示'}`,txt,()=>{
+    c.status=st;
+    log('comment.review','评论 #'+id,(st==='approved'?'通过':'拒绝')+'「'+c.user+'」的评论');
+    toast(txt+'成功');renderComments();
+  });
+}
+
+/* ================= 公告管理 ================= */
+function renderNotices(){
+  const pages=Math.max(1,Math.ceil(NOTICES.length/NT_PAGE));
+  if(ntPage>pages)ntPage=pages;
+  const slice=NOTICES.slice((ntPage-1)*NT_PAGE,ntPage*NT_PAGE);
+  $('#ntSub').textContent='置顶公告排首位 · 共 '+NOTICES.length+' 条';
+  $('#ntBody').innerHTML=slice.map(n=>{
+    const [cls,txt]=NT_L[n.type];
+    return `<tr>
+      <td><span class="tt" style="max-width:260px">${n.type==='top'?'<span class="badge bg-pub" style="margin-right:6px">置顶</span>':''}${esc(n.title)}</span></td>
+      <td><span class="badge ${cls}">${txt}</span></td>
+      <td class="hide-m" style="white-space:normal;max-width:220px;color:var(--t3);font-size:12px">${esc(n.summary)}</td>
+      <td>${n.date}</td>
+      <td class="hide-m"><span class="badge ${n.status?'bg-pub':'bg-off'}">${n.status?'已发布':'已下线'}</span></td>
+      <td><div class="ops">
+        <button class="btn btn-line btn-sm" onclick="openEditNotice(${n.id})">编辑</button>
+        <button class="btn btn-amber btn-sm" onclick="toggleNotice(${n.id})">${n.status?'下线':'发布'}</button>
+        <button class="btn btn-ghost-red btn-sm" onclick="delNotice(${n.id})">删除</button>
+      </div></td></tr>`;
+  }).join('');
+  $('#ntEmpty').style.display=NOTICES.length?'none':'';
+  renderPager($('#ntPager'),pages,ntPage,n=>{ntPage=n;renderNotices()});
+}
+function openNoticeModal(){
+  editNtId=null;
+  $('#ntModalT').textContent='新建公告';
+  $('#ntSaveB').textContent='发布公告';
+  $('#ntTitle').value='';$('#ntSummary').value='';$('#ntContent').value='';
+  $('#ntType').value='notice';$('#ntTop').classList.remove('on');
+  $('#ntTitleErr').classList.remove('on');
+  openModal('mNotice');
+}
+let editNtId=null;
+function openEditNotice(id){
+  const n=NOTICES.find(x=>x.id===id);if(!n)return;
+  editNtId=id;
+  $('#ntModalT').textContent='编辑公告 #'+id;
+  $('#ntSaveB').textContent='保存修改';
+  $('#ntTitle').value=n.title;$('#ntSummary').value=n.summary||'';
+  $('#ntContent').value=n.content||'';
+  $('#ntType').value=n.type==='top'?'notice':n.type;
+  $('#ntTop').classList.toggle('on',n.type==='top');
+  $('#ntTitleErr').classList.remove('on');
+  openModal('mNotice');
+}
+function saveNotice(){
+  const title=$('#ntTitle').value.trim();
+  if(!title){$('#ntTitleErr').classList.add('on');$('#ntTitle').focus();return}
+  $('#ntTitleErr').classList.remove('on');
+  const type=$('#ntTop').classList.contains('on')?'top':$('#ntType').value;
+  const summary=$('#ntSummary').value.trim(),content=$('#ntContent').value;
+  if(editNtId){
+    const n=NOTICES.find(x=>x.id===editNtId);if(!n)return;
+    n.title=title;n.type=type;n.summary=summary;n.content=content;
+    log('announcement.edit','公告 #'+n.id,'编辑「'+title+'」');
+    closeModal('mNotice');toast('修改已保存');
+    renderNotices();
+    return;
+  }
+  NOTICES.unshift({id:noticeId++,type,title,summary,content,date:now().slice(0,10),status:1});
+  log('announcement.publish','公告 #'+(noticeId-1),'发布「'+title+'」');
+  closeModal('mNotice');toast('公告已发布');
+  ntPage=1;renderNotices();
+}
+function toggleNotice(id){
+  const n=NOTICES.find(x=>x.id===id);if(!n)return;
+  n.status=n.status?0:1;
+  log('announcement.'+(n.status?'publish':'offline'),'公告 #'+id,(n.status?'发布「':'下线「')+n.title+'」');
+  toast(n.status?'已发布':'已下线');renderNotices();
+}
+function delNotice(id){
+  const n=NOTICES.find(x=>x.id===id);if(!n)return;
+  confirmDo('删除公告',`「${n.title}」删除后不可恢复`,'删除',()=>{
+    NOTICES=NOTICES.filter(x=>x.id!==id);
+    log('announcement.delete','公告 #'+id,'删除「'+n.title+'」');
+    toast('已删除');renderNotices();
+  });
+}
+
+/* ================= 作者管理 ================= */
+function renderAuthors(){
+  $('#auCount').textContent='共 '+AUTHORS.length+' 位';
+  const pages=Math.max(1,Math.ceil(AUTHORS.length/AU_PAGE));
+  if(auPage>pages)auPage=pages;
+  const slice=AUTHORS.slice((auPage-1)*AU_PAGE,auPage*AU_PAGE);
+  $('#auBody').innerHTML=slice.map(a=>`
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="art ${a.color} au-ava" style="width:36px;height:36px;font-size:14px${a.avatar?`;background-image:url(${a.avatar});background-size:cover;background-position:center`:''}">${a.avatar?'':esc(a.name.slice(0,1))}</div>
+        <div class="tt" style="max-width:120px">${esc(a.name)}</div></div></td>
+      <td class="hide-m">${esc(a.alias)||'—'}</td>
+      <td>${ALBUMS.filter(x=>x.authorId===a.id).length} 套</td>
+      <td class="hide-m">${esc(a.style)}</td>
+      <td class="hide-m">${a.since}</td>
+      <td><span class="badge bg-pub">展示中</span></td>
+      <td><div class="ops">
+        <button class="btn btn-line btn-sm" onclick="openEditAuthor(${a.id})">编辑</button>
+        <button class="btn btn-ghost-red btn-sm" onclick="delAuthor(${a.id})">删除</button>
+      </div></td>
+    </tr>`).join('');
+  $('#auEmpty').style.display=AUTHORS.length?'none':'';
+  renderPager($('#auPager'),pages,auPage,n=>{auPage=n;renderAuthors()});
+}
+const AU_COLORS=[
+  {k:'a0',t:'玫红'},{k:'a1',t:'橙红'},{k:'a4',t:'蓝紫'},
+  {k:'a3',t:'琥珀'},{k:'a5',t:'青绿'},{k:'a7',t:'青紫'}
+];
+let auColorSel='a0';
+let auAvatar=null; /* 作者自定义头像 dataURL，null 表示未上传 */
+function renderAuColors(){
+  $('#auColorPick').innerHTML=AU_COLORS.map(c=>
+    `<div class="art ${c.k} ava-sq${!auAvatar&&auColorSel===c.k?' on':''}" data-k="${c.k}" title="${c.t}" onclick="pickAuColor('${c.k}')"></div>`).join('');
+}
+function pickAuColor(k){
+  auColorSel=k;
+  auAvatar=null; /* 点色卡即放弃自定义图片，回到首字头像 */
+  renderAuColors();
+  applyAuAva();
+}
+function syncAuAvaLetter(){
+  if(auAvatar)return; /* 有自定义图片时不显示首字 */
+  $('#auAvaPrev').textContent=($('#auName').value.trim()||'希').slice(0,1);
+}
+function applyAuAva(){
+  const p=$('#auAvaPrev');
+  if(auAvatar){
+    p.style.backgroundImage=`url(${auAvatar})`;
+    p.style.backgroundSize='cover';p.style.backgroundPosition='center';
+    p.textContent='';
+    $('#auAvaRm').style.display='';
+  }else{
+    p.style.backgroundImage='';
+    p.className='art '+auColorSel+' au-ava';
+    syncAuAvaLetter();
+    $('#auAvaRm').style.display='none';
+  }
+  renderAuColors();
+}
+function onAuAvatarFile(inp){
+  const f=inp.files&&inp.files[0];if(!f)return;
+  if(!/^image\//.test(f.type)){toast('请选择图片文件');inp.value='';return}
+  if(f.size>5*1024*1024){toast('图片不能超过 5MB');inp.value='';return}
+  const rd=new FileReader();
+  rd.onload=e=>{setAuAvatar(e.target.result);toast('头像已上传，保存后生效')};
+  rd.readAsDataURL(f);
+  inp.value='';
+}
+function clearAuAvatar(){auAvatar=null;renderAuColors();applyAuAva()}
+function setAuAvatar(url){auAvatar=url;applyAuAva()}
+$('#auName').addEventListener('input',syncAuAvaLetter);
+let editAuId=null;
+function openAuthorModal(){
+  editAuId=null;
+  $('#auModalT').textContent='新建作者';
+  $('#auName').value='';$('#auAlias').value='';$('#auStyle').value='';$('#auBio').value='';
+  $('#auSince').value=now().slice(0,10);
+  auColorSel='a0';auAvatar=null;
+  renderAuColors();applyAuAva();
+  $('#auNameErr').classList.remove('on');
+  openModal('mAuthor');
+}
+function openEditAuthor(id){
+  const a=A(id);if(!a)return;
+  editAuId=id;
+  $('#auModalT').textContent='编辑作者 #'+id;
+  $('#auName').value=a.name;$('#auAlias').value=a.alias||'';
+  $('#auStyle').value=a.style||'';$('#auBio').value=a.bio||'';
+  $('#auSince').value=a.since;
+  auColorSel=a.color;auAvatar=a.avatar||null;
+  renderAuColors();applyAuAva();
+  $('#auNameErr').classList.remove('on');
+  openModal('mAuthor');
+}
+function saveAuthor(){
+  const name=$('#auName').value.trim();
+  if(!name){$('#auNameErr').classList.add('on');$('#auName').focus();return}
+  $('#auNameErr').classList.remove('on');
+  const alias=$('#auAlias').value.trim(),style=$('#auStyle').value.trim()||'待定',
+        since=$('#auSince').value||now().slice(0,10),bio=$('#auBio').value.trim();
+  if(editAuId){
+    const a=A(editAuId);if(!a)return;
+    a.name=name;a.alias=alias;a.style=style;a.since=since;a.bio=bio;a.color=auColorSel;a.avatar=auAvatar;
+    log('author.edit','作者 #'+a.id,'编辑「'+name+'」'+(auAvatar?' · 更新头像':''));
+    closeModal('mAuthor');toast('修改已保存');
+    renderAuthors();refreshAuthorsDropdown();
+    return;
+  }
+  AUTHORS.push({id:authorId++,name,alias,style,
+    color:auColorSel,avatar:auAvatar,since,bio});
+  log('author.create','作者 #'+(authorId-1),'新建作者「'+name+'」');
+  closeModal('mAuthor');toast('作者已创建');
+  auPage=Math.ceil(AUTHORS.length/AU_PAGE);
+  renderAuthors();initPublish();
+}
+function delAuthor(id){
+  const a=A(id);if(!a)return;
+  const n=ALBUMS.filter(x=>x.authorId===id).length;
+  if(n){toast('「'+a.name+'」名下仍有 '+n+' 套图集，请先转移或删除图集');return}
+  confirmDo('删除作者',`「${a.name}」删除后不可恢复，确认删除？`,'删除',()=>{
+    AUTHORS=AUTHORS.filter(x=>x.id!==id);
+    log('author.delete','作者 #'+id,'删除「'+a.name+'」');
+    toast('已删除');
+    auPage=Math.min(auPage,Math.max(1,Math.ceil(AUTHORS.length/AU_PAGE)));
+    renderAuthors();refreshAuthorsDropdown();
+  });
+}
+
+/* ================= 支付流水 ================= */
+const PAY_PAGE=8;let payPage=1,payFilter='all';
+const PAY_ST={paid:['bg-pub','已支付'],created:['bg-pend','待支付'],closed:['bg-draft','已关闭'],refunded:['bg-rej','已退款']};
+$('#payTabs').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  $$('#payTabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  payFilter=b.dataset.f;payPage=1;renderPay();
+});
+$('#payKw').addEventListener('keydown',e=>{if(e.key==='Enter')paySearch()});
+function paySearch(){payPage=1;renderPay()}
+function dstr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+/* 时间筛选 */
+$('#payQuick').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  $$('#payQuick button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  const q=b.dataset.q,today=now().slice(0,10);
+  if(q==='all'){$('#payFrom').value='';$('#payTo').value=''}
+  else if(q==='today'){$('#payFrom').value=today;$('#payTo').value=today}
+  else{
+    const d=new Date();d.setDate(d.getDate()-(+q-1));
+    $('#payFrom').value=dstr(d);$('#payTo').value=today;
+  }
+  payPage=1;renderPay();
+});
+$('#payFrom').addEventListener('change',()=>{$$('#payQuick button').forEach(x=>x.classList.remove('on'));payPage=1;renderPay()});
+$('#payTo').addEventListener('change',()=>{$$('#payQuick button').forEach(x=>x.classList.remove('on'));payPage=1;renderPay()});
+function clearPayDate(){
+  $('#payFrom').value='';$('#payTo').value='';$('#payKw').value='';
+  $$('#payQuick button').forEach(x=>x.classList.toggle('on',x.dataset.q==='all'));
+  payPage=1;renderPay();
+}
+function payFiltered(){
+  const kw=$('#payKw').value.trim().toLowerCase();
+  const from=$('#payFrom').value,to=$('#payTo').value;
+  return PAYORDERS.filter(o=>{
+    if(payFilter!=='all'){
+      if(payFilter==='vip'&&o.biz!=='vip')return false;
+      if(payFilter==='unlock'&&o.biz!=='unlock')return false;
+    }
+    if(kw&&!o.no.toLowerCase().includes(kw)&&!o.user.toLowerCase().includes(kw))return false;
+    if((from||to)&&(!o.time||o.time==='—'))return false; // 待支付/已关闭无支付时间
+    if(from&&o.time.slice(0,10)<from)return false;
+    if(to&&o.time.slice(0,10)>to)return false;
+    return true;
+  });
+}
+function yuan(c){return '¥'+(c/100).toFixed(2)}
+function renderPay(){
+  const list=payFiltered();
+  const paid=list.filter(o=>o.status==='paid');
+  const pages=Math.max(1,Math.ceil(list.length/PAY_PAGE));
+  if(payPage>pages)payPage=pages;
+  const slice=list.slice((payPage-1)*PAY_PAGE,payPage*PAY_PAGE);
+  const from=$('#payFrom').value,to=$('#payTo').value;
+  $('#payCount').textContent='共 '+list.length+' 笔'
+    +(from&&to&&from!==to?` · ${from} ~ ${to}`:from?` · ${from} 起`:to?` · ${to} 止`:'');
+  $('#payEmpty').style.display=list.length?'none':'';
+  // 统计卡（全部口径，不随筛选变化）
+  const all=PAYORDERS.filter(o=>o.status==='paid');
+  const today=now().slice(0,10);
+  const td=all.filter(o=>o.time.startsWith(today));
+  const vip=all.filter(o=>o.biz==='vip');
+  const unl=all.filter(o=>o.biz==='unlock');
+  $('#pyTotal').textContent=yuan(all.reduce((s,o)=>s+o.amount,0));
+  $('#pyToday').textContent=yuan(td.reduce((s,o)=>s+o.amount,0));
+  $('#pyTodayD').textContent='今日 '+td.length+' 笔';
+  $('#pyVipN').textContent=vip.length;
+  $('#pyVipD').textContent=yuan(vip.reduce((s,o)=>s+o.amount,0));
+  $('#pyUnN').textContent=unl.length;
+  $('#pyUnD').textContent='消耗 '+unl.reduce((s,o)=>s+(o.points||0),0)+' 积分';
+  $('#payBody').innerHTML=slice.map(o=>{
+    const [cls,txt]=PAY_ST[o.status];
+    return `<tr>
+      <td style="font-variant-numeric:tabular-nums">${o.no}</td>
+      <td>${esc(o.user)}</td>
+      <td><span class="badge ${o.biz==='vip'?'bg-vip':'bg-draft'}">${o.biz==='vip'?'会员开通':'积分解锁'}</span></td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis" class="hide-m">${esc(o.item)}</td>
+      <td class="hide-m">${o.pay==='alipay'?'支付宝':o.points+' 积分'}</td>
+      <td style="font-weight:600">${o.amount?yuan(o.amount):(o.points+' 分')}</td>
+      <td><span class="badge ${cls}">${txt}</span></td>
+      <td class="hide-m">${o.time}</td>
+      <td><div class="ops">
+        ${o.status==='paid'&&o.biz==='vip'
+          ?`<button class="btn btn-ghost-red btn-sm" onclick="refundOrder('${o.no}')">退款</button>`
+          :'<span style="font-size:12px;color:var(--t3)">—</span>'}
+      </div></td></tr>`;
+  }).join('');
+  renderPager($('#payPager'),pages,payPage,n=>{payPage=n;renderPay()});
+}
+function refundOrder(no){
+  const o=PAYORDERS.find(x=>x.no===no);if(!o)return;
+  confirmDo('订单退款',`将退还「${o.user}」${yuan(o.amount)}（${o.item}），会员权益同步失效，确认退款？`,'退款',()=>{
+    o.status='refunded';
+    log('order.refund','订单 '+no,'退款 '+yuan(o.amount)+' · '+o.user+' · '+o.item);
+    toast('退款成功');renderPay();
+  });
+}
+/* 导出当前筛选结果为 CSV */
+function csvCell(v){
+  v=String(v==null?'':v);
+  return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
+}
+function exportPay(){
+  const list=payFiltered();
+  if(!list.length){toast('当前筛选条件下没有可导出的订单');return}
+  const from=$('#payFrom').value,to=$('#payTo').value;
+  const head=['订单号','用户','业务','图集/套餐','支付方式','金额','状态','支付时间'];
+  const rows=list.map(o=>[
+    o.no,o.user,o.biz==='vip'?'会员开通':'积分解锁',o.item,
+    o.pay==='alipay'?'支付宝':(o.points+' 积分'),
+    o.amount?yuan(o.amount):(o.points+' 分'),
+    (PAY_ST[o.status]||['','未知'])[1],o.time
+  ]);
+  const csv='\ufeff'+[head,...rows].map(r=>r.map(csvCell).join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='sylvie-pay-'+dstr(new Date()).replaceAll('-','')+'-'+now().slice(11,13)+now().slice(14,16)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+  log('pay.export','支付流水','导出 '+list.length+' 笔'
+    +(from&&to&&from!==to?`（${from} ~ ${to}）`:from?`（${from} 起）`:to?`（${to} 止）`:''));
+  toast('已导出 '+list.length+' 笔订单');
+}
+
+/* ================= 用户管理 ================= */
+$('#usKw').addEventListener('keydown',e=>{if(e.key==='Enter')usSearch()});
+function usSearch(){usPage=1;renderUsers()}
+function renderUsers(){
+  const kw=$('#usKw').value.trim().toLowerCase();
+  const list=USERS.filter(u=>!kw||u.name.toLowerCase().includes(kw)||u.mail.toLowerCase().includes(kw));
+  $('#usSub').textContent='只读查看 + 封禁控制 · 共 '+list.length+' 位';
+  const pages=Math.max(1,Math.ceil(list.length/US_PAGE));
+  if(usPage>pages)usPage=pages;
+  const slice=list.slice((usPage-1)*US_PAGE,usPage*US_PAGE);
+  $('#usEmpty').style.display=list.length?'none':'';
+  $('#usBody').innerHTML=slice.map(u=>{
+    const [cls,txt]=ROLE[u.role];
+    return `<tr>
+      <td><div><div class="tt" style="max-width:110px">${esc(u.name)}</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px">${esc(u.mail)}</div></div></td>
+      <td><span class="badge ${cls}">${txt}</span></td>
+      <td class="hide-m">${u.points} 分</td>
+      <td class="hide-m">${u.vip}</td>
+      <td class="hide-m">${u.date}</td>
+      <td>${u.banned?'<span class="ban">已封禁</span>':'<span class="badge bg-pub">正常</span>'}</td>
+      <td><div class="ops">${u.role==='admin'?'<span style="font-size:12px;color:var(--t3)">—</span>'
+        :`<button class="btn btn-line btn-sm" onclick="resetPwd(${u.id})">重置密码</button>
+          <button class="btn ${u.banned?'btn-green':'btn-ghost-red'} btn-sm" onclick="toggleBan(${u.id})">${u.banned?'解封':'封禁'}</button>`}</div></td>
+    </tr>`;
+  }).join('');
+  renderPager($('#usPager'),pages,usPage,n=>{usPage=n;renderUsers()});
+}
+function toggleBan(id){
+  const u=USERS.find(x=>x.id===id);if(!u)return;
+  const txt=u.banned?'解封':'封禁';
+  confirmDo(txt+'用户',`将${txt}用户「${u.name}」（${u.mail}），${u.banned?'恢复其正常访问':'其将无法登录与操作'}`,txt,()=>{
+    u.banned=u.banned?0:1;
+    log('user.'+txt,'用户 #'+id,txt+'「'+u.name+'」');
+    toast(txt+'成功');renderUsers();
+  });
+}
+function resetPwd(id){
+  const u=USERS.find(x=>x.id===id);if(!u)return;
+  confirmDo('重置密码',`将重置用户「${u.name}」（${u.mail}）的登录密码，原密码立即失效，确认重置？`,'重置',()=>{
+    const chars='abcdefghjkmnpqrstuvwxyz23456789';
+    const pwd='Sy'+Array.from({length:8},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
+    $('#pwdUser').textContent=u.name+'（'+u.mail+'）';
+    $('#pwdVal').textContent=pwd;
+    log('user.resetpwd','用户 #'+id,'重置「'+u.name+'」的登录密码');
+    openModal('mPwd');
+  });
+}
+function copyPwd(){
+  const t=$('#pwdVal').textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(t).then(()=>toast('已复制到剪贴板'),()=>toast('复制失败，请手动选择记录'));
+  else toast('请手动选择复制');
+}
+
+/* ================= 友链与配置 ================= */
+function renderFriends(){
+  $('#flList').innerHTML=FRIENDS.map((f,i)=>`
+    <div class="fl-row"><b>${esc(f.name)}</b><span class="sl">${esc(f.slogan)}</span>
+      <span class="rm" onclick="rmFriend(${i})">删除</span></div>`).join('')
+    ||'<div style="font-size:12.5px;color:var(--t3);padding:6px 0">暂无友链，页脚将不展示友链胶囊</div>';
+}
+function addFriend(){
+  const name=$('#flName').value.trim(),slogan=$('#flSlogan').value.trim();
+  if(!name){toast('请输入站名');return}
+  FRIENDS.push({name,slogan,url:'#'});
+  $('#flName').value='';$('#flSlogan').value='';
+  log('friend.create','友链「'+name+'」','添加友链');
+  toast('友链已添加');renderFriends();
+}
+function rmFriend(i){
+  const f=FRIENDS[i];
+  confirmDo('删除友链',`将删除「${f.name}」，页脚同步移除`,'删除',()=>{
+    FRIENDS.splice(i,1);
+    log('friend.delete','友链「'+f.name+'」','删除友链');
+    toast('已删除');renderFriends();
+  });
+}
+function saveConfig(){
+  log('config.update','站点配置','更新站点文案与水印设置');
+  toast('配置已保存');
+}
+
+/* ================= 日志 ================= */
+const ACT_T={ 'album.publish':'发布图集','album.edit':'编辑图集','album.offline':'下架图集','album.online':'上架图集','album.delete':'删除图集',
+  'comment.review':'审核评论','announcement.publish':'发布公告','announcement.edit':'编辑公告','announcement.offline':'下线公告','announcement.delete':'删除公告',
+  'author.create':'新建作者','author.edit':'编辑作者','author.delete':'删除作者','user.封禁':'封禁用户','user.解封':'解封用户','user.resetpwd':'重置密码','friend.create':'添加友链','friend.delete':'删除友链','config.update':'修改配置','order.refund':'订单退款','pay.export':'导出流水'};
+function renderLogs(){
+  $('#lgSub').textContent='管理员操作留痕 · 最新在前 · 共 '+LOGS.length+' 条';
+  const pages=Math.max(1,Math.ceil(LOGS.length/LG_PAGE));
+  if(lgPage>pages)lgPage=pages;
+  const slice=LOGS.slice((lgPage-1)*LG_PAGE,lgPage*LG_PAGE);
+  $('#lgBody').innerHTML=slice.map(l=>`
+    <tr><td style="color:var(--t3)">${l.time}</td><td>${esc(l.admin)}</td>
+    <td><span class="badge bg-draft">${ACT_T[l.action]||l.action}</span></td>
+    <td>${esc(l.target)}</td>
+    <td class="hide-m" style="white-space:normal;color:var(--t2);font-size:12px">${esc(l.detail)}</td></tr>`).join('');
+  $('#lgEmpty').style.display=LOGS.length?'none':'';
+  renderPager($('#lgPager'),pages,lgPage,n=>{lgPage=n;renderLogs()});
+}
+
+/* ================= 启动 ================= */
+(function(){
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  $('#dashDate').textContent=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' · 演示数据';
+  $('#cfgCopy').value='© 2020-2026 希尔薇图集. All rights reserved.';
+  $('#cfgAge').value='本站内容仅供成年人浏览，进入即视为已知悉并同意。';
+  $('#cfgDisc').value='所有图集仅由管理员发布，版权归原作者所有。';
+  initPublish();renderDash();renderAlbums();renderComments();
+  renderNotices();renderAuthors();renderPay();renderUsers();renderFriends();renderLogs();
+})();
+</script>
+</body>
+</html>

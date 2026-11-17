@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>希尔薇图集 · v1 原型设计</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ff2d55'/%3E%3Cstop offset='1' stop-color='%23ff7a52'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Ctext x='16' y='23' font-size='18' font-weight='bold' fill='%23fff' text-anchor='middle' font-family='sans-serif'%3E希%3C/text%3E%3C/svg%3E">
 <style>
 :root{
   --bg:#0b0b0e;
@@ -57,10 +58,10 @@ img{display:block;max-width:100%}
 /* ================= 头部 ================= */
 .hdr{position:sticky;top:0;z-index:60;background:rgba(11,11,14,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 .hdr-in{max-width:var(--wrap);margin:0 auto;display:flex;align-items:center;gap:18px;padding:0 20px;height:62px}
-.brand{display:flex;align-items:center;gap:9px;font-size:17px;font-weight:800;letter-spacing:.5px;white-space:nowrap}
-.brand .mark{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(135deg,var(--red),#ff7a52);box-shadow:0 4px 14px rgba(255,45,85,.35);flex-shrink:0}
-.brand .mark svg{width:15px;height:15px}
+.brand{display:flex;align-items:center;gap:10px;font-size:17.5px;font-weight:800;letter-spacing:.5px;white-space:nowrap}
+.brand .mark{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--red),#ff7a52);box-shadow:0 4px 16px rgba(255,45,85,.4);flex-shrink:0;
+  font-size:16px;font-weight:800;color:#fff;line-height:1;user-select:none}
 .nav{display:flex;align-items:center;gap:2px;margin-left:10px}
 .nav a{position:relative;display:flex;align-items:center;gap:6px;padding:8px 13px;font-size:14.5px;color:var(--t2);border-radius:9px;transition:color .18s,background .18s;white-space:nowrap}
 .nav a svg{opacity:.72;transition:opacity .18s}
@@ -534,6 +535,13 @@ a.chip:hover{color:var(--t1);border-color:#3a3a45}
 .mhead .x{font-size:16px;color:var(--t3);padding:2px 6px}
 .mhead .x:hover{color:var(--t1)}
 .mbody{padding:20px}
+.auth-brand{display:flex;align-items:center;gap:11px;margin:-4px 0 18px;padding:12px 14px;border-radius:12px;
+  border:1px solid rgba(255,45,85,.22);background:linear-gradient(135deg,rgba(255,45,85,.12),rgba(255,122,82,.03))}
+.auth-brand .mark{width:34px;height:34px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--red),#ff7a52);box-shadow:0 4px 14px rgba(255,45,85,.32);
+  font-size:17px;font-weight:800;color:#fff;line-height:1;user-select:none}
+.auth-brand b{display:block;font-size:14.5px;letter-spacing:.4px}
+.auth-brand span{display:block;font-size:11.5px;color:var(--t3);margin-top:2px}
 .tab2{display:flex;gap:6px;background:var(--s2);border-radius:10px;padding:4px;margin-bottom:18px}
 .tab2 button{flex:1;padding:8px 0;border-radius:8px;font-size:13.5px;color:var(--t2)}
 .tab2 button.on{background:var(--s1);color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.4)}
@@ -639,9 +647,9 @@ body.lb-open{overflow:hidden}
 .ftr-in{max-width:var(--wrap);margin:0 auto;padding:16px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .ftr-brand{display:inline-flex;align-items:center;gap:8px;font-size:14.5px;font-weight:800;letter-spacing:.6px;color:#f0f0f2;flex:1 1 0;min-width:0}
 .ftr-brand:hover{color:#fff}
-.ftr-brand .mark{width:21px;height:21px;border-radius:6px;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(135deg,var(--red),#ff7a52);flex-shrink:0}
-.ftr-brand .mark svg{width:12px;height:12px}
+.ftr-brand .mark{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--red),#ff7a52);flex-shrink:0;
+  font-size:12px;font-weight:800;color:#fff;line-height:1}
 .ftr-links{display:flex;align-items:center;gap:9px;flex:0 0 auto}
 .ftr-links .lb{font-size:12.5px;color:var(--t3);white-space:nowrap}
 .flink{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;
@@ -768,9 +776,7 @@ body.lb-open{overflow:hidden}
 <header class="hdr">
   <div class="hdr-in">
     <a class="brand" data-go="home">
-      <span class="mark">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.5s-7-4.3-9.3-8.6C1.2 8.4 3 5.2 6.2 5.2c2 0 3.5 1.1 5.8 3.4 2.3-2.3 3.8-3.4 5.8-3.4 3.2 0 5 3.2 3.5 6.7C19 16.2 12 20.5 12 20.5z" fill="#fff"/></svg>
-      </span>
+      <span class="mark">希</span>
       <span class="txt">希尔薇图集</span>
     </a>
     <nav class="nav">
@@ -982,9 +988,7 @@ body.lb-open{overflow:hidden}
 <footer class="ftr">
   <div class="ftr-in">
     <a class="ftr-brand" data-go="home">
-      <span class="mark">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 20.5s-7-4.3-9.3-8.6C1.2 8.4 3 5.2 6.2 5.2c2 0 3.5 1.1 5.8 3.4 2.3-2.3 3.8-3.4 5.8-3.4 3.2 0 5 3.2 3.5 6.7C19 16.2 12 20.5 12 20.5z" fill="#fff"/></svg>
-      </span>
+      <span class="mark">希</span>
       <span>希尔薇图集</span>
     </a>
     <div class="ftr-links">
@@ -1002,6 +1006,10 @@ body.lb-open{overflow:hidden}
   <div class="mbox">
     <div class="mhead"><h3 id="loginTitle">登录</h3><button class="x" onclick="closeModal('mLogin')">✕</button></div>
     <div class="mbody">
+      <div class="auth-brand">
+        <span class="mark">希</span>
+        <div><b>希尔薇图集</b><span>高清写真 · 每日更新</span></div>
+      </div>
       <div class="tab2" id="loginTabs">
         <button data-t="login" class="on">登录</button>
         <button data-t="register">注册</button>
