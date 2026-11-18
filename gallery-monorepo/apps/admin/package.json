@@ -1,0 +1,38 @@
+{
+  "name": "@sylvie/admin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "希尔薇图集管理后台（React + Vite + Tailwind CSS）",
+  "scripts": {
+    "dev": "vite --port 3002",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 3002",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "clean": "rimraf dist .turbo"
+  },
+  "dependencies": {
+    "@sylvie/types": "workspace:*",
+    "@sylvie/utils": "workspace:*",
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.1.1",
+    "swr": "^2.3.0"
+  },
+  "devDependencies": {
+    "@sylvie/eslint-config": "workspace:*",
+    "@sylvie/tsconfig": "workspace:*",
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.18.0",
+    "rimraf": "^6.0.1",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  }
+}
