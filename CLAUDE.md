@@ -4,7 +4,7 @@
 
 ## 仓库定位
 
-本仓库仅为「希尔薇图集」v1 的设计 / 文档仓库，不含应用源码、包管理清单、构建、代码检查或测试工具。不要臆造 npm、构建或测试命令。所有交付物位于 `docs/`，使用中文编写，文件名保持 `美女写真网站-v1` 前缀。
+本仓库包含「希尔薇图集」v1 的设计文档与实现代码：`docs/` 为规格与原型，`scripts/` 为本地基础服务编排，`gallery-monorepo/` 为 pnpm + Turbo 工作区（前台 Web 与 API）。**管理后台为独立应用，尚未实现**，不要臆造后台源码或命令。
 
 ## 文档职责对照
 
@@ -18,6 +18,33 @@
 
 跨文件保持一致是主要维护工作：修改规则或字段时，需同步更新 SQL（表结构、注释、种子数据）、对应功能清单，以及行为可见的两个原型。
 
+## 代码结构
+
+| 路径 | 职责 |
+|---|---|
+| `scripts/docker-compose.yml` | MySQL 8 + RustFS 本地编排；首次启动执行建表与演示数据。 |
+| `scripts/init/02-demo-data.sql` | 演示数据（37 套图集 / 1140 条媒体 / 公告 / 评论 / 收藏 / 订单），由 `scripts/generate-demo-data.mjs` 生成。 |
+| `gallery-monorepo/apps/web` | Next.js 15 App Router 前台，Tailwind CSS v4 + SWR；通过 rewrites 代理 `/api`。 |
+| `gallery-monorepo/apps/api` | Hono API：JWT、MySQL 参数化查询、RustFS 对象存储、ZIP 下载。 |
+| `gallery-monorepo/packages/types` | API 响应、DTO、枚举常量；Web 与 API 共用。 |
+| `gallery-monorepo/packages/db` | mysql2 连接池、事务与参数化查询封装。 |
+| `gallery-monorepo/packages/utils` | 日期、计数、价格、文本格式化等纯函数。 |
+
+## 本地开发
+
+前置：Node.js ≥ 20、pnpm ≥ 9、Docker。
+
+```bash
+docker compose -f scripts/docker-compose.yml up -d   # MySQL + RustFS
+cd gallery-monorepo
+pnpm install
+cp apps/api/.env.example apps/api/.env
+pnpm dev:api        # http://localhost:3000
+pnpm dev:web        # http://localhost:3001
+```
+
+演示账号密码均为 `123456`：`admin@sylvie.cc`（管理员）、`demo@sylvie.cc`（注册会员）、`vip@sylvie.cc`（付费会员）。开发验证码固定为 `123456`。
+
 ## 跨文档业务规则
 
 - **角色**：`guest`（游客，不落库）/ `member`（注册会员）/ `vip`（付费会员）/ `admin`（管理员）。仅 `admin` 可发布图集，注册会员与付费会员均无上传 / 发布权限。
@@ -25,20 +52,21 @@
 - **积分**：界面统一称「解锁积分」。通过每日签到获得（`sys_config.checkin.points`，默认 2 分），仅在解锁图集时消耗，下载不扣分；`user.points` 不得为负。
 - **水印**：仅未解锁时的前 3 张预览使用 `album_image.watermark_url`；解锁后及付费会员一律返回原图 `url`。全局开关 `sys_config.image.watermark_on` 只控制未解锁预览。
 - **发布**：`album.status` 为 `draft` / `published` / `offline`；`published_at` 是最新排序依据；`is_recommended` 进入瀑布流推荐池。
-- **支付**：v1 仅支持支付宝；后台赠送会员走 `pay_type='admin'` 的 0 元订单；续费在剩余 `user.vip_expire_at` 上叠加 30 天。
+- **支付**：v1 仅支持支付宝；后台赠送会员走 `pay_type='admin'` 的 0 元订单；续费在剩余 `user.vip_expire_at` 上叠加 30 天。本地开发默认 `ALIPAY_MOCK=true` 模拟支付。
 - **软删除**：优先使用 `is_deleted` / `status`，不做物理删除。冗余计数（`album.view_count` / `fav_count` / `download_count` / `comment_count`、`author.album_count`、`tag.use_count`）必须与底层数据变更在同一操作中维护。
 
 ## 数据库约定
 
-MySQL 8 / InnoDB / `utf8mb4_unicode_ci`；主键统一 `BIGINT UNSIGNED AUTO_INCREMENT`；时间统一 `DATETIME`（应用层存北京时间）；优先软删除；列表页依赖的计数做冗余。修改前先阅读 SQL 文件头部约定。
+MySQL 8 / InnoDB / `utf8mb4_unicode_ci`；主键统一 `BIGINT UNSIGNED AUTO_INCREMENT`；时间统一 `DATETIME`（应用层存北京时间）；优先软删除；列表页依赖的计数做冗余。修改前先阅读 SQL 文件头部约定。演示数据仅用于本地开发，修改种子结构时重新运行 `node scripts/generate-demo-data.mjs`。
 
-## 原型约定
+## 实现约定
 
-- 两个原型均为独立 HTML：浏览器直接打开，无安装 / 构建 / 监听步骤。
-- 原型状态由硬编码演示数据 + `localStorage` 组成，不会持久化到后端。
-- 前台原型适配 PC / H5；后台原型仅面向桌面端。
-- 统一视觉语言：深色背景、玫红强调色 `#ff2d55`、渐变方块「希」字 Logo。
+- API 统一返回 `{ code, message, data }`，成功时 `code=200`；分页统一 `{ list, total, page, pageSize, totalPages }`。
+- 共享类型以 `packages/types` 为准，修改接口时同步更新 Web 调用与 DTO。
+- 前台登录态存 `localStorage`（`sylvie_token`），请求通过 `Authorization: Bearer` 传递；不要假设存在 Cookie 会话。
+- API 数据库访问使用参数化 SQL；列表计数与冗余字段需事务内同步。
+- 原型仅作视觉与交互参考，实际页面以 Web 实现为准；两者视觉语言一致：深色背景、玫红 `#ff2d55`、渐变「希」字 Logo。
 
 ## Git 工作流
 
-直接在 `main` 分支提交，不新建功能分支。提交信息使用中文，并以 `docs:` 前缀开头。
+直接在 `main` 分支提交，不新建功能分支。提交信息使用中文；文档变更以 `docs:` 开头，代码变更使用 `feat:` / `fix:` / `chore:` 前缀。大型任务按阶段模块提交，不要等全部完成后再一次性提交。
