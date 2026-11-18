@@ -69,7 +69,7 @@ export function Lightbox({ images, index, onIndexChange, onClose }: LightboxProp
           </button>
         ) : null}
 
-        <div className="flex h-full w-full max-w-[min(100%,1000px)] items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-black/40">
+        <div className="flex h-full w-full max-w-[min(100%,1000px)] items-center justify-center">
           <CoverImage
             src={current.url}
             alt={`图片 ${index + 1}`}

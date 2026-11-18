@@ -262,6 +262,10 @@ textarea::placeholder {
     padding: 14px 16px;
     border-bottom: 1px solid var(--line);
   }
+  /* 双行筛选工具栏共用一组视觉分组，不在两行之间画分割线 */
+  .toolbar:has(+ .toolbar) {
+    border-bottom: none;
+  }
   .toolbar:last-child {
     border-bottom: none;
   }

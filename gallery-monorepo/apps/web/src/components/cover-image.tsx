@@ -44,7 +44,7 @@ export function CoverImage({
   return (
     <span
       className={cn(
-        'relative block h-full w-full overflow-hidden bg-[#19191f]',
+        'relative block h-full w-full overflow-hidden',
         fit === 'contain' && 'flex items-center justify-center',
         className,
       )}
