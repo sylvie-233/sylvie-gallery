@@ -169,8 +169,69 @@ const ALBUMS = RAW.map((row, index) => {
     size: Number((300 + ((index * 97) % 620) + ((index * 37) % 80) / 100).toFixed(2)),
     recommended: index % 3 === 0 ? 1 : 0,
     description,
+    status: 'published',
+    createdAt: `${date} 09:00:00`,
+    publishedAt: `${date} 10:00:00`,
   };
 });
+
+// 后台演示用的草稿 / 已下架图集：不计入前台与标签收录数
+ALBUMS.push(
+  {
+    id: 1037,
+    title: '【草稿】2026.11.19 冬日暖阳预告',
+    authorId: 2,
+    tags: ['暖光', '居家', '日系'],
+    imageCount: 8,
+    videoCount: 0,
+    date: '2026-11-18',
+    points: 1,
+    views: 0,
+    favs: 0,
+    size: 86.4,
+    recommended: 0,
+    description: '白露的冬日室内企划草稿，待补充外景与成片后发布。',
+    status: 'draft',
+    createdAt: '2026-11-18 09:00:00',
+    publishedAt: null,
+  },
+  {
+    id: 1038,
+    title: '2026.10.01 旧作 · 已下架',
+    authorId: 4,
+    tags: ['JK', '校园', '制服'],
+    imageCount: 12,
+    videoCount: 1,
+    date: '2026-10-01',
+    points: 1,
+    views: 860,
+    favs: 64,
+    size: 142.8,
+    recommended: 0,
+    description: '桃夭早期校园企划，因素材版权原因暂时下架。',
+    status: 'offline',
+    createdAt: '2026-10-01 09:00:00',
+    publishedAt: '2026-10-01 10:00:00',
+  },
+  {
+    id: 1039,
+    title: '2026.09.15 旧作 · 已下架',
+    authorId: 6,
+    tags: ['清新', '室内'],
+    imageCount: 15,
+    videoCount: 0,
+    date: '2026-09-15',
+    points: 1,
+    views: 540,
+    favs: 31,
+    size: 168.2,
+    recommended: 0,
+    description: '素荷的室内极简旧作，已从公开列表下架但保留记录。',
+    status: 'offline',
+    createdAt: '2026-09-15 09:00:00',
+    publishedAt: '2026-09-15 10:00:00',
+  },
+);
 
 const lines = [];
 lines.push('-- =====================================================================');
@@ -226,7 +287,7 @@ lines.push('INSERT INTO `album` (`id`,`author_id`,`title`,`description`,`cover_u
 lines.push(
   ALBUMS.map((album) => {
     const cover = `https://picsum.photos/seed/sylvie-${album.id}-1/600/800`;
-    return `(${album.id},${album.authorId},${q(album.title)},${q(album.description)},${q(cover)},${album.imageCount},${album.videoCount},${album.size},${album.points},${album.views},0,${album.favs},0,${album.recommended},'published',${q(`${album.date} 10:00:00`)},1,0,${q(`${album.date} 09:00:00`)},${q(`${album.date} 10:00:00`)})`;
+    return `(${album.id},${album.authorId},${q(album.title)},${q(album.description)},${q(cover)},${album.imageCount},${album.videoCount},${album.size},${album.points},${album.views},0,${album.favs},0,${album.recommended},${q(album.status)},${album.publishedAt ? q(album.publishedAt) : 'NULL'},1,0,${q(album.createdAt)},${q(album.createdAt)})`;
   }).join(',\n') + ';',
 );
 lines.push('');
@@ -239,13 +300,13 @@ for (const album of ALBUMS) {
     const thumb = `https://picsum.photos/seed/sylvie-${album.id}-${i}/400/533`;
     const watermark = `https://picsum.photos/seed/sylvie-${album.id}-${i}/800/1067?blur=2`;
     images.push(
-      `(${album.id},'image',${q(url)},${q(thumb)},${q(watermark)},800,1067,NULL,${i},0,${q(`${album.date} 09:00:00`)})`,
+      `(${album.id},'image',${q(url)},${q(thumb)},${q(watermark)},800,1067,NULL,${i},0,${q(album.createdAt)})`,
     );
   }
   for (let i = 1; i <= album.videoCount; i += 1) {
     const poster = `https://picsum.photos/seed/sylvie-${album.id}-v${i}/1280/720`;
     images.push(
-      `(${album.id},'video',${q(VIDEO_URL)},${q(poster)},NULL,1280,720,30,${i},0,${q(`${album.date} 09:00:00`)})`,
+      `(${album.id},'video',${q(VIDEO_URL)},${q(poster)},NULL,1280,720,30,${i},0,${q(album.createdAt)})`,
     );
   }
 }
@@ -296,17 +357,31 @@ lines.push(
     .join(',\n') + ';',
 );
 lines.push('');
-lines.push('INSERT INTO `pay_order` (`id`,`order_no`,`user_id`,`biz_type`,`plan_id`,`album_id`,`pay_type`,`amount_cents`,`points_cost`,`vip_days`,`status`,`trade_no`,`paid_at`,`created_at`,`updated_at`) VALUES');
+lines.push('INSERT INTO `pay_order` (`id`,`order_no`,`user_id`,`biz_type`,`plan_id`,`album_id`,`pay_type`,`amount_cents`,`points_cost`,`vip_days`,`status`,`trade_no`,`paid_at`,`refund_at`,`refund_reason`,`created_at`,`updated_at`) VALUES');
 lines.push(
   [
-    `(1,'SV202611150001',2,'unlock',NULL,1000,'points',0,2,0,'paid',NULL,'2026-11-15 10:00:00','2026-11-15 10:00:00','2026-11-15 10:00:00')`,
-    `(2,'SV202611010001',3,'vip',1,NULL,'alipay',1900,0,30,'paid','2026110122001400001','2026-11-01 09:00:00','2026-11-01 08:58:00','2026-11-01 09:00:00')`,
-    `(3,'SV202611160001',3,'unlock',NULL,1002,'points',0,1,0,'paid',NULL,'2026-11-16 21:30:00','2026-11-16 21:30:00','2026-11-16 21:30:00')`,
+    `(1,'SV202611150001',2,'unlock',NULL,1000,'points',0,2,0,'paid',NULL,'2026-11-15 10:00:00',NULL,NULL,'2026-11-15 10:00:00','2026-11-15 10:00:00')`,
+    `(2,'SV202611010001',3,'vip',1,NULL,'alipay',1900,0,30,'paid','2026110122001400001','2026-11-01 09:00:00',NULL,NULL,'2026-11-01 08:58:00','2026-11-01 09:00:00')`,
+    `(3,'SV202611160001',3,'unlock',NULL,1002,'points',0,1,0,'paid',NULL,'2026-11-16 21:30:00',NULL,NULL,'2026-11-16 21:30:00','2026-11-16 21:30:00')`,
+    `(4,'SV202606150001',5,'vip',1,NULL,'alipay',1900,0,30,'paid','2026061522001400011','2026-06-15 10:00:00',NULL,NULL,'2026-06-15 09:58:00','2026-06-15 10:00:00')`,
+    `(5,'SV202607200001',3,'vip',1,NULL,'alipay',1900,0,30,'paid','2026072022001400012','2026-07-20 11:00:00',NULL,NULL,'2026-07-20 10:58:00','2026-07-20 11:00:00')`,
+    `(6,'SV202608110001',5,'vip',1,NULL,'alipay',1900,0,30,'paid','2026081122001400013','2026-08-11 15:30:00',NULL,NULL,'2026-08-11 15:28:00','2026-08-11 15:30:00')`,
+    `(7,'SV202609050001',3,'vip',1,NULL,'alipay',1900,0,30,'paid','2026090522001400014','2026-09-05 09:10:00',NULL,NULL,'2026-09-05 09:08:00','2026-09-05 09:10:00')`,
+    `(8,'SV202610080001',5,'vip',1,NULL,'alipay',1900,0,30,'paid','2026100822001400015','2026-10-08 20:00:00',NULL,NULL,'2026-10-08 19:58:00','2026-10-08 20:00:00')`,
+    `(9,'SV202610250001',3,'vip',1,NULL,'alipay',1900,0,30,'paid','2026102522001400016','2026-10-25 12:00:00',NULL,NULL,'2026-10-25 11:58:00','2026-10-25 12:00:00')`,
+    `(10,'SV202611020001',5,'vip',1,NULL,'alipay',1900,0,30,'paid','2026110222001400017','2026-11-02 08:00:00',NULL,NULL,'2026-11-02 07:58:00','2026-11-02 08:00:00')`,
+    `(11,'SV202611150002',3,'vip',1,NULL,'alipay',1900,0,30,'paid','2026111522001400018','2026-11-15 21:00:00',NULL,NULL,'2026-11-15 20:58:00','2026-11-15 21:00:00')`,
+    `(12,'SV202611180001',5,'vip',1,NULL,'alipay',1900,0,30,'paid','2026111822001400019',CONCAT(CURDATE(), ' 09:20:00'),NULL,NULL,CONCAT(CURDATE(), ' 09:18:00'),CONCAT(CURDATE(), ' 09:20:00'))`,
+    `(13,'SV202610200001',4,'vip',1,NULL,'alipay',1900,0,30,'refunded','2026102022001400020','2026-10-20 14:00:00','2026-10-21 10:00:00','重复购买，协商退款','2026-10-20 13:58:00','2026-10-21 10:00:00')`,
+    `(14,'SV202611180002',4,'vip',1,NULL,'alipay',1900,0,30,'created',NULL,NULL,NULL,NULL,CONCAT(CURDATE(), ' 11:30:00'),CONCAT(CURDATE(), ' 11:30:00'))`,
+    `(15,'SV202611180003',4,'unlock',NULL,1005,'points',0,1,0,'paid',NULL,CONCAT(CURDATE(), ' 10:10:00'),NULL,NULL,CONCAT(CURDATE(), ' 10:10:00'),CONCAT(CURDATE(), ' 10:10:00'))`,
   ].join(',\n') + ';',
 );
 lines.push('');
 lines.push('INSERT INTO `album_unlock` (`user_id`,`album_id`,`order_id`,`points_cost`,`created_at`) VALUES');
-lines.push(`(2,1000,1,2,'2026-11-15 10:00:00'),\n(3,1002,3,1,'2026-11-16 21:30:00');`);
+lines.push(
+  `(2,1000,1,2,'2026-11-15 10:00:00'),\n(3,1002,3,1,'2026-11-16 21:30:00'),\n(4,1005,15,1,CONCAT(CURDATE(), ' 10:10:00'));`,
+);
 lines.push('');
 
 lines.push('-- 10. 评论（demo 用户有一条待审核评论）');
@@ -321,6 +396,12 @@ lines.push(
     `(6,1002,6,NULL,NULL,'冬夜暖光的色调很有电影感，感谢分享。','approved',0,'2026-11-13 20:30:00','2026-11-13 20:30:00')`,
     `(7,1003,2,NULL,NULL,'银座夜景那几张的霓虹反射很有氛围。','approved',0,'2026-11-10 22:00:00','2026-11-10 22:00:00')`,
     `(8,1005,6,NULL,NULL,'海边的色彩很干净，视频片段也很加分。','approved',0,'2026-11-02 18:00:00','2026-11-02 18:00:00')`,
+    `(9,1003,3,NULL,NULL,'请问这套还有未公开的花絮吗？','pending',0,'2026-11-18 09:12:00','2026-11-18 09:12:00')`,
+    `(10,1004,4,NULL,NULL,'女仆这套的道具可以分享购买链接吗？','pending',0,'2026-11-18 10:05:00','2026-11-18 10:05:00')`,
+    `(11,1006,5,NULL,NULL,'泳装那套的拍摄地点是哪片海滩？','pending',0,'2026-11-18 10:40:00','2026-11-18 10:40:00')`,
+    `(12,1002,6,NULL,NULL,'希望后续能出同主题的视频合集。','pending',0,'2026-11-18 11:15:00','2026-11-18 11:15:00')`,
+    `(13,1000,6,2,5,'花絮部分会在压缩包里一起提供。','pending',0,'2026-11-18 11:40:00','2026-11-18 11:40:00')`,
+    `(14,1007,4,NULL,NULL,'加我微信 xxx 看更多。','rejected',0,'2026-11-16 14:00:00','2026-11-16 14:00:00')`,
   ].join(',\n') + ';',
 );
 lines.push('');
@@ -340,7 +421,45 @@ lines.push(
 );
 lines.push('');
 
-lines.push('-- 12. 同步冗余计数');
+lines.push('-- 12. 搜索热词（近 7 天）');
+const HOT_SEARCHES = [
+  ['日系', 7, 12],
+  ['白丝', 6, 8],
+  ['泳装', 5, 5],
+  ['汉服', 4, 6],
+  ['街拍', 3, 9],
+  ['制服', 2, 4],
+  ['私房', 2, 3],
+  ['旅拍', 1, 7],
+];
+const searchRows = [];
+for (const [keyword, days, resultCount] of HOT_SEARCHES) {
+  for (let day = 0; day < days; day += 1) {
+    searchRows.push(
+      `('album',${q(keyword)},NULL,${resultCount},DATE_SUB(CURDATE(), INTERVAL ${day} DAY),NOW())`,
+    );
+  }
+}
+lines.push('INSERT INTO `search_log` (`scene`,`keyword`,`user_id`,`result_count`,`search_date`,`created_at`) VALUES');
+lines.push(searchRows.join(',\n') + ';');
+lines.push('');
+
+lines.push('-- 13. 今日浏览记录（PV / UV 演示）');
+const viewUsers = [2, 3, 4, 5, 6, null];
+const viewRows = [];
+for (let index = 0; index < 24; index += 1) {
+  const userId = viewUsers[index % viewUsers.length];
+  const visitor = userId === null ? `'demo-guest-${index}'` : 'NULL';
+  const albumId = 1000 + (index % 37);
+  viewRows.push(
+    `(${userId ?? 'NULL'},${visitor},${albumId},CURDATE(),'127.0.0.1',NOW())`,
+  );
+}
+lines.push('INSERT INTO `user_view_log` (`user_id`,`visitor_id`,`album_id`,`view_date`,`ip`,`created_at`) VALUES');
+lines.push(viewRows.join(',\n') + ';');
+lines.push('');
+
+lines.push('-- 14. 同步冗余计数');
 lines.push('UPDATE `author` a SET `album_count` = (SELECT COUNT(*) FROM `album` al WHERE al.`author_id` = a.`id` AND al.`status` = \'published\' AND al.`is_deleted` = 0);');
 lines.push('UPDATE `author` a SET `last_update_at` = (SELECT MAX(al.`published_at`) FROM `album` al WHERE al.`author_id` = a.`id` AND al.`status` = \'published\' AND al.`is_deleted` = 0);');
 lines.push('UPDATE `tag` t SET `use_count` = (SELECT COUNT(*) FROM `album_tag` at JOIN `album` a ON a.`id` = at.`album_id` AND a.`status` = \'published\' AND a.`is_deleted` = 0 WHERE at.`tag_id` = t.`id`);');

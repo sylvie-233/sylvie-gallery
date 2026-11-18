@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 
 import type { AppEnv } from '../types/context.js';
+import adminAuthRoutes from './admin/auth.js';
+import adminRoutes from './admin/index.js';
 import albumRoutes from './albums.js';
 import announcementRoutes from './announcements.js';
 import authRoutes from './auth.js';
@@ -16,6 +18,8 @@ import tagRoutes from './tags.js';
 
 const router = new Hono<AppEnv>();
 
+router.route('/admin/auth', adminAuthRoutes);
+router.route('/admin', adminRoutes);
 router.route('/auth', authRoutes);
 router.route('/site', siteRoutes);
 router.route('/albums', albumRoutes);

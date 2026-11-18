@@ -24,13 +24,24 @@ app.use(
     maxAge: 86400,
   }),
 );
-app.use(
-  '*',
-  bodyLimit({
-    maxSize: 24 * 1024 * 1024,
-    onError: (c) => failure(c, 413, '请求体过大'),
-  }),
-);
+const normalBodyLimit = bodyLimit({
+  maxSize: 24 * 1024 * 1024,
+  onError: (c) => failure(c, 413, '请求体过大'),
+});
+const uploadBodyLimit = bodyLimit({
+  maxSize: 520 * 1024 * 1024,
+  onError: (c) => failure(c, 413, '上传文件过大'),
+});
+
+// 管理后台媒体上传单独放宽体积限制，其余接口保持 24MB。
+app.use('*', async (c, next) => {
+  if (c.req.path.startsWith('/api/admin/upload')) {
+    await next();
+    return;
+  }
+  return normalBodyLimit(c, next);
+});
+app.use('/api/admin/upload', uploadBodyLimit);
 
 /** 健康检查：探测数据库与对象存储，供容器编排使用。 */
 app.get('/health', async (c) => {

@@ -23,14 +23,19 @@ export function effectiveRole(
   return 'member';
 }
 
-/** 分页参数归一化：page 最小 1，pageSize 限制在 1-48。 */
-export function normalizePage(page?: number, pageSize?: number, fallbackSize = 24): {
+/** 分页参数归一化：page 最小 1，pageSize 默认限制在 1-48。 */
+export function normalizePage(
+  page?: number,
+  pageSize?: number,
+  fallbackSize = 24,
+  maxSize = 48,
+): {
   page: number;
   pageSize: number;
   offset: number;
 } {
   const safePage = Math.max(1, Math.floor(page ?? 1));
-  const safeSize = Math.min(48, Math.max(1, Math.floor(pageSize ?? fallbackSize)));
+  const safeSize = Math.min(maxSize, Math.max(1, Math.floor(pageSize ?? fallbackSize)));
   return { page: safePage, pageSize: safeSize, offset: (safePage - 1) * safeSize };
 }
 
@@ -47,6 +52,12 @@ export function toPageResult<T>(
     pageSize,
     totalPages: Math.max(1, Math.ceil(total / pageSize)),
   };
+}
+
+/** 本地时间转 MySQL DATETIME：2026-11-18 21:07:47（北京时间）。 */
+export function toSqlDateTime(date = new Date()): string {
+  const pad = (value: number): string => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
 /** 生成展示订单号：SV + 时间戳 + 4 位随机数。 */

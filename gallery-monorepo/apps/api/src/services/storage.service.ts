@@ -2,6 +2,7 @@ import {
   CreateBucketCommand,
   GetObjectCommand,
   HeadBucketCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -73,6 +74,16 @@ export async function uploadObject(
     : `/api/files/${key}`;
 
   return { key, url, size: body.byteLength, contentType };
+}
+
+/** 读取对象字节数，用于估算图集压缩包大小；失败返回 null。 */
+export async function getObjectSize(key: string): Promise<number | null> {
+  try {
+    const result = await s3.send(new HeadObjectCommand({ Bucket: env.S3_BUCKET, Key: key }));
+    return result.ContentLength ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export interface StoredObject {
