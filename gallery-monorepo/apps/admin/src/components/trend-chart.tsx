@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { AdminTrend, TrendMode } from '@sylvie/types';
@@ -9,6 +10,19 @@ const MODE_LABELS: Record<TrendMode, string> = {
   '30d': '近一个月',
   '6m': '近六个月',
 };
+
+interface ActiveBar {
+  index: number;
+  x: number;
+  y: number;
+}
+
+function clampTooltipX(x: number): number {
+  if (typeof window === 'undefined') {
+    return x;
+  }
+  return Math.min(Math.max(12, x), Math.max(12, window.innerWidth - 190));
+}
 
 export function TrendChart({
   trend,
@@ -23,6 +37,29 @@ export function TrendChart({
   const max = Math.max(1, ...points.map((point) => point.valueCents));
   const dense = mode === '30d';
   const isMonth = mode === '6m';
+  const [active, setActive] = useState<ActiveBar | null>(null);
+  const activePoint = active ? points[active.index] : undefined;
+
+  useEffect(() => {
+    setActive(null);
+  }, [mode]);
+
+  const showAtCursor = (index: number, clientX: number, clientY: number) => {
+    setActive({
+      index,
+      x: clampTooltipX(clientX + 14),
+      y: Math.max(64, clientY - 56),
+    });
+  };
+
+  const showAtElement = (index: number, element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    setActive({
+      index,
+      x: clampTooltipX(rect.left + rect.width / 2),
+      y: Math.max(64, rect.top + 18),
+    });
+  };
 
   return (
     <div className="panel flex h-full flex-col">
@@ -46,7 +83,10 @@ export function TrendChart({
         </Link>
       </div>
 
-      <div className="trend-bars">
+      <div
+        className={`trend-bars ${active ? 'is-active' : ''}`}
+        onMouseLeave={() => setActive(null)}
+      >
         {points.length === 0
           ? Array.from({ length: 7 }).map((_, index) => (
               <div key={index} className="trend-bar-wrap">
@@ -56,11 +96,18 @@ export function TrendChart({
           : points.map((point, index) => {
               const showLabel =
                 !dense || index === 0 || index === points.length - 1 || index % 5 === 0;
+              const isActive = active?.index === index;
               return (
                 <div
                   key={point.date}
-                  className={`trend-bar-wrap ${dense ? 'dense' : ''}`}
-                  title={`${point.date} ${formatYuan(point.valueCents)}`}
+                  className={`trend-bar-wrap ${dense ? 'dense' : ''} ${isActive ? 'active' : ''}`}
+                  role="img"
+                  tabIndex={0}
+                  aria-label={`${point.date} 营收 ${formatYuan(point.valueCents)}`}
+                  onMouseEnter={(event) => showAtCursor(index, event.clientX, event.clientY)}
+                  onMouseMove={(event) => showAtCursor(index, event.clientX, event.clientY)}
+                  onFocus={(event) => showAtElement(index, event.currentTarget)}
+                  onBlur={() => setActive(null)}
                 >
                   {!dense ? (
                     <span className="val">
@@ -100,6 +147,23 @@ export function TrendChart({
           </b>
         </div>
       </div>
+
+      {active && activePoint ? (
+        <div
+          className="pointer-events-none fixed z-[120] min-w-[130px] rounded-lg border border-line2 bg-[#1d1d24] px-3 py-2 shadow-[0_12px_40px_rgba(0,0,0,.55)]"
+          style={{ left: active.x, top: active.y }}
+        >
+          <p className="text-[10.5px] tabular-nums text-t3">{activePoint.date}</p>
+          <p className="mt-0.5 text-[13px] font-bold tabular-nums text-t1">
+            {formatYuan(activePoint.valueCents)}
+          </p>
+          {activePoint.valueCents === 0 ? (
+            <p className="mt-0.5 text-[10.5px] text-t3">无现金订单</p>
+          ) : (
+            <p className="mt-0.5 text-[10.5px] text-brand2">现金营收</p>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

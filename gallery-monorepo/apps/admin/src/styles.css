@@ -262,9 +262,13 @@ textarea::placeholder {
     padding: 14px 16px;
     border-bottom: 1px solid var(--line);
   }
-  /* 双行筛选工具栏共用一组视觉分组，不在两行之间画分割线 */
+  /* 双行筛选工具栏共用一组视觉分组，不画分割线并收紧行距 */
   .toolbar:has(+ .toolbar) {
     border-bottom: none;
+    padding-bottom: 8px;
+  }
+  .toolbar + .toolbar {
+    padding-top: 8px;
   }
   .toolbar:last-child {
     border-bottom: none;
@@ -632,6 +636,7 @@ textarea::placeholder {
     padding: 16px 16px 6px;
   }
   .trend-bar-wrap {
+    position: relative;
     flex: 1;
     min-width: 0;
     height: 100%;
@@ -640,6 +645,30 @@ textarea::placeholder {
     align-items: center;
     justify-content: flex-end;
     gap: 6px;
+    border-radius: 6px;
+    outline: none;
+  }
+  .trend-bar-wrap::before {
+    content: '';
+    position: absolute;
+    inset: 0 -1px;
+    z-index: 0;
+    border-radius: 7px;
+    background: transparent;
+    transition: background 0.16s;
+    pointer-events: none;
+  }
+  .trend-bar-wrap.active::before {
+    background: rgba(255, 255, 255, 0.045);
+  }
+  .trend-bar-wrap:focus-visible::before {
+    box-shadow: inset 0 0 0 1px rgba(255, 45, 85, 0.45);
+  }
+  .trend-bar-wrap .bar,
+  .trend-bar-wrap .val,
+  .trend-bar-wrap .lbl {
+    position: relative;
+    z-index: 1;
   }
   .trend-bar-wrap .bar {
     width: 100%;
@@ -647,10 +676,26 @@ textarea::placeholder {
     min-height: 3px;
     border-radius: 4px 4px 2px 2px;
     background: linear-gradient(180deg, var(--red), #a3142f);
-    transition: height 0.3s;
+    transition:
+      height 0.3s,
+      transform 0.16s,
+      filter 0.16s,
+      opacity 0.16s,
+      box-shadow 0.16s;
   }
   .trend-bar-wrap .bar.zero {
     background: #2b2b33;
+  }
+  .trend-bars.is-active .trend-bar-wrap:not(.active) .bar {
+    opacity: 0.48;
+  }
+  .trend-bar-wrap.active .bar {
+    filter: brightness(1.18);
+    transform: scaleX(1.08);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16);
+  }
+  .trend-bar-wrap.active .bar.zero {
+    background: #3c3c48;
   }
   .trend-bar-wrap .val {
     font-size: 10px;
@@ -664,6 +709,15 @@ textarea::placeholder {
   }
   .trend-bar-wrap.dense .val {
     display: none;
+  }
+  .trend-bar-wrap.active .val,
+  .trend-bar-wrap.dense.active .val {
+    display: block;
+    color: var(--t1);
+  }
+  .trend-bar-wrap.active .lbl {
+    color: var(--t1);
+    visibility: visible;
   }
   .trend-bar-wrap.dense .lbl.hidden-lbl {
     visibility: hidden;
