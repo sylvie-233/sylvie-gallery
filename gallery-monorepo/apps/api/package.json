@@ -1,0 +1,38 @@
+{
+  "name": "@sylvie/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "希尔薇图集 API（Hono + MySQL + RustFS）",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsup src/main.ts --format esm --dts --clean --target node20",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist .turbo",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.750.0",
+    "@hono/node-server": "^1.13.7",
+    "@sylvie/db": "workspace:*",
+    "@sylvie/types": "workspace:*",
+    "@sylvie/utils": "workspace:*",
+    "archiver": "^7.0.1",
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^18.0.9",
+    "hono": "^4.6.16",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@sylvie/eslint-config": "workspace:*",
+    "@sylvie/tsconfig": "workspace:*",
+    "@types/archiver": "^6.0.3",
+    "@types/node": "^22.10.5",
+    "eslint": "^9.18.0",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

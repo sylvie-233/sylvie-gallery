@@ -1,0 +1,80 @@
+# ============================================================================
+# 希尔薇图集 · 本地/单机基础服务编排
+#   MySQL 8.0 + RustFS（S3 兼容对象存储）
+#
+# 启动：docker compose -f scripts/docker-compose.yml up -d
+# 停止：docker compose -f scripts/docker-compose.yml down
+# 重置：docker compose -f scripts/docker-compose.yml down -v（会清空数据）
+#
+# 首次启动且 mysql_data 卷为空时，会依次执行：
+#   1) docs/美女写真网站-v1数据库设计.sql（24 张表 + 基础种子）
+#   2) scripts/init/02-demo-data.sql（演示作者/图集/图片/公告等）
+#
+# 生产部署时请务必替换 MySQL 密码与 RustFS 密钥，并配置 HTTPS。
+# 环境变量可写入同目录 .env（参考 .env.example）。
+# ============================================================================
+name: sylvie-gallery
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: sylvie-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-sylvie_gallery}
+      MYSQL_USER: ${MYSQL_USER:-sylvie}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-123456}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+08:00
+    ports:
+      - '${MYSQL_PORT:-3306}:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # 仅在数据目录为空（首次初始化）时执行，按文件名顺序执行
+      - ../docs/美女写真网站-v1数据库设计.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./init/02-demo-data.sql:/docker-entrypoint-initdb.d/02-demo-data.sql:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping -h 127.0.0.1 -uroot -p"$$MYSQL_ROOT_PASSWORD" --silent
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  rustfs:
+    # RustFS：S3 兼容对象存储，保存头像与图集原图
+    image: rustfs/rustfs:latest
+    container_name: sylvie-rustfs
+    restart: unless-stopped
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY:-rustfsadmin}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY:-rustfsadmin}
+      RUSTFS_CONSOLE_ENABLE: 'true'
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      TZ: Asia/Shanghai
+    ports:
+      - '${S3_PORT:-9000}:9000'
+      - '${S3_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - rustfs_data:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fsS http://127.0.0.1:9000/health >/dev/null || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    stop_grace_period: 15s
+
+volumes:
+  mysql_data:
+    name: sylvie_mysql_data
+  rustfs_data:
+    name: sylvie_rustfs_data

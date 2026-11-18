@@ -1,1 +1,15 @@
 .workbuddy/
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.next/
+**/.next/
+.turbo/
+**/.turbo/
+*.tsbuildinfo
+scripts/.env
+**/.env
+**/.env.local
+*.log
+.DS_Store

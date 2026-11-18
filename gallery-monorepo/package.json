@@ -1,0 +1,25 @@
+{
+  "name": "sylvie-gallery-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "希尔薇图集 · v1（Web + API）",
+  "license": "MIT",
+  "packageManager": "pnpm@10.17.1",
+  "engines": {
+    "node": ">=20.11.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:api": "pnpm --filter @sylvie/api dev",
+    "dev:web": "pnpm --filter @sylvie/web dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "turbo": "^2.5.0"
+  }
+}
