@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 import type { AnnouncementDto } from '@sylvie/types';
@@ -33,9 +34,11 @@ export function AnnouncementModal({ announcement, onClose }: AnnouncementModalPr
     return null;
   }
 
-  const paragraphs = (announcement.content ?? announcement.summary ?? '').split('\n\n').filter(Boolean);
+  const paragraphs = (announcement.content ?? announcement.summary ?? '')
+    .split('\n\n')
+    .filter(Boolean);
 
-  return (
+  return createPortal(
     <div className="modal-mask" onClick={onClose} role="presentation">
       <div
         className="modal-card max-w-[660px] p-6 sm:p-7"
@@ -45,9 +48,7 @@ export function AnnouncementModal({ announcement, onClose }: AnnouncementModalPr
       >
         <div className="mb-4 flex items-start gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            {announcement.isTop ? (
-              <span className="chip chip-brand">置顶</span>
-            ) : null}
+            {announcement.isTop ? <span className="chip chip-brand">置顶</span> : null}
             <span className="chip chip-gray">{announcement.typeLabel}</span>
             <span className="text-xs text-t3">{formatDate(announcement.publishedAt)}</span>
           </div>
@@ -67,6 +68,7 @@ export function AnnouncementModal({ announcement, onClose }: AnnouncementModalPr
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

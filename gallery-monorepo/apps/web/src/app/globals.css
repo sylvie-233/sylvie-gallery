@@ -357,21 +357,14 @@
   }
 
   .page-enter {
-    will-change: opacity, transform;
-    backface-visibility: hidden;
-    animation: page-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: page-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
   @keyframes page-enter {
-    0% {
+    from {
       opacity: 0;
-      transform: translate3d(0, 10px, 0) scale(0.997);
     }
-    55% {
+    to {
       opacity: 1;
-    }
-    100% {
-      opacity: 1;
-      transform: translate3d(0, 0, 0) scale(1);
     }
   }
 

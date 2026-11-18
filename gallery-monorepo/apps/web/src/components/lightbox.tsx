@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 import type { AlbumImageDto } from '@sylvie/types';
@@ -41,7 +42,7 @@ export function Lightbox({ images, index, onIndexChange, onClose }: LightboxProp
     return null;
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[150] flex flex-col bg-[rgba(6,6,8,.94)] backdrop-blur-sm">
       <div className="flex items-center justify-between px-5 py-4 text-t2">
         <span className="text-sm tabular-nums">
@@ -106,14 +107,11 @@ export function Lightbox({ images, index, onIndexChange, onClose }: LightboxProp
             onClick={() => onIndexChange(imageIndex)}
             aria-label={`查看第 ${imageIndex + 1} 张`}
           >
-            <CoverImage
-              src={image.thumbUrl ?? image.url}
-              alt=""
-              eager={imageIndex === index}
-            />
+            <CoverImage src={image.thumbUrl ?? image.url} alt="" eager={imageIndex === index} />
           </button>
         ))}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
