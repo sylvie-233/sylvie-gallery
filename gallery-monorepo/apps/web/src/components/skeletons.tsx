@@ -206,7 +206,7 @@ export function DetailSkeleton() {
           </div>
           <div className="mt-4 space-y-3">
             {Array.from({ length: 2 }).map((_, index) => (
-              <div key={index} className="skeleton aspect-[3/4] max-h-[76vh] w-full rounded-xl" />
+              <div key={index} className="skeleton aspect-[3/4] w-full rounded-xl" />
             ))}
           </div>
         </div>

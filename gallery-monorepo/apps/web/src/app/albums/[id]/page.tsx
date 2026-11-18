@@ -691,7 +691,15 @@ export default function AlbumDetailPage() {
                 className="group relative overflow-hidden rounded-xl border border-line bg-[#101014]"
                 onClick={() => setLightboxIndex(index)}
               >
-                <div className="aspect-[3/4] max-h-[76vh] w-full">
+                <div
+                  className="w-full"
+                  style={{
+                    aspectRatio:
+                      image.width && image.height
+                        ? `${image.width} / ${image.height}`
+                        : '3 / 4',
+                  }}
+                >
                   <CoverImage
                     src={image.url}
                     alt={`${detail.title} 第 ${index + 1} 张`}
