@@ -1,44 +1,44 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+本文件为 Claude Code 在此代码库中工作时提供指导。
 
-## Repository scope
+## 仓库定位
 
-Design/documentation-only repository for v1 of 「希尔薇图集」, a dark-themed photo-gallery site. There is no application source, package manifest, build, lint, or test tooling. Do not invent npm/build/test commands. All deliverables are in `docs/` and written in Chinese; keep the `美女写真网站-v1` filename prefix.
+本仓库仅为「希尔薇图集」v1 的设计 / 文档仓库，不含应用源码、包管理清单、构建、代码检查或测试工具。不要臆造 npm、构建或测试命令。所有交付物位于 `docs/`，使用中文编写，文件名保持 `美女写真网站-v1` 前缀。
 
-## Source-of-truth map
+## 文档职责对照
 
-| File | Role |
+| 文件 | 职责 |
 |---|---|
-| `docs/美女写真网站-v1功能清单.md` | Front-end behavior spec, organized by page. YAML frontmatter configures a markmap mind-map view. |
-| `docs/美女写真网站-v1原型设计.html` | Front-end interactive prototype: one self-contained HTML file (inline CSS/JS, demo data, state persisted in `localStorage`). Open directly in a browser. |
-| `docs/美女写真网站-v1数据库设计.sql` | MySQL 8 schema: 24 tables, conventions at the top, seed data at the bottom. |
-| `docs/美女写真网站-v1管理后台功能清单.md` | Admin console spec. Separate app, desktop-only (≥1280px), shares only the database with the front end. |
-| `docs/美女写真网站-v1管理后台原型.html` | Admin console prototype, same single-file approach; independent login layer. |
+| `docs/美女写真网站-v1功能清单.md` | 前台功能与交互规格，按页面组织。文首 YAML frontmatter 用于 markmap 思维导图视图。 |
+| `docs/美女写真网站-v1原型设计.html` | 前台交互原型：单文件自包含 HTML（内联 CSS/JS、演示数据，状态存 `localStorage`），浏览器直接打开即可。 |
+| `docs/美女写真网站-v1数据库设计.sql` | MySQL 8 数据库设计：24 张表，文首为设计约定，文末为种子数据。 |
+| `docs/美女写真网站-v1管理后台功能清单.md` | 管理后台规格。后台为独立应用，仅面向桌面端（≥1280px），与前台只共用数据库。 |
+| `docs/美女写真网站-v1管理后台原型.html` | 管理后台原型，同样是单文件；登录层与前台独立。 |
 
-Cross-file consistency is the main maintenance task: when changing a rule or field, update the SQL (schema, comments, seed data), the relevant feature list, and both prototypes when the behavior is user-visible.
+跨文件保持一致是主要维护工作：修改规则或字段时，需同步更新 SQL（表结构、注释、种子数据）、对应功能清单，以及行为可见的两个原型。
 
-## Cross-cutting domain rules
+## 跨文档业务规则
 
-- **Roles**: `guest` (not persisted) / `member` / `vip` / `admin`. Only `admin` can publish albums; members and VIPs have no upload/publish rights.
-- **Album access**: guests and members see only the first 3 images until unlocked. A member permanently unlocks one album with `album.points`; unlock grants full viewing and repeatable downloads. VIP views and downloads every album without spending points.
-- **Points**: termed 「解锁积分」 in the UI. Earned by daily check-in (`sys_config.checkin.points`, default 2), spent only at unlock time — never at download time. `user.points` must never go negative.
-- **Watermark**: only the locked first-3 previews use `album_image.watermark_url`; after unlock and for VIP, always serve the original `url`. The global `sys_config.image.watermark_on` switch only affects locked previews.
-- **Publishing**: `album.status` is `draft` / `published` / `offline`; `published_at` drives “latest” sorting. `is_recommended` feeds the waterfall recommendation pool.
-- **Payments**: v1 supports Alipay only. Admin-gifted membership is a 0-yuan `pay_order` with `pay_type='admin'`. Renewal stacks 30 days onto the remaining `user.vip_expire_at`.
-- **Soft delete**: prefer `is_deleted` / `status` over physical deletes. Denormalized counters (`album.view_count` / `fav_count` / `download_count` / `comment_count`, `author.album_count`, `tag.use_count`) must be updated by the same operation that changes the underlying rows.
+- **角色**：`guest`（游客，不落库）/ `member`（注册会员）/ `vip`（付费会员）/ `admin`（管理员）。仅 `admin` 可发布图集，注册会员与付费会员均无上传 / 发布权限。
+- **图集访问**：游客与注册会员未解锁时只能看前 3 张。注册会员消耗 `album.points` 永久解锁单套图集，解锁后可查看全部并重复下载。付费会员全站查看与下载，不消耗积分。
+- **积分**：界面统一称「解锁积分」。通过每日签到获得（`sys_config.checkin.points`，默认 2 分），仅在解锁图集时消耗，下载不扣分；`user.points` 不得为负。
+- **水印**：仅未解锁时的前 3 张预览使用 `album_image.watermark_url`；解锁后及付费会员一律返回原图 `url`。全局开关 `sys_config.image.watermark_on` 只控制未解锁预览。
+- **发布**：`album.status` 为 `draft` / `published` / `offline`；`published_at` 是最新排序依据；`is_recommended` 进入瀑布流推荐池。
+- **支付**：v1 仅支持支付宝；后台赠送会员走 `pay_type='admin'` 的 0 元订单；续费在剩余 `user.vip_expire_at` 上叠加 30 天。
+- **软删除**：优先使用 `is_deleted` / `status`，不做物理删除。冗余计数（`album.view_count` / `fav_count` / `download_count` / `comment_count`、`author.album_count`、`tag.use_count`）必须与底层数据变更在同一操作中维护。
 
-## Database conventions
+## 数据库约定
 
-MySQL 8 / InnoDB / `utf8mb4_unicode_ci`; `BIGINT UNSIGNED AUTO_INCREMENT` primary keys; `DATETIME` timestamps (application stores Beijing time); soft delete preferred; counters denormalized for list-page reads. See the header comment of the SQL file before editing.
+MySQL 8 / InnoDB / `utf8mb4_unicode_ci`；主键统一 `BIGINT UNSIGNED AUTO_INCREMENT`；时间统一 `DATETIME`（应用层存北京时间）；优先软删除；列表页依赖的计数做冗余。修改前先阅读 SQL 文件头部约定。
 
-## Prototype conventions
+## 原型约定
 
-- Both prototypes are standalone HTML: open in a browser, no install/build/watch step.
-- Prototype state is hardcoded demo data plus `localStorage`; nothing persists to a backend.
-- Front-end prototype is responsive (PC/H5); admin prototype is desktop-only.
-- Shared visual language: dark background, rose-red accent `#ff2d55`, gradient square logo with 「希」.
+- 两个原型均为独立 HTML：浏览器直接打开，无安装 / 构建 / 监听步骤。
+- 原型状态由硬编码演示数据 + `localStorage` 组成，不会持久化到后端。
+- 前台原型适配 PC / H5；后台原型仅面向桌面端。
+- 统一视觉语言：深色背景、玫红强调色 `#ff2d55`、渐变方块「希」字 Logo。
 
-## Git workflow
+## Git 工作流
 
-Commit directly on `main`; do not create a feature branch. Keep commit messages in Chinese with a `docs:` prefix.
+直接在 `main` 分支提交，不新建功能分支。提交信息使用中文，并以 `docs:` 前缀开头。
