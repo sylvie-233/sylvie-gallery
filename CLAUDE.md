@@ -4,7 +4,7 @@
 
 ## 仓库定位
 
-本仓库包含「希尔薇图集」v1 的设计文档与实现代码：`docs/` 为规格与原型，`scripts/` 为本地基础服务编排，`gallery-monorepo/` 为 pnpm + Turbo 工作区（前台 Web 与 API）。**管理后台为独立应用，尚未实现**，不要臆造后台源码或命令。
+本仓库包含「希尔薇图集」v1 的设计文档与实现代码：`docs/` 为规格与原型，`scripts/` 为本地基础服务编排，`gallery-monorepo/` 为 pnpm + Turbo 工作区（前台 Web、独立管理后台 Admin、API）。管理后台与前台独立部署、独立登录，仅共用数据库。
 
 ## 文档职责对照
 
@@ -25,7 +25,8 @@
 | `scripts/docker-compose.yml` | MySQL 8 + RustFS 本地编排；首次启动执行建表与演示数据。 |
 | `scripts/init/02-demo-data.sql` | 演示数据（37 套图集 / 1140 条媒体 / 公告 / 评论 / 收藏 / 订单），由 `scripts/generate-demo-data.mjs` 生成。 |
 | `gallery-monorepo/apps/web` | Next.js 15 App Router 前台，Tailwind CSS v4 + SWR；通过 rewrites 代理 `/api`。 |
-| `gallery-monorepo/apps/api` | Hono API：JWT、MySQL 参数化查询、RustFS 对象存储、ZIP 下载。 |
+| `gallery-monorepo/apps/admin` | React + Vite + React Router 管理后台，Tailwind CSS v4 + SWR；开发端口 3002。 |
+| `gallery-monorepo/apps/api` | Hono API：JWT、MySQL 参数化查询、RustFS 对象存储、Sharp 图片处理、ZIP 下载。 |
 | `gallery-monorepo/packages/types` | API 响应、DTO、枚举常量；Web 与 API 共用。 |
 | `gallery-monorepo/packages/db` | mysql2 连接池、事务与参数化查询封装。 |
 | `gallery-monorepo/packages/utils` | 日期、计数、价格、文本格式化等纯函数。 |
@@ -41,9 +42,10 @@ pnpm install
 cp apps/api/.env.example apps/api/.env
 pnpm dev:api        # http://localhost:3000
 pnpm dev:web        # http://localhost:3001
+pnpm dev:admin      # http://localhost:3002
 ```
 
-演示账号密码均为 `123456`：`admin@sylvie.cc`（管理员）、`demo@sylvie.cc`（注册会员）、`vip@sylvie.cc`（付费会员）。开发验证码固定为 `123456`。
+演示账号密码均为 `123456`：`admin@sylvie.cc`（管理员，后台也可输入简写 `admin`）、`demo@sylvie.cc`（注册会员）、`vip@sylvie.cc`（付费会员）。开发验证码固定为 `123456`。
 
 ## 跨文档业务规则
 
@@ -64,8 +66,10 @@ MySQL 8 / InnoDB / `utf8mb4_unicode_ci`；主键统一 `BIGINT UNSIGNED AUTO_INC
 - API 统一返回 `{ code, message, data }`，成功时 `code=200`；分页统一 `{ list, total, page, pageSize, totalPages }`。
 - 共享类型以 `packages/types` 为准，修改接口时同步更新 Web 调用与 DTO。
 - 前台登录态存 `localStorage`（`sylvie_token`），请求通过 `Authorization: Bearer` 传递；不要假设存在 Cookie 会话。
+- 后台独立登录态存 `sylvie_admin_token`（勾选「记住我」用 localStorage，否则 sessionStorage）；所有后台接口位于 `/api/admin/*`，由 `authenticate + requireAdmin` 保护。
+- 后台所有写操作必须调用 `logAdminOp` 写入 `admin_op_log`；标签收录数、作者图集数、评论数等冗余字段需在同一事务或操作后重算。
 - API 数据库访问使用参数化 SQL；列表计数与冗余字段需事务内同步。
-- 原型仅作视觉与交互参考，实际页面以 Web 实现为准；两者视觉语言一致：深色背景、玫红 `#ff2d55`、渐变「希」字 Logo。
+- 原型仅作视觉与交互参考，实际页面以 Web/Admin 实现为准；三者视觉语言一致：深色背景、玫红 `#ff2d55`、渐变「希」字 Logo。
 
 ## Git 工作流
 

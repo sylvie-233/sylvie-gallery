@@ -1,14 +1,15 @@
-# 希尔薇图集 · v1（Web + API）
+# 希尔薇图集 · v1（Web + API + Admin）
 
-基于 `docs/` 下的原型与数据库设计实现的 v1 前台与接口。管理后台为独立应用，后续单独实现。
+基于 `docs/` 下的原型与数据库设计实现的 v1 前台、接口与独立管理后台。
 
 ## 技术栈
 
 | 模块 | 目录 | 技术 |
 |---|---|---|
 | Web | `apps/web` | Next.js 15（App Router）+ React 19 + Tailwind CSS v4 + SWR |
-| API | `apps/api` | Hono + MySQL 8 + RustFS（S3 兼容） |
-| 共享类型 | `packages/types` | API DTO、枚举常量 |
+| Admin | `apps/admin` | React 19 + Vite + React Router + Tailwind CSS v4 + SWR |
+| API | `apps/api` | Hono + MySQL 8 + RustFS（S3 兼容）+ Sharp |
+| 共享类型 | `packages/types` | API DTO、管理端 DTO、枚举常量 |
 | 共享工具 | `packages/utils` | 日期 / 计数 / 价格 / 文本格式化 |
 | 数据库客户端 | `packages/db` | mysql2 连接池与参数化查询 |
 | 工程配置 | `packages/tsconfig`、`packages/eslint-config` | TypeScript / ESLint 基线 |
@@ -21,7 +22,8 @@
 # 仓库根目录
 docker compose -f scripts/docker-compose.yml up -d
 
-# 首次启动会自动执行建表与演示数据（24 张表、37 套图集、1140 条媒体）
+# 首次启动会自动执行建表与演示数据
+# 24 张表、40 套图集（37 已发布 / 1 草稿 / 2 已下架）、1176 条媒体
 docker compose -f scripts/docker-compose.yml ps
 ```
 
@@ -32,20 +34,25 @@ cd gallery-monorepo
 pnpm install
 
 cp apps/api/.env.example apps/api/.env
+# 可选
+cp apps/admin/.env.example apps/admin/.env
 ```
 
-### 3. 启动 API 与 Web
+### 3. 启动 API、前台与后台
 
 ```bash
-# 分别在两个终端执行
-pnpm dev:api   # http://localhost:3000
-pnpm dev:web   # http://localhost:3001
+# 分别执行
+pnpm dev:api     # http://localhost:3000
+pnpm dev:web     # http://localhost:3001
+pnpm dev:admin   # http://localhost:3002
 
 # 或同时启动
 pnpm dev
 ```
 
-访问 http://localhost:3001 。Web 通过 Next rewrites 将 `/api` 代理到 API（默认 `http://127.0.0.1:3000`）。
+- 前台：http://localhost:3001 （Next rewrites 将 `/api` 代理到 API）
+- 后台：http://localhost:3002 （Vite 将 `/api` 代理到 API）
+- 后台为独立应用与独立登录，只与前台共用数据库。
 
 ## 演示账号
 
@@ -53,13 +60,13 @@ pnpm dev
 
 | 邮箱 | 角色 | 说明 |
 |---|---|---|
-| `admin@sylvie.cc` | 管理员 | 前台可见后台入口（后台待建设） |
+| `admin@sylvie.cc` | 管理员 | 后台登录；也支持后台输入简写 `admin` |
 | `demo@sylvie.cc` | 注册会员 | 8 积分、5 条收藏、2 位订阅、1 套已解锁 |
 | `vip@sylvie.cc` | 付费会员 | 有效期至 2027-06-01 |
 
 注册验证码在开发环境固定为 `123456`（`VERIFY_CODE_DEMO`）。
 
-## 已实现功能
+## 前台已实现
 
 - 首页：最近更新、个人写真作者卡、公告、站点统计
 - 图集：最新 / 热门 / 收藏排序、标签与关键词筛选、24 套/页
@@ -73,12 +80,29 @@ pnpm dev
 - 我的通知：全部 / 未读、详情弹层、关联图集跳转、全部已读
 - 我的收藏 / 我的购买：分页、会员订单续费、积分解锁记录
 
+## 管理后台已实现
+
+- 独立登录：仅 `role='admin'` 可进入；记住我（localStorage / sessionStorage）；无注册入口
+- 数据看板：今日营收 / 积分解锁 / 新增用户 / PV·UV、站点规模、营收趋势（7 天 / 30 天 / 6 个月）、待办、最近发布、热搜词、快捷操作
+- 图集管理：状态筛选、搜索、分页；发布 / 下架、推荐池切换、删除、编辑
+- 图集编辑器：新建 / 编辑共用整页；图片 / 视频上传（RustFS）、拖拽排序、封面指定、示例图、灯箱预览、标签搜索、草稿保存 / 发布
+- 标签管理：新建 / 重命名 / 隐藏 / 删除（仅未收录）；`tag.use_count` 同步
+- 作者管理：新建 / 编辑 / 隐藏 / 删除；头像上传、排序权重、风格标签
+- 评论审核：待审 / 已通过 / 已拒绝，时间筛选、搜索、通过 / 拒绝 / 删除、通知用户
+- 公告管理：类型 / 状态 / 时间筛选、置顶、新建 / 编辑 / 发布 / 下线 / 删除
+- 支付流水：营收统计、业务 / 状态 / 时间筛选、退款、按筛选结果导出 UTF-8 BOM CSV
+- 用户管理：角色 / 状态筛选、积分调整、赠送 30 天会员、重置密码、封禁 / 解封
+- 友链与配置：版权 / 备案 / 年龄声明 / 免责声明 / 签到积分 / 水印开关、会员套餐、友链增删
+- 操作日志：动作分组筛选、时间 / 关键词搜索、详情弹窗；所有写操作自动留痕
+
 ## 重要约定
 
 - 未解锁（游客 / 注册会员）只返回前 3 张图片；`image.watermark_on=1` 时取 `watermark_url`。
+- 后台图片上传由 Sharp 生成缩略图与水印版原图；原始文件、缩略图、水印图分别存放在 RustFS。
 - 积分解锁与付费会员返回原图；下载不扣积分。
 - 评论一级与回复均先审后发；本人可见待审核内容并显示状态。
-- 付费会员续费在剩余有效期上叠加；管理员赠送会员（`pay_type='admin'`）留给后台。
+- 付费会员续费在剩余有效期上叠加；管理员赠送会员生成 `pay_type='admin'` 的 0 元订单。
+- 后台所有写操作写入 `admin_op_log`；标签收录数、作者图集数、评论数、收藏数等冗余字段随操作同步。
 - 线上支付：v1 默认 `ALIPAY_MOCK=true` 走本地模拟支付；接入真实支付宝需配置商户参数与回调地址。
 - 邮件验证码：当前仅写服务端日志并返回开发演示码；接入 SMTP 后可替换 `auth.service.ts` 的发送实现。
 
@@ -95,10 +119,13 @@ pnpm clean       # 清理产物
 
 - API：`pnpm --filter @sylvie/api build`，运行 `node apps/api/dist/main.js`；Dockerfile 见 `apps/api/Dockerfile`。
 - Web：`pnpm --filter @sylvie/web build`，运行 `pnpm --filter @sylvie/web start`；容器构建设置 `NEXT_STANDALONE=1`，Dockerfile 见 `apps/web/Dockerfile`。
-- Web 构建时的 `API_BASE_URL` 决定 `/api` 反向代理目标（容器内通常为 `http://api:3000`）。
+- Admin：`pnpm --filter @sylvie/admin build`，产物在 `apps/admin/dist`；Dockerfile + Nginx SPA 配置见 `apps/admin/Dockerfile`、`apps/admin/nginx.conf`。
+- Web 构建时的 `API_BASE_URL`、Admin 构建时的 `VITE_WEB_URL` 需按部署环境填写。
 
-## 待实现
+## 当前限制
 
-- 独立管理后台（发布图集、标签 / 公告 / 评论审核、会员套餐、支付流水、配置与日志）。
-- 真实支付宝支付与退款回调。
-- SMTP 邮件发送。
+- 真实支付宝支付与退款回调未接入。
+- SMTP 邮件发送未接入，验证码取开发演示码。
+- 重置密码后的「下次登录强制修改」尚未落库实现（数据库无对应字段）。
+- 视频上传保存但暂无服务端转码 / 封面截帧，编辑器仅展示文件名与体积。
+- 管理后台按 ≥1280px 桌面布局设计，不做移动端适配。
