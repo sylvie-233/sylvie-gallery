@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---------- 构建阶段 ----------
-FROM node:22-alpine AS build
+FROM node:24-alpine AS build
 
 WORKDIR /app
 
@@ -30,7 +30,7 @@ ENV VITE_WEB_URL=$WEB_URL
 RUN pnpm --filter @sylvie/admin... build
 
 # ---------- 运行阶段：Nginx 托管 SPA 并代理 API ----------
-FROM nginx:1.27-alpine AS runner
+FROM nginx:1.29 AS runner
 
 ENV TZ=Asia/Shanghai
 

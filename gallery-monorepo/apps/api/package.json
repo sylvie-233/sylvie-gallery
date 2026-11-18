@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "希尔薇图集 API（Hono + MySQL + RustFS）",
+  "files": ["dist"],
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "build": "tsup src/main.ts --format esm --dts --clean --target node20",

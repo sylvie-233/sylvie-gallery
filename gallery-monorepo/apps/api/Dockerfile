@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---------- 构建阶段：安装依赖并构建 API 及其 workspace 依赖 ----------
-FROM node:22-alpine AS build
+FROM node:24-alpine AS build
 
 WORKDIR /app
 
@@ -29,7 +29,7 @@ RUN pnpm --filter @sylvie/api... build
 RUN pnpm --filter @sylvie/api --prod deploy --legacy /app/deploy
 
 # ---------- 运行阶段 ----------
-FROM node:22-alpine AS runner
+FROM node:24-alpine AS runner
 
 ENV NODE_ENV=production \
     PORT=3000 \

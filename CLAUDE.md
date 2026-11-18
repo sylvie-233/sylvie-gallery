@@ -22,7 +22,8 @@
 
 | 路径 | 职责 |
 |---|---|
-| `scripts/docker-compose.yml` | MySQL 8 + RustFS 本地编排；首次启动执行建表与演示数据。 |
+| `scripts/docker-compose.yml` | MySQL 8 + RustFS + API + Web + Admin 编排；首次启动执行建表与演示数据。 |
+| `manage.ps1` | 根目录运维脚本：up/down/restart/reset/build/logs/cli/status/init/pull/dev。 |
 | `scripts/init/02-demo-data.sql` | 演示数据（37 套图集 / 1140 条媒体 / 公告 / 评论 / 收藏 / 订单），由 `scripts/generate-demo-data.mjs` 生成。 |
 | `gallery-monorepo/apps/web` | Next.js 15 App Router 前台，Tailwind CSS v4 + SWR；通过 rewrites 代理 `/api`。 |
 | `gallery-monorepo/apps/admin` | React + Vite + React Router 管理后台，Tailwind CSS v4 + SWR；开发端口 3002。 |
@@ -36,7 +37,11 @@
 前置：Node.js ≥ 20、pnpm ≥ 9、Docker。
 
 ```bash
-docker compose -f scripts/docker-compose.yml up -d   # MySQL + RustFS
+# 容器化一键启动（含三端）：前台 8080、后台 8081、API 3000
+pwsh ./manage.ps1 up
+
+# 或本地热更新：仅容器跑 MySQL + RustFS，再启动三个 pnpm 服务
+docker compose -f scripts/docker-compose.yml up -d mysql rustfs
 cd gallery-monorepo
 pnpm install
 cp apps/api/.env.example apps/api/.env

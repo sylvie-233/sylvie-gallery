@@ -14,7 +14,20 @@
 | 数据库客户端 | `packages/db` | mysql2 连接池与参数化查询 |
 | 工程配置 | `packages/tsconfig`、`packages/eslint-config` | TypeScript / ESLint 基线 |
 
-## 本地启动
+## 一键容器化（推荐验收）
+
+在仓库根目录执行（PowerShell 7+）：
+
+```powershell
+pwsh ./manage.ps1 up          # 构建并启动 MySQL / RustFS / API / Web / Admin
+pwsh ./manage.ps1 status      # 查看状态与访问地址
+pwsh ./manage.ps1 dev         # 只容器跑基础服务，本机热更新三端
+pwsh ./manage.ps1 reset -Force
+```
+
+容器化地址：前台 http://localhost:8080、后台 http://localhost:8081、API http://localhost:3000、RustFS 控制台 http://localhost:9001。详见 `scripts/README.md`。
+
+## 本地开发（热更新）
 
 ### 1. 启动 MySQL 与 RustFS
 
@@ -129,3 +142,4 @@ pnpm clean       # 清理产物
 - 重置密码后的「下次登录强制修改」尚未落库实现（数据库无对应字段）。
 - 视频上传保存但暂无服务端转码 / 封面截帧，编辑器仅展示文件名与体积。
 - 管理后台按 ≥1280px 桌面布局设计，不做移动端适配。
+- Admin 的 Vite 构建通过根 `package.json` 的 pnpm override 使用 `@rollup/wasm-node`，规避 Alpine/musl 下 Rollup 原生解析器对 React DOM 的嵌套限制。
