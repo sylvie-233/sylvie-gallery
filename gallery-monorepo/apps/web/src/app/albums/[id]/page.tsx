@@ -22,11 +22,7 @@ import {
   Trash2,
 } from 'lucide-react';
 
-import {
-  ROLE_LABELS,
-  type AlbumDetailDto,
-  type CommentDto,
-} from '@sylvie/types';
+import { ROLE_LABELS, type AlbumDetailDto, type CommentDto } from '@sylvie/types';
 import { cn, formatCount, formatDateTime, formatPrice } from '@sylvie/utils';
 
 import { Avatar, AuthorAvatar } from '@/components/avatar';
@@ -59,10 +55,18 @@ function roleBadge(role: string): string {
 
 function statusBadge(status: CommentDto['status']) {
   if (status === 'pending') {
-    return <span className="rounded border border-brand/50 px-1.5 py-0.5 text-[10.5px] text-brand2">审核中</span>;
+    return (
+      <span className="rounded border border-brand/50 px-1.5 py-0.5 text-[10.5px] text-brand2">
+        审核中
+      </span>
+    );
   }
   if (status === 'rejected') {
-    return <span className="rounded border border-white/15 px-1.5 py-0.5 text-[10.5px] text-t3">未通过</span>;
+    return (
+      <span className="rounded border border-white/15 px-1.5 py-0.5 text-[10.5px] text-t3">
+        未通过
+      </span>
+    );
   }
   return null;
 }
@@ -109,7 +113,12 @@ function CommentBlock({
           <b className={isReply ? 'text-[12.5px] font-semibold' : 'text-[13px] font-semibold'}>
             {comment.user.nickname}
           </b>
-          <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-semibold', roleBadge(comment.user.role))}>
+          <span
+            className={cn(
+              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+              roleBadge(comment.user.role),
+            )}
+          >
             {ROLE_LABELS[comment.user.role]}
           </span>
           {isReply && comment.replyToName ? (
@@ -371,7 +380,10 @@ export default function AlbumDetailPage() {
       return;
     }
     if (detail.points > user.points) {
-      toast(`解锁积分不足，还需 ${detail.points - user.points} 积分，可每日签到或开通会员`, 'error');
+      toast(
+        `解锁积分不足，还需 ${detail.points - user.points} 积分，可每日签到或开通会员`,
+        'error',
+      );
       return;
     }
     const ok = await confirm({
@@ -574,7 +586,10 @@ export default function AlbumDetailPage() {
               <div className="flex shrink-0 gap-2">
                 <button
                   type="button"
-                  className={cn('btn btn-outline btn-sm', detail.favorited && 'chip-brand text-brand2')}
+                  className={cn(
+                    'btn btn-outline btn-sm',
+                    detail.favorited && 'chip-brand text-brand2',
+                  )}
                   onClick={toggleFavorite}
                   disabled={favoritePending}
                 >
@@ -615,9 +630,12 @@ export default function AlbumDetailPage() {
                 {detail.imageCount}P
               </span>
               {detail.tags.map((tag) => (
-                <Link key={tag.id} href={`/albums?tag=${encodeURIComponent(tag.name)}`} className="chip">
-                  <Tag size={12} />
-                  #{tag.name}
+                <Link
+                  key={tag.id}
+                  href={`/albums?tag=${encodeURIComponent(tag.name)}`}
+                  className="chip"
+                >
+                  <Tag size={12} />#{tag.name}
                 </Link>
               ))}
             </div>
@@ -631,10 +649,12 @@ export default function AlbumDetailPage() {
               ].map((item, index) => (
                 <div
                   key={item.label}
-                  className={cn('px-1 py-2.5', index < 3 && 'border-r border-line')}
+                  className={cn('min-w-0 px-1 py-2.5', index < 3 && 'border-r border-line')}
                 >
-                  <b className="block text-[13.5px] tabular-nums">{item.value}</b>
-                  <span className="mt-0.5 block text-[10.5px] text-t3">{item.label}</span>
+                  <b className="block break-all text-[11.5px] leading-tight tabular-nums">
+                    {item.value}
+                  </b>
+                  <span className="mt-1 block text-[10px] text-t3">{item.label}</span>
                 </div>
               ))}
             </div>
@@ -722,10 +742,10 @@ export default function AlbumDetailPage() {
                 <div className="flex flex-1 flex-col rounded-2xl border border-brand/60 bg-[radial-gradient(320px_150px_at_50%_-30%,rgba(255,45,85,.14),transparent_72%),#0c0c0f] p-[18px]">
                   <h4 className="text-[15px] font-bold">付费会员</h4>
                   <div className="mt-2 flex items-baseline gap-1">
-                    <b className="text-[21px] font-extrabold text-brand">{formatPrice(planPrice)}</b>
-                    <small className="text-[11.5px] text-t3">
-                      / {plan?.durationDays ?? 30} 天
-                    </small>
+                    <b className="text-[21px] font-extrabold text-brand">
+                      {formatPrice(planPrice)}
+                    </b>
+                    <small className="text-[11.5px] text-t3">/ {plan?.durationDays ?? 30} 天</small>
                   </div>
                   <p className="mb-5 mt-2 text-[12.5px] leading-relaxed text-t3">
                     全站图集无限畅看，整包下载原图
@@ -836,7 +856,7 @@ export default function AlbumDetailPage() {
           </section>
         </div>
 
-        <aside className="flex flex-col gap-4 lg:sticky lg:top-[84px]">
+        <aside className="hidden flex-col gap-4 lg:sticky lg:top-[84px] lg:flex">
           <div className="panel p-4">
             <div className="mb-3 flex items-center gap-2">
               <h3 className="text-[14px] font-bold">当前图集</h3>
@@ -865,7 +885,10 @@ export default function AlbumDetailPage() {
                   value: `${detail.packageSize} MB`,
                 },
               ].map((stat) => (
-                <div key={stat.label} className="rounded-[10px] border border-line bg-panel2 px-3 py-2.5">
+                <div
+                  key={stat.label}
+                  className="rounded-[10px] border border-line bg-panel2 px-3 py-2.5"
+                >
                   <div className="flex items-center gap-1.5 text-[11.5px] text-t3">
                     {stat.icon}
                     {stat.label}
@@ -940,7 +963,9 @@ export default function AlbumDetailPage() {
                 <p className="mt-0.5 text-[11.5px] text-t3">共收录 {detail.author.albumCount} 套</p>
               </div>
             </Link>
-            <p className="mt-3 text-[11px] leading-relaxed text-t3">优先浏览同合集内容，点击进入作者主页。</p>
+            <p className="mt-3 text-[11px] leading-relaxed text-t3">
+              优先浏览同合集内容，点击进入作者主页。
+            </p>
           </div>
 
           {detail.otherWorks.length > 0 ? (
@@ -965,7 +990,9 @@ export default function AlbumDetailPage() {
                       <CoverImage src={work.coverUrl} alt={work.title} fallback="希" />
                     </div>
                     <div className="min-w-0">
-                      <p className="clamp-2 text-[12.5px] leading-snug text-[#ff7d90]">{work.title}</p>
+                      <p className="clamp-2 text-[12.5px] leading-snug text-[#ff7d90]">
+                        {work.title}
+                      </p>
                       <p className="mt-1 text-[11px] text-t3">
                         {work.imageCount}P{work.videoCount > 0 ? ` · ${work.videoCount}V` : ''}
                       </p>
@@ -984,7 +1011,11 @@ export default function AlbumDetailPage() {
                 {detail.author.name}
               </Link>
               {detail.tags.map((tag) => (
-                <Link key={tag.id} href={`/albums?tag=${encodeURIComponent(tag.name)}`} className="chip">
+                <Link
+                  key={tag.id}
+                  href={`/albums?tag=${encodeURIComponent(tag.name)}`}
+                  className="chip"
+                >
                   #{tag.name}
                 </Link>
               ))}

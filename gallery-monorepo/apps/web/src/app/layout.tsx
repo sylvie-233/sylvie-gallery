@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
+import { RouteProgress } from '@/components/route-progress';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { Providers } from '@/lib/providers';
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <Providers>
           <div className="flex min-h-screen flex-col">
+            <RouteProgress />
             <SiteHeader />
             <main className="flex-1">{children}</main>
             <SiteFooter />

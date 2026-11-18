@@ -55,11 +55,53 @@ export function SiteHeader() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [mobileCompact, setMobileCompact] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMenuOpen(false);
+    setMobileCompact(false);
   }, [pathname]);
+
+  // 移动端滚动后收起导航，只保留粘性搜索框；阈值滞回，避免高度变化引发来回抖动。
+  useEffect(() => {
+    let ticking = false;
+
+    const update = () => {
+      ticking = false;
+      if (window.innerWidth >= 1024) {
+        setMobileCompact(false);
+        return;
+      }
+
+      const current = window.scrollY;
+      setMobileCompact((compact) => {
+        if (!compact && current > 96) {
+          return true;
+        }
+        if (compact && current < 32) {
+          return false;
+        }
+        return compact;
+      });
+    };
+
+    const onScrollOrResize = () => {
+      if (!ticking) {
+        ticking = true;
+        window.requestAnimationFrame(update);
+      }
+    };
+
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize);
+    update();
+
+    return () => {
+      window.removeEventListener('scroll', onScrollOrResize);
+      window.removeEventListener('resize', onScrollOrResize);
+    };
+  }, []);
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
@@ -99,7 +141,12 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-[60] border-b border-line bg-[rgba(11,11,14,.86)] backdrop-blur-xl">
-      <div className="mx-auto flex h-[62px] w-full max-w-[1280px] items-center gap-4 px-5">
+      <div
+        className={cn(
+          'mx-auto flex h-[62px] w-full max-w-[1280px] items-center gap-4 px-5',
+          mobileCompact && 'hidden lg:flex',
+        )}
+      >
         <Logo withText={false} className="lg:hidden" />
         <Logo className="hidden lg:flex" />
 
@@ -108,11 +155,7 @@ export function SiteHeader() {
             const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
             const Icon = item.icon;
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn('nav-link', active && 'active')}
-              >
+              <Link key={item.href} href={item.href} className={cn('nav-link', active && 'active')}>
                 <Icon size={15} className={active ? 'opacity-100' : 'opacity-70'} />
                 {item.label}
               </Link>
@@ -179,7 +222,9 @@ export function SiteHeader() {
                         {ROLE_LABELS[user.effectiveRole]}
                       </span>
                     </div>
-                    <span className="mt-0.5 block truncate text-[11.5px] text-t3">{user.email}</span>
+                    <span className="mt-0.5 block truncate text-[11.5px] text-t3">
+                      {user.email}
+                    </span>
                   </div>
 
                   <MenuItem href="/profile" icon={<User size={15} />} label="个人中心" />
@@ -232,8 +277,8 @@ export function SiteHeader() {
         </div>
       </div>
 
-      <div className="border-t border-line lg:hidden">
-        <div className="no-scrollbar flex overflow-x-auto px-3">
+      <div className={cn('lg:hidden', !mobileCompact && 'border-t border-line')}>
+        <div className={cn('no-scrollbar flex overflow-x-auto px-3', mobileCompact && 'hidden')}>
           {NAV_ITEMS.map((item) => {
             const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
             return (
@@ -254,7 +299,10 @@ export function SiteHeader() {
         </div>
         <form
           onSubmit={submitSearch}
-          className="mx-3 mb-2.5 flex h-9 items-center gap-2 rounded-[10px] border border-line bg-panel2 px-3"
+          className={cn(
+            'mx-3 flex h-9 items-center gap-2 rounded-[10px] border border-line bg-panel2 px-3 transition focus-within:border-brand/50 focus-within:bg-[#16161a]',
+            mobileCompact ? 'my-2' : 'mb-2.5',
+          )}
         >
           <Search size={15} className="shrink-0 text-t3" />
           <input
@@ -262,6 +310,7 @@ export function SiteHeader() {
             onChange={(event) => setSearch(event.target.value)}
             placeholder="搜索图集 / 作者 / 标签"
             className="w-full bg-transparent text-[13px] outline-none placeholder:text-t3"
+            aria-label="搜索图集 / 作者 / 标签"
           />
         </form>
       </div>
@@ -269,15 +318,7 @@ export function SiteHeader() {
   );
 }
 
-function MenuItem({
-  href,
-  icon,
-  label,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  label: string;
-}) {
+function MenuItem({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
     <Link href={href} className="menu-item">
       {icon}

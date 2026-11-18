@@ -13,7 +13,7 @@ import { useToast } from '@/lib/toast';
 import { AuthorAvatar } from './avatar';
 import { CoverImage } from './cover-image';
 
-const MASONRY_HEIGHTS = [300, 338, 372, 404, 320, 352];
+const MASONRY_RATIOS = ['3 / 4', '4 / 5', '2 / 3', '5 / 7', '3 / 4', '4 / 5'];
 
 interface AlbumCardProps {
   album: AlbumCardDto;
@@ -66,25 +66,26 @@ export function AlbumCard({ album, masonry = false, index = 0, className, eager 
     }
   };
 
-  const height = MASONRY_HEIGHTS[index % MASONRY_HEIGHTS.length] ?? 340;
+  const ratio = MASONRY_RATIOS[index % MASONRY_RATIOS.length] ?? '3 / 4';
 
   return (
     <Link
       href={`/albums/${album.id}`}
       className={cn(
         'group block overflow-hidden rounded-[14px] border border-line bg-panel panel-hover',
-        masonry && 'mb-0',
         className,
       )}
     >
       <div
         className={cn('relative overflow-hidden bg-[#1c1c22]', !masonry && 'aspect-[3/4]')}
-        style={masonry ? { height } : undefined}
+        style={masonry ? { aspectRatio: ratio } : undefined}
       >
         <CoverImage src={album.coverUrl} alt={album.title} eager={eager} fallback="希" />
         <div className="absolute right-2 top-2 flex gap-1">
           <span className="pill">{album.imageCount}P</span>
-          {album.videoCount > 0 ? <span className="pill pill-video">{album.videoCount}V</span> : null}
+          {album.videoCount > 0 ? (
+            <span className="pill pill-video">{album.videoCount}V</span>
+          ) : null}
         </div>
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/55 to-transparent" />
       </div>

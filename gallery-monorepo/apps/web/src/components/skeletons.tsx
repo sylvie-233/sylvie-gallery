@@ -1,6 +1,6 @@
 import { cn } from '@sylvie/utils';
 
-const MASONRY_HEIGHTS = [300, 338, 372, 404, 320, 352];
+const MASONRY_RATIOS = ['3 / 4', '4 / 5', '2 / 3', '5 / 7', '3 / 4', '4 / 5'];
 
 /** 图集卡片骨架：与真实卡片保持同样的圆角、图片比例与信息行高度。 */
 export function AlbumCardSkeleton({
@@ -10,12 +10,12 @@ export function AlbumCardSkeleton({
   masonry?: boolean;
   index?: number;
 }) {
-  const height = MASONRY_HEIGHTS[index % MASONRY_HEIGHTS.length] ?? 340;
+  const ratio = MASONRY_RATIOS[index % MASONRY_RATIOS.length] ?? '3 / 4';
   return (
     <div className="overflow-hidden rounded-[14px] border border-line bg-panel">
       <div
         className={cn('skeleton w-full rounded-none', !masonry && 'aspect-[3/4]')}
-        style={masonry ? { height } : undefined}
+        style={masonry ? { aspectRatio: ratio } : undefined}
       />
       <div className="px-3 pb-3 pt-2.5">
         <div className="skeleton h-3.5 w-11/12" />
@@ -94,11 +94,7 @@ export function TagCloudSkeleton() {
   return (
     <div className="panel flex flex-wrap gap-2.5 p-5 sm:p-6">
       {widths.map((width, index) => (
-        <div
-          key={index}
-          className="skeleton h-9 rounded-full"
-          style={{ width }}
-        />
+        <div key={index} className="skeleton h-9 rounded-full" style={{ width }} />
       ))}
     </div>
   );
@@ -236,10 +232,7 @@ export function HomeSkeleton() {
           <div className="skeleton h-5 w-24" />
           <div className="skeleton h-3 w-44" />
         </div>
-        <AlbumGridSkeleton
-          count={12}
-          className="xl:grid-cols-6"
-        />
+        <AlbumGridSkeleton count={12} className="xl:grid-cols-6" />
       </div>
       <div className="mb-9">
         <div className="mb-3.5 flex items-center gap-2.5">
