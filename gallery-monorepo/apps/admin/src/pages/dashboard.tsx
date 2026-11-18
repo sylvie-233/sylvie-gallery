@@ -338,7 +338,7 @@ function StatCard({
   icon: React.ComponentType<{ size?: number; className?: string }>;
 }) {
   return (
-    <div className="panel px-4 py-3.5">
+    <div className="stat-card panel px-4 py-3.5">
       <div className="flex items-center gap-1.5 text-[12px] text-t3">
         <Icon size={13} />
         {label}

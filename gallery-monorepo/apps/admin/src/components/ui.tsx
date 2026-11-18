@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 
@@ -109,7 +110,11 @@ export function Pagination({
     }
     const result: Array<number | '...'> = [1];
     if (page > 4) result.push('...');
-    for (let value = Math.max(2, page - 1); value <= Math.min(totalPages - 1, page + 1); value += 1) {
+    for (
+      let value = Math.max(2, page - 1);
+      value <= Math.min(totalPages - 1, page + 1);
+      value += 1
+    ) {
       result.push(value);
     }
     if (page < totalPages - 3) result.push('...');
@@ -179,7 +184,7 @@ export function Modal({
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="modal-mask" onClick={onClose} role="presentation">
       <div
         className="modal-card"
@@ -204,7 +209,8 @@ export function Modal({
           <div className="flex justify-end gap-2.5 border-t border-line px-5 py-3.5">{footer}</div>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -248,7 +254,13 @@ export function AvatarBox({
   return (
     <span
       className="inline-flex shrink-0 items-center justify-center overflow-hidden border border-white/10 font-bold text-white"
-      style={{ width: size, height: size, borderRadius: rounded, background, fontSize: size * 0.36 }}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: rounded,
+        background,
+        fontSize: size * 0.36,
+      }}
       title={name}
     >
       {avatarUrl ? (
@@ -314,10 +326,7 @@ export function LoadingRows({ rows = 4 }: { rows?: number }) {
   return (
     <div className="space-y-2 p-4">
       {Array.from({ length: rows }).map((_, index) => (
-        <div
-          key={index}
-          className="h-12 animate-pulse rounded-lg border border-line bg-panel2"
-        />
+        <div key={index} className="h-12 animate-pulse rounded-lg border border-line bg-panel2" />
       ))}
     </div>
   );

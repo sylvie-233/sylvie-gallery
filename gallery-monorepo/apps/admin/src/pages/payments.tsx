@@ -155,7 +155,7 @@ export function PaymentsPage() {
             desc: `消耗 ${summary?.unlockPoints ?? 0} 积分`,
           },
         ].map((item) => (
-          <div key={item.label} className="panel px-4 py-3.5">
+          <div key={item.label} className="stat-card panel px-4 py-3.5">
             <p className="text-[12px] text-t3">{item.label}</p>
             <p
               className={`mt-1.5 text-[23px] font-extrabold leading-none tabular-nums ${

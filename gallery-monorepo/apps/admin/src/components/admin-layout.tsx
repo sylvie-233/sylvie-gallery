@@ -167,10 +167,10 @@ export function AdminLayout() {
                     key={item.to}
                     to={item.to}
                     className={cn(
-                      'mb-0.5 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-[13.5px] text-t2 transition',
+                      'admin-nav-link mb-0.5 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-[13.5px] transition',
                       active
-                        ? 'bg-brand-dim font-semibold text-brand2'
-                        : 'hover:bg-panel2 hover:text-t1',
+                        ? 'is-active bg-brand-dim font-semibold text-brand2'
+                        : 'text-t2 hover:bg-panel2 hover:text-t1',
                     )}
                   >
                     <Icon size={16} className={active ? 'opacity-100' : 'opacity-70'} />
@@ -231,7 +231,10 @@ export function AdminLayout() {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[1240px] flex-1 px-6 py-6">
+        <main
+          key={location.pathname}
+          className="admin-page-enter mx-auto w-full max-w-[1240px] flex-1 px-6 py-6"
+        >
           <Outlet />
         </main>
       </div>

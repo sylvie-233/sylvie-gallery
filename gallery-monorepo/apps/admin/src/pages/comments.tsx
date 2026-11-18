@@ -130,7 +130,9 @@ export function CommentsPage() {
     <div>
       <PageHead
         title="评论审核"
-        sub={data ? `共 ${data.total} 条 · 第 ${data.page} / ${data.totalPages} 页` : '评论区先审后发'}
+        sub={
+          data ? `共 ${data.total} 条 · 第 ${data.page} / ${data.totalPages} 页` : '评论区先审后发'
+        }
       />
 
       <div className="panel">
@@ -181,12 +183,16 @@ export function CommentsPage() {
                         《{comment.albumTitle}》
                         <ExternalLink size={10} />
                       </a>
-                      <span className="text-[11.5px] text-t3">{formatDateTime(comment.createdAt)}</span>
+                      <span className="text-[11.5px] text-t3">
+                        {formatDateTime(comment.createdAt)}
+                      </span>
                       {comment.parentId ? <Badge tone="gray">回复</Badge> : null}
                     </div>
                     <p className="mt-2 whitespace-pre-line break-words text-[13.5px] leading-relaxed text-[#dcdce1]">
                       {comment.replyToName ? (
-                        <span className="mr-1 text-[12px] text-t3">回复 @{comment.replyToName}：</span>
+                        <span className="mr-1 text-[12px] text-t3">
+                          回复 @{comment.replyToName}：
+                        </span>
                       ) : null}
                       {comment.content}
                     </p>
@@ -223,10 +229,10 @@ export function CommentsPage() {
                         </span>
                         <button
                           type="button"
-                          className="btn-text hover:text-[#ff8194]"
+                          className="btn btn-sm btn-danger-line shrink-0"
                           onClick={() => remove(comment)}
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={12} />
                           删除
                         </button>
                       </>
@@ -240,7 +246,11 @@ export function CommentsPage() {
         ) : (
           <Empty
             title={keyword || range.quick !== 'all' ? '没有匹配的评论' : EMPTY_TEXT[tab]}
-            text={keyword || range.quick !== 'all' ? '换个关键词或时间范围试试。' : '新的评论提交后会出现在这里。'}
+            text={
+              keyword || range.quick !== 'all'
+                ? '换个关键词或时间范围试试。'
+                : '新的评论提交后会出现在这里。'
+            }
           />
         )}
       </div>
