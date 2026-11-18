@@ -13,7 +13,7 @@ export async function listTags(): Promise<TagDto[]> {
   const rows = await dbClient.query<TagRow>(
     `SELECT id, name, use_count AS useCount
        FROM tag
-      WHERE status = 1 AND is_deleted = 0
+      WHERE status = 1 AND is_deleted = 0 AND use_count > 0
       ORDER BY use_count DESC, id ASC`,
   );
   return rows.map((row) => ({

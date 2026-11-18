@@ -335,7 +335,8 @@ export async function getPurchases(
       [userId],
     ),
     dbClient.queryOne<{ total: number }>(
-      `SELECT COUNT(*) AS total FROM pay_order WHERE user_id = ? AND status = 'paid'`,
+      `SELECT COUNT(*) AS total FROM pay_order
+        WHERE user_id = ? AND status = 'paid' AND biz_type = 'vip'`,
       [userId],
     ),
     dbClient.queryOne<{ total: number }>(
@@ -350,7 +351,7 @@ export async function getPurchases(
   const [orderRows, unlockRows] = await Promise.all([
     dbClient.query<OrderRow>(
       `SELECT ${ORDER_SELECT} ${ORDER_FROM}
-        WHERE o.user_id = ? AND o.status = 'paid'
+        WHERE o.user_id = ? AND o.status = 'paid' AND o.biz_type = 'vip'
         ORDER BY o.paid_at DESC, o.id DESC
         LIMIT ? OFFSET ?`,
       [userId, orderPage.pageSize, orderPage.offset],

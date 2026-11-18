@@ -253,11 +253,12 @@ export async function getFeed(
   const normalized = normalizePage(page, pageSize, 24);
   const prefScore = userId
     ? `(SELECT COUNT(*) FROM album_tag pt
-         JOIN (SELECT DISTINCT at2.tag_id
+         JOIN (SELECT at2.tag_id
                  FROM user_view_log v
                  JOIN album_tag at2 ON at2.album_id = v.album_id
                 WHERE v.user_id = ?
-                ORDER BY v.id DESC
+                GROUP BY at2.tag_id
+                ORDER BY MAX(v.id) DESC
                 LIMIT 100) pref ON pref.tag_id = pt.tag_id
          WHERE pt.album_id = a.id)`
     : '0';
