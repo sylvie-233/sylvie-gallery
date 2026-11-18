@@ -31,19 +31,52 @@ html{-webkit-text-size-adjust:100%}
 body{
   font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
   background:var(--bg);color:var(--t1);font-size:14px;line-height:1.5;min-height:100vh;
+  background-image:radial-gradient(900px 420px at 55% -160px,rgba(255,45,85,.10),transparent 70%);
+  background-repeat:no-repeat;background-attachment:fixed;
 }
+::selection{background:rgba(255,45,85,.32)}
 a{text-decoration:none;color:inherit;cursor:pointer}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
 [onclick]{cursor:pointer}
 input,select,textarea{font-family:inherit;font-size:14px;color:var(--t1);
   background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;outline:none;transition:border-color .18s}
-input:focus,select:focus,textarea:focus{border-color:var(--line2)}
+input:focus,select:focus,textarea:focus{border-color:rgba(255,45,85,.5)}
 input::placeholder,textarea::placeholder{color:var(--t3)}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
 
 /* ===== 布局 ===== */
 .layout{display:flex;min-height:100vh}
+
+/* ===== 登录入口（进入后台的唯一入口） ===== */
+body.locked .layout{display:none}
+body.locked{overflow:hidden}
+#loginScr{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(1100px 520px at 78% -8%,rgba(255,45,85,.14),transparent 60%),var(--bg);
+  transition:opacity .28s}
+#loginScr.off{opacity:0;pointer-events:none}
+.login-box{width:400px;max-width:92vw;background:var(--s1);border:1px solid var(--line2);border-radius:18px;
+  padding:36px 34px 26px;animation:pop .28s;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.login-box.shake{animation:shake .3s}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.login-logo{display:flex;align-items:center;gap:13px;margin-bottom:4px}
+.login-logo .dot{width:44px;height:44px;border-radius:13px;flex:none;background:linear-gradient(135deg,var(--red),#ff4b6b);
+  color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 24px rgba(255,45,85,.35)}
+.login-logo b{font-size:17px;display:block}
+.login-logo span{display:block;font-size:12px;color:var(--t3);font-weight:400;margin-top:1px}
+.login-sub{font-size:12.5px;color:var(--t3);margin-bottom:22px}
+.login-box .field input{padding:11px 12px}
+.login-err{font-size:12.5px;color:var(--red2);margin:-6px 0 10px;display:none}
+.login-err.on{display:block}
+.login-row{display:flex;align-items:center;justify-content:space-between;margin:2px 0 16px;font-size:12.5px;color:var(--t3)}
+.login-row label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.login-row input{width:auto;accent-color:var(--red)}
+.login-row a:hover{color:var(--red2)}
+.login-btn{width:100%;padding:11px;font-size:14px;letter-spacing:2px}
+.login-tip{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);font-size:12px;color:var(--t3);line-height:1.9}
+.login-tip b{color:var(--red2);font-weight:500}
+.login-foot{position:fixed;left:0;right:0;bottom:18px;text-align:center;font-size:12px;color:var(--t3);letter-spacing:1px}
 .side{
   width:var(--side);flex:none;background:var(--s1);border-right:1px solid var(--line);
   display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;
@@ -90,10 +123,21 @@ input::placeholder,textarea::placeholder{color:var(--t3)}
 .p-head h1{font-size:19px}
 .p-head .sub{font-size:12.5px;color:var(--t3)}
 .p-head .sp{flex:1}
+/* 列表页统一工具栏：左侧筛选 Tabs（若有），右侧时间筛选/搜索/次要操作 */
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.toolbar+.toolbar{margin-bottom:10px}
+.toolbar .sp{flex:1}
+.toolbar .tabs{margin-right:4px}
+/* 支付流水自定义时间区间（点「自定义」或手动改日期时展开） */
+.daterange{display:flex;align-items:center;gap:8px}
+.daterange input[type=date]{padding:6px 10px;width:140px;border:1px solid var(--line);
+  border-radius:8px;background:var(--bg2);color:var(--t1);font-size:12.5px}
+.daterange input[type=date]:focus{border-color:var(--red);outline:none}
+.daterange .sep{color:var(--t3);font-size:12px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
   padding:9px 16px;border-radius:10px;font-size:13.5px;font-weight:600;transition:.18s}
-.btn-red{background:var(--red);color:#fff}
-.btn-red:hover{background:var(--red2)}
+.btn-red{background:linear-gradient(135deg,var(--red),#ff4b6b);color:#fff;box-shadow:0 6px 18px rgba(255,45,85,.25)}
+.btn-red:hover{filter:brightness(1.06)}
 .btn-line{border:1px solid var(--line2);color:var(--t2)}
 .btn-line:hover{color:var(--t1);border-color:#4a4a55}
 .btn-sm{padding:5px 10px;font-size:12px;border-radius:8px}
@@ -127,6 +171,11 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
 .tb tbody tr:hover{background:var(--s2)}
 .tb .tt{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:var(--t1)}
 .tb .ops{display:flex;gap:6px}
+
+/* 日志详情弹窗键值对 */
+.kv{display:grid;grid-template-columns:80px 1fr;gap:11px 14px;font-size:13px;align-items:start}
+.kv>span{color:var(--t3);padding-top:1px}
+.kv>b{color:var(--t1);font-weight:600;word-break:break-all;min-width:0}
 
 .thumb{width:44px;height:58px;border-radius:8px;flex:none;overflow:hidden}
 .thumb .art{width:100%;height:100%}
@@ -198,10 +247,11 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
 .stat{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px}
 .stat .k{font-size:12.5px;color:var(--t3);display:flex;align-items:center;gap:7px}
+.stat .k .n{font-size:10.5px;font-weight:500;color:var(--t3);opacity:.75}
 .stat .v{font-size:24px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums}
 .stat .d{font-size:11.5px;margin-top:4px;color:var(--green)}
 .stat .d.warn{color:var(--amber)}
-.dash2{display:grid;grid-template-columns:1fr 300px;gap:16px}
+.dash2{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
 .quick a{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);
   border-radius:11px;margin-bottom:9px;font-size:13px;color:var(--t2);transition:.18s}
 .quick a:hover{border-color:var(--line2);color:var(--t1);background:var(--s2)}
@@ -211,19 +261,113 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
 .mini-log{font-size:12px;color:var(--t3);padding:7px 0;border-bottom:1px dashed var(--line)}
 .mini-log:last-child{border-bottom:none}
 .mini-log b{color:var(--t2);font-weight:600}
+/* 侧边导航分组 */
+.nav .g{font-size:11px;color:var(--t3);padding:14px 16px 5px;letter-spacing:2px;font-weight:600}
+/* 看板趋势图 */
+.dash3{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;margin-bottom:16px}
+/* 左侧趋势面板纵向 flex：图表区自动填满面板剩余高度（与右侧待办面板等高不留空白） */
+.dash3>.panel:first-child{display:flex;flex-direction:column}
+.trend-wrap{flex:1;min-height:150px;display:flex;align-items:flex-end;gap:14px;padding:6px 4px 0;overflow:hidden}
+.trend-foot{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;padding-top:12px;
+  border-top:1px solid var(--line)}
+.trend-foot div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.trend-foot span{font-size:11.5px;color:var(--t3)}
+.trend-foot b{font-size:15px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums}
+.trend-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;min-width:0;position:relative}
+.trend-bar{width:100%;max-width:42px;border-radius:6px 6px 2px 2px;min-height:3px;
+  background:linear-gradient(180deg,var(--red2),var(--red));cursor:default;
+  transition:filter .15s}
+.trend-bar:hover{filter:brightness(1.15)}
+.trend-bar.dim{background:linear-gradient(180deg,#f4b7c6,#ef9ab0)}
+.trend-val{font-size:11px;font-weight:700;color:var(--t2);font-variant-numeric:tabular-nums}
+.trend-day{font-size:11px;color:var(--t3)}
+.trend-day.today{color:var(--red);font-weight:600}
+/* 趋势图粒度切换页签 */
+.ttabs{display:flex;gap:6px;margin-left:14px}
+.ttabs button{font-size:12px;padding:3px 12px;border-radius:999px;border:1px solid var(--line);
+  background:transparent;color:var(--t3);cursor:pointer;transition:.15s;white-space:nowrap}
+.ttabs button:hover{color:var(--red2);border-color:var(--red2)}
+.ttabs button.on{background:var(--red);border-color:var(--red);color:#fff}
+.trend-head .ttl{white-space:nowrap}
+/* 30 天密集模式：细柱、隐藏金额标签、稀疏日期标签（绝对定位，不参与列宽计算） */
+.trend-wrap.dense{gap:3px;padding-bottom:20px}
+.trend-wrap.dense .trend-bar{max-width:16px;border-radius:4px 4px 1px 1px}
+.trend-wrap.dense .trend-val{display:none}
+.trend-wrap.dense .trend-day{position:absolute;bottom:-17px;left:50%;transform:translateX(-50%);
+  white-space:nowrap;display:none}
+.trend-wrap.dense .trend-day.show{display:block}
+/* 首尾日期标签贴边对齐，避免被裁切 */
+.trend-wrap.dense .trend-col:first-child .trend-day{left:0;transform:none}
+.trend-wrap.dense .trend-col:last-child .trend-day{left:auto;right:0;transform:none}
+/* 待办事项 */
+.quick .cnt{margin-left:auto;font-size:12px;font-weight:700;color:var(--red);
+  background:rgba(255,45,85,.1);border-radius:10px;padding:1px 9px;font-variant-numeric:tabular-nums}
+.quick .cnt.zero{color:var(--t3);background:var(--s2);font-weight:500}
 
-/* ===== 发布图集 ===== */
-.pub-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
-.up-zone{border:1.5px dashed var(--line2);border-radius:12px;padding:18px;text-align:center;color:var(--t3);
-  font-size:12.5px;cursor:pointer;transition:.18s;margin-bottom:12px}
-.up-zone:hover{border-color:var(--red);color:var(--t2)}
-.up-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:9px;margin-bottom:12px}
-.up-item{aspect-ratio:3/4;border-radius:9px;position:relative;overflow:hidden;cursor:pointer}
+/* 看板右列（热搜词 + 快捷操作 垂直堆叠） */
+.dcol{display:flex;flex-direction:column;gap:16px;min-width:0}
+.dcol .panel+.panel{margin-top:0}
+
+/* ===== 图集编辑器（新建 / 编辑共用整页） ===== */
+.ed-grid{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+.ed-media{min-width:0}
+.ed-info{position:sticky;top:16px}
+.ed-actions{display:flex;gap:10px;margin-top:6px;padding-top:14px;border-top:1px solid var(--line)}
+.ed-up-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;margin-bottom:12px}
+.up-zone{border:1.5px dashed var(--line2);border-radius:12px;padding:22px;text-align:center;color:var(--t3);
+  font-size:12.5px;cursor:pointer;transition:.18s;margin-bottom:12px;line-height:1.8}
+.up-zone:hover{border-color:var(--red);color:var(--t2);background:rgba(255,45,85,.04)}
+.up-demo{font-size:12px;color:var(--t3);margin-top:-4px}
+.up-demo a{color:var(--red2);cursor:pointer}
+.up-demo a:hover{text-decoration:underline}
+.up-item{aspect-ratio:3/4;border-radius:9px;position:relative;overflow:hidden;cursor:grab;
+  outline:2px solid transparent;transition:outline-color .15s}
+.up-item.drag{opacity:.45;cursor:grabbing}
+.up-item.over{outline-color:var(--red);outline-offset:2px}
 .up-item .no{position:absolute;right:5px;bottom:4px;font-size:10px;color:rgba(255,255,255,.85);
-  background:rgba(0,0,0,.4);border-radius:5px;padding:1px 5px}
-.up-item .rm{position:absolute;right:4px;top:4px;width:18px;height:18px;border-radius:50%;
-  background:rgba(0,0,0,.55);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center}
-.up-item .rm:hover{background:var(--red)}
+  background:rgba(0,0,0,.4);border-radius:5px;padding:1px 5px;z-index:2}
+.up-item .cvb{position:absolute;left:5px;top:4px;font-size:10px;color:#fff;background:var(--red);
+  border-radius:5px;padding:1px 6px;z-index:2}
+.up-item .ops{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:4px;
+  background:rgba(10,10,14,.55);opacity:0;transition:.15s;z-index:3;flex-wrap:wrap;padding:6px}
+.up-item:hover .ops{opacity:1}
+.up-item .ops b{width:24px;height:24px;border-radius:7px;background:rgba(255,255,255,.14);color:#fff;
+  font-size:12px;font-weight:400;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.up-item .ops b:hover{background:var(--red)}
+.up-item .ops b.rm:hover{background:var(--red2)}
+.vid-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);
+  border-radius:10px;margin-bottom:8px;font-size:13px}
+.vid-row .ic{color:var(--red2);font-size:12px}
+.vid-row .sl{color:var(--t3);font-size:12px}
+.vid-row .mb{margin-left:auto;display:flex;gap:10px;font-size:12px;color:var(--t3)}
+.vid-row .mb b{cursor:pointer;font-weight:400}
+.vid-row .mb b:hover{color:var(--t1)}
+.vid-row .mb b.rm:hover{color:var(--red2)}
+/* 编辑器大图预览（灯箱式，参考主流图站查看器） */
+.lightbox{position:relative;width:min(94vw,1320px);height:min(90vh,900px);display:flex;animation:pop .22s}
+.lb-stage{flex:1;min-width:0;position:relative;border-radius:16px;overflow:hidden;background:#0a0a0f;
+  display:flex;align-items:center;justify-content:center;padding:58px 64px 82px}
+.lb-art{width:100%;height:100%;background-size:contain;background-position:center;background-repeat:no-repeat;border-radius:0}
+.lb-top{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:center;gap:10px;
+  padding:12px 14px 26px;background:linear-gradient(180deg,rgba(0,0,0,.62),rgba(0,0,0,0))}
+.lb-pos{font-size:12.5px;font-weight:700;color:#fff;background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:4px 11px;white-space:nowrap}
+.lb-hint{font-size:12px;color:rgba(255,255,255,.55)}
+.lb-top .x{width:32px;height:32px;border-radius:9px;color:rgba(255,255,255,.75);font-size:16px;
+  flex:none;margin-left:auto;background:rgba(255,255,255,.12)}
+.lb-top .x:hover{background:var(--red);color:#fff}
+.lb-arrow{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;
+  background:rgba(8,8,12,.55);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:26px;line-height:1;
+  display:flex;align-items:center;justify-content:center;transition:.15s;z-index:3;backdrop-filter:blur(6px)}
+.lb-arrow:hover{background:var(--red);border-color:var(--red)}
+.lb-strip{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;gap:8px;overflow-x:auto;
+  padding:26px 14px 12px;background:linear-gradient(0deg,rgba(0,0,0,.66),rgba(0,0,0,0))}
+.lb-strip .art{position:relative;width:86px;height:56px;flex:none;border-radius:8px;cursor:pointer;
+  opacity:.5;outline:2px solid transparent;outline-offset:-2px;transition:.15s}
+.lb-strip .art:hover{opacity:.85}
+.lb-strip .art.on{opacity:1;outline-color:var(--red)}
+.lb-strip .art.cv-mark::after{content:'★';position:absolute;right:5px;bottom:3px;font-size:12px;color:#ffd76e;
+  text-shadow:0 1px 3px rgba(0,0,0,.8)}
 .tag-sel{display:flex;flex-wrap:wrap;gap:7px;min-height:30px}
 .tag-sel .tg{padding:4px 10px;border-radius:15px;font-size:12px;background:var(--reddim);color:var(--red2);
   display:flex;align-items:center;gap:6px}
@@ -246,24 +390,35 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
   border-radius:10px;padding:10px 13px;line-height:1.7}
 
 /* ===== 评论审核 ===== */
-.cmt{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+/* 评论审核卡片：左侧内容区（头像/用户/正文），右侧固定操作列，与主流审核后台一致 */
+.cmt{display:flex;gap:12px;padding:14px 12px;border-bottom:1px solid var(--line);
+  align-items:flex-start;border-radius:10px;margin:0 -12px;transition:background .15s}
+.cmt:hover{background:rgba(255,255,255,.03)}
 .cmt:last-child{border-bottom:none}
 .cmt .ava{width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
   font-size:13px;font-weight:700;color:#fff}
 .cmt .bd{flex:1;min-width:0}
 .cmt .m1{font-size:12.5px;color:var(--t3);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .cmt .m1 b{color:var(--t1);font-size:13px}
-.cmt .ct{margin:5px 0 9px;font-size:13.5px;color:var(--t1);line-height:1.6}
-.cmt .ops{display:flex;gap:8px}
+.cmt .ct{margin:5px 0 0;font-size:13.5px;color:var(--t1);line-height:1.6;word-break:break-word}
+.cmt .ops{flex:none;display:flex;gap:8px;align-items:center;margin-left:6px;padding-top:1px}
 
 /* ===== 配置 ===== */
+/* 上排：站点配置 | 会员套餐（两张等高表单卡并排）；下排：友情链接通栏，条目自适应多列 */
 .cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.cfg-wide{grid-column:1/-1}
+.fl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px}
 .fl-row{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);
-  border-radius:10px;margin-bottom:8px;font-size:13px}
-.fl-row b{color:var(--t1)}
-.fl-row .sl{color:var(--t3);font-size:12px}
-.fl-row .rm{margin-left:auto;color:var(--t3);font-size:12px}
+  border-radius:10px;font-size:13px;min-width:0}
+.fl-row b{color:var(--t1);flex:none}
+.fl-row .sl{color:var(--t3);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fl-row .lk{margin-left:auto;flex:none;color:var(--red2);font-size:12px;text-decoration:none}
+.fl-row .lk:hover{text-decoration:underline}
+.fl-row .rm{flex:none;color:var(--t3);font-size:12px}
 .fl-row .rm:hover{color:var(--red2)}
+.fl-add{display:flex;gap:10px;margin-top:12px}
+.fl-add input{flex:1;min-width:0}
+.fl-add .btn{flex:none;align-self:center}
 .switch{position:relative;width:38px;height:21px;border-radius:11px;background:var(--s3);
   border:1px solid var(--line2);cursor:pointer;transition:.2s;flex:none}
 .switch.on{background:var(--red);border-color:var(--red)}
@@ -282,11 +437,48 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
 /* ===== 响应式 ===== */
 @media (max-width:1080px){
   .stat-grid{grid-template-columns:repeat(2,1fr)}
-  .dash2,.pub-grid,.cfg-grid{grid-template-columns:1fr}
+  .dash2,.dash3,.ed-grid,.cfg-grid{grid-template-columns:1fr}
+  .ed-info{position:static}
+  /* 趋势卡头部：标题与页签分行，避免挤压换行 */
+  .trend-head{flex-wrap:wrap;row-gap:8px}
+  .trend-head .n{display:none}
+  .trend-head .ttabs{margin-left:0;order:3}
+  .trend-head a{margin-left:auto}
+}
+/* 小屏隐藏次要列（表格中 class="hide-m" 的列） */
+@media (max-width:860px){
+  .hide-m{display:none}
+  .lightbox{width:96vw;height:88vh}
+  .lb-stage{padding:52px 12px 74px}
+  .lb-hint{display:none}
+  .lb-arrow{width:40px;height:40px;font-size:22px}
+  .lb-strip .art{width:64px;height:42px}
 }
 </style>
 </head>
-<body>
+<body class="locked">
+
+<!-- ===== 登录入口（后台唯一入口） ===== -->
+<div id="loginScr">
+  <div>
+    <div class="login-box" id="loginBox">
+      <div class="login-logo">
+        <div class="dot">希</div>
+        <div><b>希尔薇图集</b><span>管理后台 · v1</span></div>
+      </div>
+      <div class="login-sub">图集与会员运营管理 · 仅限管理员访问</div>
+      <div class="field"><label>账号</label><input type="text" id="lgAcc" placeholder="admin" autocomplete="username"></div>
+      <div class="field"><label>密码</label><input type="password" id="lgPwd" placeholder="请输入密码" autocomplete="current-password"></div>
+      <div class="login-err" id="lgErr">账号或密码不正确，请重试</div>
+      <div class="login-row">
+        <label><input type="checkbox" checked>记住我</label>
+      </div>
+      <button class="btn btn-red login-btn" onclick="doLogin()">登 录</button>
+      <div class="login-tip">演示账号：<b>admin</b> · 密码：<b>123456</b><br>正式环境对接 user 表 admin 角色 + bcrypt 校验，本地原型无真实鉴权</div>
+    </div>
+    <div class="login-foot">希尔薇图集 SYLVIE GALLERY · Admin Console</div>
+  </div>
+</div>
 
 <div class="layout">
   <!-- ===== 左侧导航 ===== -->
@@ -297,19 +489,24 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
     </div>
     <nav class="nav">
       <a data-k="dash" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>数据看板</a>
+      <div class="g">内容管理</div>
       <a data-k="albums"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="M4 19l5.5-5 4 3.5L17 14l3 3"/></svg>图集管理</a>
-      <a data-k="publish"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>发布图集</a>
+      <a data-k="publish"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>图集编辑器</a>
+      <a data-k="tags"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1"/></svg>标签管理</a>
+      <a data-k="authors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>作者管理</a>
+      <div class="g">互动运营</div>
       <a data-k="comments"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a8 8 0 01-8 8H4l2.2-3A8 8 0 1121 12z"/></svg>评论审核<span class="bdg" id="cmtBdg">5</span></a>
       <a data-k="notices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 9a6 6 0 10-12 0c0 6-2 7-2 7h16s-2-1-2-7"/><path d="M10.5 20a2 2 0 003 0"/></svg>公告管理</a>
-      <a data-k="authors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>作者管理</a>
+      <div class="g">交易与用户</div>
       <a data-k="pay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6 14.5h4"/></svg>支付流水</a>
       <a data-k="users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1.2-3.2 3.6-5 6.5-5s5.3 1.8 6.5 5"/><circle cx="17.5" cy="9.5" r="2.5"/><path d="M16 15.5c2.8.2 4.7 1.8 5.5 4.5"/></svg>用户管理</a>
+      <div class="g">系统</div>
       <a data-k="config"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1 1.55V21a2 2 0 11-4 0v-.09a1.7 1.7 0 00-1-1.55 1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.7 1.7 0 00.34-1.87 1.7 1.7 0 00-1.55-1H3a2 2 0 110-4h.09a1.7 1.7 0 001.55-1 1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06a1.7 1.7 0 001.87.34h0a1.7 1.7 0 001-1.55V3a2 2 0 114 0v.09a1.7 1.7 0 001 1.55h0a1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06a1.7 1.7 0 00-.34 1.87v0a1.7 1.7 0 001.55 1H21a2 2 0 110 4h-.09a1.7 1.7 0 00-1.55 1z"/></svg>友链与配置</a>
       <a data-k="logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>操作日志</a>
     </nav>
     <div class="side-foot">
-      <a onclick="toast('已切换到前台原型')">← 返回前台首页</a>
-      <a onclick="confirmDo('退出登录','确定要退出管理后台吗？','退出',()=>toast('已退出登录（演示）'))">退出登录</a>
+      <a onclick="location.href='美女写真网站-v1原型设计.html'">← 返回前台首页</a>
+      <a onclick="confirmDo('退出登录','确定要退出管理后台吗？','退出',showLogin)">退出登录</a>
     </div>
   </aside>
 
@@ -330,33 +527,65 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
       <!-- ========= 数据看板 ========= -->
       <div class="sec on" id="sec-dash">
         <div class="p-head"><h1>数据看板</h1><span class="sub" id="dashDate"></span></div>
+
         <div class="stat-grid">
-          <div class="stat"><div class="k">图集总数</div><div class="v" id="stAlbums">0</div><div class="d" id="stAlbumsD">今日 +0</div></div>
-          <div class="stat"><div class="k">注册用户</div><div class="v">12,847</div><div class="d">今日 +86</div></div>
+          <div class="stat"><div class="k">今日营收 <span class="n">现金订单 · 实时</span></div><div class="v" id="stCash" style="color:var(--red)">¥0</div><div class="d" id="stCashD">今日 0 笔现金订单</div></div>
+          <div class="stat"><div class="k">积分解锁 <span class="n">今日</span></div><div class="v" id="stUnlock">0 套</div><div class="d" id="stUnlockD">消耗 0 积分</div></div>
+          <div class="stat"><div class="k">今日新增用户</div><div class="v">+86</div><div class="d">注册用户 12,847</div></div>
+          <div class="stat"><div class="k">今日 PV</div><div class="v">3,284</div><div class="d">UV 912 · 较昨日 +12%</div></div>
+        </div>
+        <div class="stat-grid">
+          <div class="stat"><div class="k">图集总数</div><div class="v" id="stAlbums">0</div><div class="d" id="stAlbumsD">已发布 0 · 草稿 0</div></div>
+          <div class="stat"><div class="k">注册用户</div><div class="v">12,847</div><div class="d">本月新增 1,204</div></div>
           <div class="stat"><div class="k">付费会员</div><div class="v">1,203</div><div class="d">本月新增 58</div></div>
           <div class="stat"><div class="k">待审核评论</div><div class="v" id="stPend" style="color:var(--amber)">0</div><div class="d warn">需尽快处理</div></div>
         </div>
+
+        <div class="dash3">
+          <div class="panel">
+            <div class="p-t trend-head"><span class="ttl">营收趋势</span> <span class="n">现金订单 · 与支付流水同口径</span>
+              <div class="ttabs" id="ttabs">
+                <button class="on" data-m="7d" onclick="setTrendMode('7d')">近 7 天</button>
+                <button data-m="30d" onclick="setTrendMode('30d')">近一个月</button>
+                <button data-m="6m" onclick="setTrendMode('6m')">近六个月</button>
+              </div>
+              <a style="margin-left:auto;font-size:12px;color:var(--t3);cursor:pointer" onclick="go('pay')">查看支付流水 ›</a></div>
+            <div class="trend-wrap" id="trendWrap"></div>
+            <div class="trend-foot">
+              <div><span id="tfSumL">近 7 天合计</span><b id="tfSum">¥0</b></div>
+              <div><span id="tfAvgL">日均</span><b id="tfAvg">¥0</b></div>
+              <div><span id="tfMaxL">单日最高</span><b id="tfMax">¥0</b></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="p-t">待办事项 <span class="n">点击直达</span></div>
+            <div class="quick">
+              <a onclick="go('comments')"><span class="ic">✓</span>待审核评论<span class="cnt zero" id="todoCmt">0</span></a>
+              <a onclick="go('albums',()=>{alFilter='draft';alPage=1;$$('#alTabs button').forEach(x=>x.classList.toggle('on',x.dataset.f==='draft'));renderAlbums()})"><span class="ic">📝</span>草稿待发布<span class="cnt zero" id="todoDraft">0</span></a>
+              <a onclick="go('albums',()=>{alFilter='offline';alPage=1;$$('#alTabs button').forEach(x=>x.classList.toggle('on',x.dataset.f==='offline'));renderAlbums()})"><span class="ic">⬇</span>已下架图集<span class="cnt zero" id="todoOff">0</span></a>
+              <a onclick="go('pay')"><span class="ic">¥</span>今日新订单<span class="cnt zero" id="todoOrder">0</span></a>
+            </div>
+          </div>
+        </div>
+
         <div class="dash2">
           <div class="panel">
             <div class="p-t">最近发布 <span class="n">最新 6 条</span><a onclick="go('albums')" style="margin-left:auto;font-size:12px;color:var(--t3);cursor:pointer">全部图集 ›</a></div>
             <table class="tb"><thead><tr><th>图集</th><th class="hide-m">作者</th><th>规格</th><th class="hide-m">发布时间</th><th>状态</th></tr></thead>
             <tbody id="dashAlbums"></tbody></table>
           </div>
-          <div>
+          <div class="dcol">
+            <div class="panel">
+              <div class="p-t">热搜词 TOP5 <span class="n">近 7 天 · 来自搜索日志</span></div>
+              <div id="hotKw"></div>
+            </div>
             <div class="panel">
               <div class="p-t">快捷操作</div>
               <div class="quick">
                 <a onclick="go('publish')"><span class="ic">＋</span>发布新图集<span class="go">›</span></a>
-                <a onclick="go('comments')"><span class="ic">✓</span>审核待处理评论<span class="go">›</span></a>
                 <a onclick="openNoticeModal()"><span class="ic">📢</span>发布公告<span class="go">›</span></a>
                 <a onclick="go('config')"><span class="ic">⚙</span>修改站点配置<span class="go">›</span></a>
               </div>
-            </div>
-            <div class="panel">
-              <div class="p-t">今日概览</div>
-              <div class="mini-log"><b>PV 3,284</b> · UV 912</div>
-              <div class="mini-log" id="ovUnlock"><b>下载 214</b> 次 · 积分解锁 0 套</div>
-              <div class="mini-log" id="ovOrders"><b>新订单 0</b> 笔 · 营收 ¥0</div>
             </div>
           </div>
         </div>
@@ -370,7 +599,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
           <button class="btn btn-red" onclick="go('publish')">＋ 发布图集</button>
         </div>
         <div class="panel">
-          <div class="p-head" style="margin-bottom:14px">
+          <div class="toolbar">
             <div class="tabs" id="alTabs">
               <button class="on" data-f="all">全部</button>
               <button data-f="published">已发布</button>
@@ -389,11 +618,38 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
         </div>
       </div>
 
-      <!-- ========= 发布图集 ========= -->
+      <!-- ========= 图集编辑器（新建 / 编辑共用整页） ========= -->
       <div class="sec" id="sec-publish">
-        <div class="p-head"><h1>发布图集</h1><span class="sub">所有图集仅管理员可发布 · 发布后自动生成缩略图并进入审核队列</span></div>
-        <div class="pub-grid">
-          <div class="panel">
+        <div class="p-head">
+          <h1 id="pbH1">发布图集</h1><span class="sub" id="pbSub">所有图集仅管理员可发布 · 拖拽调整媒体顺序，编号即前台展示顺序</span>
+          <div class="sp"></div>
+          <button class="btn btn-line" onclick="previewAt(pbCover)" id="pbPrevBtn">👁 预览</button>
+          <button class="btn btn-ghost-red" onclick="go('albums')">返回列表</button>
+        </div>
+        <div class="ed-grid">
+          <div class="panel ed-media">
+            <div class="p-t">媒体工作台 <span class="n" id="pbMediaN"></span>
+              <span class="n" style="margin-left:auto">拖拽缩略图调整顺序 · 编号即前台展示顺序</span>
+            </div>
+            <div class="tabs" id="pbMedTabs">
+              <button class="on" data-t="img">图片（<span id="pbImgN">0</span>）</button>
+              <button data-t="vid">视频（<span id="pbVidN">0</span>）</button>
+            </div>
+            <div id="pbPaneImg">
+              <div class="up-zone" id="upZone">点击或拖拽图片到此处批量上传<br>支持 jpg / png / webp，单张 ≤ 20MB · 最多 99 张</div>
+              <input type="file" id="imgFile" multiple accept="image/*" style="display:none">
+              <div class="ed-up-grid" id="upGrid"></div>
+              <div class="up-demo">原型演示没有素材？<a onclick="addImgs()">添加 3 张示例图</a></div>
+            </div>
+            <div id="pbPaneVid" style="display:none">
+              <div class="up-zone" id="vidZone">点击或拖拽视频文件到此处上传<br>支持 mp4 / mov，单个 ≤ 500MB · 最多 3 个</div>
+              <input type="file" id="vidFile" multiple accept="video/*" style="display:none">
+              <div id="vidList"></div>
+              <div class="up-demo">原型演示没有素材？<a onclick="addVid()">添加 1 个示例视频</a></div>
+            </div>
+            <div class="pub-tip">· 缩略图上的编号即前台详情页展示顺序，可拖拽或用 ‹ › 微调<br>· 点击 ★ 指定封面；未指定时默认取第 1 张<br>· 👁 打开大图预览器，可用方向键逐张检查</div>
+          </div>
+          <div class="panel ed-info">
             <div class="p-t">基本信息</div>
             <div class="field"><label>标题 <i>*</i></label><input type="text" id="pbTitle" placeholder="如：绝对主观美少女 Vol.7"><div class="ferr" id="pbTitleErr">请输入标题（1-60 字）</div></div>
             <div class="frow">
@@ -408,17 +664,11 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
                 <div class="tag-dd-list" id="pbTagList"></div>
               </div>
             </div>
-            <div class="pub-tip">· 发布后默认状态「已发布」，可随时在图集管理中下架<br>· 压缩包大小由系统按原图体积自动汇总，无需填写<br>· 视频数量在右侧媒体区上传视频文件后自动计入</div>
-          </div>
-          <div class="panel">
-            <div class="p-t">媒体上传 <span class="n" id="pbMediaN">图片 0 · 视频 0</span></div>
-            <div class="up-zone" id="upZone">点击或拖拽图片到此处批量上传<br>支持 jpg / png / webp，单张 ≤ 20MB</div>
-            <div class="up-grid" id="upGrid"></div>
-            <div class="field"><label>视频（可选，0-3 个）</label><input type="number" id="pbVideos" value="0" min="0" max="3"></div>
-            <div class="field"><label>封面</label>
-              <div class="seg"><span style="font-size:12.5px;color:var(--t3)" id="pbCoverTip">默认取第 1 张图片为封面</span></div>
+            <div class="pub-tip">· 「发布图集」立即在前台展示；「保存草稿」暂存不发布，稍后在图集管理中继续<br>· 压缩包大小由系统按原图体积自动汇总，无需填写<br>· 是否进入瀑布流「个人推荐」池，可在图集管理中按套设置</div>
+            <div class="ed-actions" id="pbActions">
+              <button class="btn btn-line" style="flex:1" onclick="submitEditor('draft')">保存草稿</button>
+              <button class="btn btn-red" style="flex:2" onclick="submitEditor('published')">发布图集</button>
             </div>
-            <button class="btn btn-red btn-block" style="width:100%" onclick="submitPublish()">发布图集</button>
           </div>
         </div>
       </div>
@@ -427,7 +677,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
       <div class="sec" id="sec-comments">
         <div class="p-head"><h1>评论审核</h1><span class="sub">评论区先审后发 · 审核通过后前台可见</span></div>
         <div class="panel">
-          <div class="p-head" style="margin-bottom:6px">
+          <div class="toolbar">
             <div class="tabs" id="cmtTabs">
               <button class="on" data-f="pending">待审核</button>
               <button data-f="approved">已通过</button>
@@ -436,9 +686,21 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
             <div class="sp"></div>
             <div class="seg"><input type="text" id="cmtKw" placeholder="搜索用户 / 内容 / 图集"><button class="btn btn-line btn-sm" onclick="cmtSearch()">搜索</button></div>
           </div>
+          <div class="toolbar">
+            <div class="tabs" id="cmtQuick">
+              <button class="on" data-q="all">全部时间</button>
+              <button data-q="today">今天</button>
+              <button data-q="7">近 7 天</button>
+              <button data-q="30">近 30 天</button>
+              <button data-q="custom">自定义</button>
+            </div>
+            <div class="daterange" id="cmtRange" style="display:none">
+              <input type="date" id="cmtFrom"><span class="sep">至</span><input type="date" id="cmtTo">
+            </div>
+          </div>
           <div id="cmtList"></div>
-          <div class="empty" id="cmtEmpty" style="display:none"><b>没有待审核的评论</b>新评论提交后会出现在这里</div>
-          <div class="empty" id="cmtNoKw" style="display:none"><b>没有匹配的评论</b>换个关键词试试</div>
+          <div class="empty" id="cmtEmpty" style="display:none"><b id="cmtEmptyB">没有待审核的评论</b>新评论提交后会出现在这里</div>
+          <div class="empty" id="cmtNoKw" style="display:none"><b>没有匹配的评论</b>换个关键词或时间范围试试</div>
           <div class="pager" id="cmtPager"></div>
         </div>
       </div>
@@ -451,12 +713,67 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
           <button class="btn btn-red" onclick="openNoticeModal()">＋ 新建公告</button>
         </div>
         <div class="panel">
+          <div class="toolbar">
+            <div class="tabs" id="ntQuick">
+              <button class="on" data-q="all">全部时间</button>
+              <button data-q="today">今天</button>
+              <button data-q="7">近 7 天</button>
+              <button data-q="30">近 30 天</button>
+              <button data-q="custom">自定义</button>
+            </div>
+            <div class="daterange" id="ntRange" style="display:none">
+              <input type="date" id="ntFrom"><span class="sep">至</span><input type="date" id="ntTo">
+            </div>
+            <div class="sp"></div>
+            <div class="seg">
+              <select id="ntTypeSel" onchange="ntFilterChange()">
+                <option value="all">全部类型</option>
+                <option value="update">更新</option>
+                <option value="activity">活动</option>
+                <option value="maintain">维护</option>
+                <option value="rule">规则</option>
+                <option value="notice">通知</option>
+              </select>
+              <select id="ntStatusSel" onchange="ntFilterChange()">
+                <option value="all">全部状态</option>
+                <option value="1">已发布</option>
+                <option value="0">已下线</option>
+              </select>
+            </div>
+            <div class="seg"><input type="text" id="ntKw" placeholder="搜索标题 / 摘要"><button class="btn btn-line btn-sm" onclick="ntSearch()">搜索</button></div>
+          </div>
           <table class="tb">
             <thead><tr><th>标题</th><th>类型</th><th class="hide-m">摘要</th><th>发布时间</th><th class="hide-m">状态</th><th>操作</th></tr></thead>
             <tbody id="ntBody"></tbody>
           </table>
           <div class="empty" id="ntEmpty" style="display:none"><b>没有公告</b>点击右上角「新建公告」发布第一条</div>
           <div class="pager" id="ntPager"></div>
+        </div>
+      </div>
+
+      <!-- ========= 标签管理 ========= -->
+      <div class="sec" id="sec-tags">
+        <div class="p-head">
+          <h1>标签管理</h1><span class="sub" id="tgSub">前台标签云与图集筛选的数据源</span>
+          <div class="sp"></div>
+          <button class="btn btn-red" onclick="openTagModal()">＋ 新建标签</button>
+        </div>
+        <div class="panel">
+          <div class="toolbar">
+            <div class="tabs" id="tgTabs">
+              <button class="on" data-f="all">全部</button>
+              <button data-f="on">展示中</button>
+              <button data-f="off">已隐藏</button>
+            </div>
+            <div class="sp"></div>
+            <div class="seg"><input type="text" id="tgKw" placeholder="搜索标签名"><button class="btn btn-line btn-sm" onclick="tgSearch()">搜索</button></div>
+          </div>
+          <table class="tb">
+            <thead><tr><th>标签</th><th>收录套数</th><th class="hide-m">创建时间</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody id="tgBody"></tbody>
+          </table>
+          <div class="empty" id="tgEmpty" style="display:none"><b>没有符合条件的标签</b>换个筛选条件试试</div>
+          <div class="pager" id="tgPager"></div>
         </div>
       </div>
 
@@ -468,8 +785,17 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
           <button class="btn btn-red" onclick="openAuthorModal()">＋ 新建作者</button>
         </div>
         <div class="panel">
+          <div class="toolbar">
+            <div class="tabs" id="auTabs">
+              <button class="on" data-f="all">全部</button>
+              <button data-f="on">展示中</button>
+              <button data-f="off">已隐藏</button>
+            </div>
+            <div class="sp"></div>
+            <div class="seg"><input type="text" id="auKw" placeholder="搜索作者 / 别名 / 风格"><button class="btn btn-line btn-sm" onclick="auSearch()">搜索</button></div>
+          </div>
           <table class="tb">
-            <thead><tr><th>作者</th><th class="hide-m">别名</th><th>收录</th><th class="hide-m">风格</th><th class="hide-m">入驻日期</th><th>状态</th><th>操作</th></tr></thead>
+            <thead><tr><th>作者</th><th class="hide-m">别名</th><th>收录</th><th class="hide-m">风格</th><th class="hide-m">排序</th><th>状态</th><th>操作</th></tr></thead>
             <tbody id="auBody"></tbody>
           </table>
           <div class="empty" id="auEmpty" style="display:none"><b>暂无作者</b>点击右上角「新建作者」创建</div>
@@ -487,28 +813,29 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
           <div class="stat"><div class="k">积分解锁</div><div class="v" id="pyUnN">0</div><div class="d" id="pyUnD">消耗 0 积分</div></div>
         </div>
         <div class="panel">
-          <div class="p-head" style="margin-bottom:6px">
+          <div class="toolbar">
             <div class="tabs" id="payTabs">
               <button class="on" data-f="all">全部</button>
               <button data-f="vip">会员开通</button>
               <button data-f="unlock">积分解锁</button>
+              <button data-f="created">待支付</button>
+              <button data-f="refunded">已退款</button>
             </div>
             <div class="sp"></div>
             <div class="seg"><input type="text" id="payKw" placeholder="搜索订单号 / 用户昵称"><button class="btn btn-line btn-sm" onclick="paySearch()">搜索</button></div>
           </div>
-          <div class="p-head" style="margin:0 0 10px;flex-wrap:wrap">
-            <div class="seg" style="flex-wrap:wrap">
-              <span style="font-size:12.5px;color:var(--t3)">时间</span>
-              <input type="date" id="payFrom" style="padding:6px 10px;width:140px">
-              <span style="color:var(--t3);font-size:12px">至</span>
-              <input type="date" id="payTo" style="padding:6px 10px;width:140px">
-              <div class="tabs" id="payQuick">
-                <button class="on" data-q="all">全部时间</button>
-                <button data-q="today">今天</button>
-                <button data-q="7">近7天</button>
-                <button data-q="30">近30天</button>
-              </div>
-              <button class="btn btn-line btn-sm" onclick="clearPayDate()">清除</button>
+          <div class="toolbar">
+            <div class="tabs" id="payQuick">
+              <button class="on" data-q="all">全部时间</button>
+              <button data-q="today">今天</button>
+              <button data-q="7">近 7 天</button>
+              <button data-q="30">近 30 天</button>
+              <button data-q="custom">自定义</button>
+            </div>
+            <div class="daterange" id="payRange" style="display:none">
+              <input type="date" id="payFrom">
+              <span class="sep">至</span>
+              <input type="date" id="payTo">
             </div>
             <div class="sp"></div>
             <button class="btn btn-green btn-sm" onclick="exportPay()" id="payExportBtn">⬇ 导出 CSV</button>
@@ -526,7 +853,21 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
       <div class="sec" id="sec-users">
         <div class="p-head"><h1>用户管理</h1><span class="sub" id="usSub">只读查看 + 封禁控制 · 无内容发布权限分配</span></div>
         <div class="panel">
-          <div class="p-head" style="margin-bottom:6px">
+          <div class="toolbar">
+            <div class="seg">
+              <select id="usRoleSel" onchange="usFilterChange()">
+                <option value="all">全部角色</option>
+                <option value="admin">管理员</option>
+                <option value="vip">付费会员</option>
+                <option value="member">注册会员</option>
+              </select>
+              <select id="usStatusSel" onchange="usFilterChange()">
+                <option value="all">全部状态</option>
+                <option value="0">正常</option>
+                <option value="1">已封禁</option>
+              </select>
+            </div>
+            <div class="sp"></div>
             <div class="seg"><input type="text" id="usKw" placeholder="搜索昵称 / 邮箱"><button class="btn btn-line btn-sm" onclick="usSearch()">搜索</button></div>
           </div>
           <table class="tb">
@@ -543,24 +884,42 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
         <div class="p-head"><h1>友链与配置</h1><span class="sub">页脚友链 + 站点合规文案</span></div>
         <div class="cfg-grid">
           <div class="panel">
-            <div class="p-t">友情链接 <span class="n">页脚胶囊展示</span></div>
-            <div id="flList"></div>
-            <div class="frow" style="margin-top:12px">
-              <div class="field" style="margin:0"><input type="text" id="flName" placeholder="站名"></div>
-              <div class="field" style="margin:0"><input type="text" id="flSlogan" placeholder="一句简介"></div>
-              <button class="btn btn-line btn-sm" style="align-self:center" onclick="addFriend()">添加</button>
-            </div>
-          </div>
-          <div class="panel">
-            <div class="p-t">站点配置</div>
+            <div class="p-t">站点配置 <span class="n">页脚文案 · 合规声明 · 运营参数</span></div>
             <div class="field"><label>页脚版权文案</label><input type="text" id="cfgCopy"></div>
             <div class="field"><label>ICP 备案号</label><input type="text" id="cfgIcp" placeholder="备案后填写"></div>
             <div class="field"><label>年龄声明</label><input type="text" id="cfgAge"></div>
             <div class="field"><label>内容免责声明</label><input type="text" id="cfgDisc"></div>
-            <div class="field"><label>图片水印</label>
-              <div class="seg"><div class="switch on" id="swWm" onclick="this.classList.toggle('on')"></div><span style="font-size:12.5px;color:var(--t3)" id="swWmTip">开启后预览图与下载图均带水印</span></div>
+            <div class="frow">
+              <div class="field"><label>每日签到积分</label><input type="number" id="cfgCheckin" value="2" min="1" max="99"></div>
+              <div class="field"><label>图片水印</label>
+                <div class="seg" style="margin-top:4px"><div class="switch on" id="swWm" onclick="this.classList.toggle('on')"></div><span style="font-size:12.5px;color:var(--t3)" id="swWmTip">开启后预览图与下载图均带水印</span></div>
+              </div>
             </div>
+            <div class="pub-tip" style="margin-bottom:12px">· 签到积分为注册会员每日签到可领的分值<br>· 水印开启后前台预览图与下载图同步生效</div>
             <button class="btn btn-red" style="width:100%" onclick="saveConfig()">保存配置</button>
+          </div>
+          <div class="panel">
+            <div class="p-t">会员套餐 <span class="n">对应 membership_plan 表 · v1 仅月卡</span></div>
+            <div class="frow">
+              <div class="field"><label>月卡价格（元）</label><input type="number" id="planPrice" value="19" min="1"></div>
+              <div class="field"><label>有效天数</label><input type="number" id="planDays" value="30" min="1"></div>
+            </div>
+            <div class="field"><label>权益文案（每行一条，展示在会员卡）</label><textarea id="planBenefits" style="min-height:76px">全站图集在线畅看，无限制浏览
+不限量打包下载（无水印 / 原图分辨率）
+新图提前 3 天抢先看
+专属客服 · 工单优先处理</textarea></div>
+            <div class="pub-tip" style="margin-bottom:12px">· 修改价格后前台会员页与解锁区同步展示新价格<br>· 已开通会员的有效期不受调价影响；续费按剩余天数叠加</div>
+            <button class="btn btn-red" style="width:100%" onclick="savePlan()">保存套餐</button>
+          </div>
+          <div class="panel cfg-wide">
+            <div class="p-t">友情链接 <span class="n">页脚胶囊展示 · 修改后前台实时生效</span></div>
+            <div class="fl-grid" id="flList"></div>
+            <div class="fl-add">
+              <input type="text" id="flName" placeholder="站名，如：希尔薇图集" style="flex:1">
+              <input type="text" id="flSlogan" placeholder="一句简介，如：日系写真每日更新" style="flex:1.4">
+              <input type="text" id="flUrl" placeholder="链接，如：https://example.com" style="flex:1.4">
+              <button class="btn btn-line btn-sm" onclick="addFriend()">＋ 添加友链</button>
+            </div>
           </div>
         </div>
       </div>
@@ -569,8 +928,25 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
       <div class="sec" id="sec-logs">
         <div class="p-head"><h1>操作日志</h1><span class="sub" id="lgSub">管理员操作留痕 · 最新在前</span></div>
         <div class="panel">
+          <div class="toolbar">
+            <div class="tabs" id="lgQuick">
+              <button class="on" data-q="all">全部时间</button>
+              <button data-q="today">今天</button>
+              <button data-q="7">近 7 天</button>
+              <button data-q="30">近 30 天</button>
+              <button data-q="custom">自定义</button>
+            </div>
+            <div class="daterange" id="lgRange" style="display:none">
+              <input type="date" id="lgFrom"><span class="sep">至</span><input type="date" id="lgTo">
+            </div>
+            <div class="sp"></div>
+            <div class="seg">
+              <select id="lgActSel" onchange="lgFilterChange()"></select>
+            </div>
+            <div class="seg"><input type="text" id="lgKw" placeholder="搜索动作 / 目标 / 详情"><button class="btn btn-line btn-sm" onclick="lgSearch()">搜索</button></div>
+          </div>
           <table class="tb">
-            <thead><tr><th>时间</th><th>操作人</th><th>动作</th><th>目标</th><th class="hide-m">详情</th></tr></thead>
+            <thead><tr><th>时间</th><th>操作人</th><th>动作</th><th>目标</th><th class="hide-m">详情</th><th>操作</th></tr></thead>
             <tbody id="lgBody"></tbody>
           </table>
           <div class="empty" id="lgEmpty" style="display:none"><b>暂无操作日志</b>管理操作发生后将自动记录</div>
@@ -592,10 +968,10 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
           <select id="ntType">
             <option value="notice">通知</option><option value="update">更新</option>
             <option value="activity">活动</option><option value="maintain">维护</option>
-            <option value="rule">规则</option><option value="top">置顶</option>
+            <option value="rule">规则</option>
           </select>
         </div>
-        <div class="field"><label>置顶</label>
+        <div class="field"><label>置顶 <span style="color:var(--t3);font-weight:400;font-size:12px">排列表首位</span></label>
           <div style="padding-top:8px"><div class="switch" id="ntTop" onclick="this.classList.toggle('on')"></div></div>
         </div>
       </div>
@@ -610,7 +986,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
 
 <!-- ===== 弹窗：新建作者 ===== -->
 <div class="modal" id="mAuthor">
-  <div class="mbox">
+  <div class="mbox" style="width:600px">
     <div class="mhead"><h3 id="auModalT">新建作者</h3><button class="x" onclick="closeModal('mAuthor')">✕</button></div>
     <div class="mbody">
       <div class="frow">
@@ -630,7 +1006,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
         <div class="ava-sq-hint" style="margin-top:8px">方形 1:1 展示 · 建议 ≥ 200×200 · jpg / png / webp ≤ 5MB<br>未上传图片时以色卡 + 首字呈现，前台按 1:1 方形展示同一张头像</div>
       </div>
       <div class="frow">
-        <div class="field"><label>入驻日期</label><input type="date" id="auSince"></div>
+        <div class="field"><label>排序权重 <span style="color:var(--t3);font-weight:400;font-size:12px">越大越靠前</span></label><input type="number" id="auWeight" value="10" min="0"></div>
         <div class="field"><label>风格标签</label><input type="text" id="auStyle" placeholder="逗号分隔，如：日系,胶片"></div>
       </div>
       <div class="field"><label>简介</label><textarea id="auBio" placeholder="展示在作者主页介绍卡"></textarea></div>
@@ -640,28 +1016,21 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
   </div>
 </div>
 
-<!-- ===== 弹窗：编辑图集 ===== -->
-<div class="modal" id="mEdit">
-  <div class="mbox" style="width:560px">
-    <div class="mhead"><h3>编辑图集 <span style="font-size:12px;color:var(--t3);font-weight:400;margin-left:6px" id="edId"></span></h3><button class="x" onclick="closeModal('mEdit')">✕</button></div>
-    <div class="mbody">
-      <div class="field"><label>标题 <i>*</i></label><input type="text" id="edTitle"><div class="ferr" id="edTitleErr">请输入标题（1-60 字）</div></div>
-      <div class="frow">
-        <div class="field"><label>归属作者 <i>*</i></label><select id="edAuthor"></select></div>
-        <div class="field"><label>解锁积分</label><input type="number" id="edPoints" min="0" max="99"></div>
+<!-- ===== 弹窗：图片大图预览器（灯箱式） ===== -->
+<div class="modal" id="mPrev">
+  <div class="lightbox">
+    <div class="lb-stage">
+      <div class="lb-top">
+        <span class="lb-pos" id="pvPos"></span>
+        <span class="badge bg-vip" id="pvCoverTag" style="display:none">当前封面</span>
+        <span class="lb-hint">← → 方向键切换 · Esc 关闭 · ★ 为封面 · 演示图为占位色卡</span>
+        <button class="x" onclick="closeModal('mPrev')">✕</button>
       </div>
-      <div class="field"><label>简介</label><textarea id="edDesc" placeholder="展示在详情页的说明文字"></textarea></div>
-      <div class="field"><label>标签（搜索添加，最多 8 个）</label>
-        <div class="tag-sel" id="edSel"></div>
-        <div class="tag-dd" id="edTagDd" style="margin-top:9px">
-          <input type="text" id="edTagKw" placeholder="搜索标签，如：国风 / 旅拍" autocomplete="off">
-          <div class="tag-dd-list" id="edTagList"></div>
-        </div>
-      </div>
-      <div class="pub-tip">· 媒体文件（图片 / 视频 / 封面）v1 暂不支持在编辑中替换，如需更换请删除后重新发布</div>
+      <div class="art lb-art" id="pvArt"></div>
+      <button class="lb-arrow" style="left:16px" onclick="pvStep(-1)" title="上一张">‹</button>
+      <button class="lb-arrow" style="right:16px" onclick="pvStep(1)" title="下一张">›</button>
+      <div class="lb-strip" id="pvStrip"></div>
     </div>
-    <div class="mfoot"><button class="btn btn-line" onclick="closeModal('mEdit')">取消</button>
-      <button class="btn btn-red" onclick="saveEdit()">保存修改</button></div>
   </div>
 </div>
 
@@ -681,6 +1050,15 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
   </div>
 </div>
 
+<!-- ===== 弹窗：操作日志详情 ===== -->
+<div class="modal" id="mLog">
+  <div class="mbox" style="width:480px">
+    <div class="mhead"><h3>操作日志详情</h3><button class="x" onclick="closeModal('mLog')">✕</button></div>
+    <div class="mbody" id="logDetail"></div>
+    <div class="mfoot"><button class="btn btn-line" onclick="closeModal('mLog')">关闭</button></div>
+  </div>
+</div>
+
 <!-- ===== 弹窗：重置密码结果 ===== -->
 <div class="modal" id="mPwd">
   <div class="mbox" style="width:410px">
@@ -697,26 +1075,58 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
   </div>
 </div>
 
+<!-- ===== 弹窗：新建/编辑标签 ===== -->
+<div class="modal" id="mTag">
+  <div class="mbox" style="width:430px">
+    <div class="mhead"><h3 id="tgModalT">新建标签</h3><button class="x" onclick="closeModal('mTag')">✕</button></div>
+    <div class="mbody">
+      <div class="field"><label>标签名 <i>*</i></label><input type="text" id="tgName" maxlength="20" placeholder="如：日系（前台统一展示为 #日系）"><div class="ferr" id="tgNameErr">请输入 1-20 字标签名，且不与现有标签重复</div></div>
+      <div class="pub-tip">· 标签是前台「标签云」与图集筛选的数据源，隐藏后前台不再展示、图集发布 / 编辑中不可再选<br>· 已被图集收录的标签不可删除，可先隐藏下线<br>· 重命名后所有已收录图集的标签同步更新</div>
+    </div>
+    <div class="mfoot"><button class="btn btn-line" onclick="closeModal('mTag')">取消</button>
+      <button class="btn btn-red" onclick="saveTag()">保存</button></div>
+  </div>
+</div>
+
+<!-- ===== 弹窗：调整积分 ===== -->
+<div class="modal" id="mPoints">
+  <div class="mbox" style="width:420px">
+    <div class="mhead"><h3>调整积分</h3><button class="x" onclick="closeModal('mPoints')">✕</button></div>
+    <div class="mbody">
+      <div class="pub-tip" id="ptUser" style="margin-bottom:12px"></div>
+      <div class="field"><label>变动积分（正数发放 / 负数扣减） <i>*</i></label><input type="number" id="ptVal" placeholder="如：5 或 -3"><div class="ferr" id="ptErr">请输入非 0 的整数积分</div></div>
+      <div class="field"><label>调整原因</label>
+        <select id="ptReason">
+          <option>活动奖励</option><option>运营补偿</option><option>违规扣除</option><option>其他</option>
+        </select>
+      </div>
+      <div class="pub-tip">· 调整后用户积分余额即时生效，并写入操作日志<br>· 余额不会为负：扣减超出余额时按 0 处理</div>
+    </div>
+    <div class="mfoot"><button class="btn btn-line" onclick="closeModal('mPoints')">取消</button>
+      <button class="btn btn-red" onclick="savePoints()">确认调整</button></div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
 /* ================= 数据 ================= */
 let AUTHORS=[
-  {id:1,name:'铃木美咲',alias:'suzuki,Misaki',style:'日系,胶片,人像',color:'a0',since:'2024-03-01',bio:'日系写真人像，专注胶片质感与自然光。'},
-  {id:2,name:'白露',alias:'',style:'清新,室内,私房',color:'a4',since:'2024-05-12',bio:'清新自然风格，常拍室内窗景与私房写真。'},
-  {id:3,name:'南栀',alias:'nanzhi',style:'街拍,都市',color:'a1',since:'2024-08-20',bio:'都市感写真与街拍，色彩浓烈。'},
-  {id:4,name:'桃夭',alias:'taoyao',style:'甜美,少女',color:'a6',since:'2025-01-15',bio:'甜美少女风，致力于捕捉最自然的一瞬间。'},
-  {id:5,name:'青芷',alias:'qingzhi',style:'国风,汉服',color:'a5',since:'2025-02-28',bio:'国风与汉服写真。'},
-  {id:6,name:'素荷',alias:'suhe',style:'黑白,极简',color:'a7',since:'2025-06-01',bio:'极简光影，黑白与低饱和色调。'},
-  {id:7,name:'林熙',alias:'linxi',style:'旅拍,外景',color:'a3',since:'2025-09-09',bio:'旅拍与外景写真。'},
-  {id:8,name:'绫濑',alias:'ayase',style:'Cos,漫展',color:'a0',since:'2025-10-01',bio:'Cosplay 与漫展现场写真。'},
-  {id:9,name:'苏离',alias:'suli',style:'胶片,旅拍',color:'a4',since:'2026-01-20',bio:'胶片旅拍，记录路上的光影。'},
-  {id:10,name:'安晴',alias:'anqing',style:'甜美,室内',color:'a6',since:'2026-04-06',bio:'室内甜美写真，光线控。'}
+  {id:1,name:'铃木美咲',alias:'suzuki,Misaki',style:'日系,胶片,人像',color:'a0',bio:'日系写真人像，专注胶片质感与自然光。',status:1,weight:20},
+  {id:2,name:'白露',alias:'',style:'清新,室内,私房',color:'a4',bio:'清新自然风格，常拍室内窗景与私房写真。',status:1,weight:16},
+  {id:3,name:'南栀',alias:'nanzhi',style:'街拍,都市',color:'a1',bio:'都市感写真与街拍，色彩浓烈。',status:1,weight:14},
+  {id:4,name:'桃夭',alias:'taoyao',style:'甜美,少女',color:'a6',bio:'甜美少女风，致力于捕捉最自然的一瞬间。',status:1,weight:12},
+  {id:5,name:'青芷',alias:'qingzhi',style:'国风,汉服',color:'a5',bio:'国风与汉服写真。',status:1,weight:10},
+  {id:6,name:'素荷',alias:'suhe',style:'黑白,极简',color:'a7',bio:'极简光影，黑白与低饱和色调。',status:1,weight:8},
+  {id:7,name:'林熙',alias:'linxi',style:'旅拍,外景',color:'a3',bio:'旅拍与外景写真。',status:1,weight:6},
+  {id:8,name:'绫濑',alias:'ayase',style:'Cos,漫展',color:'a0',bio:'Cosplay 与漫展现场写真。',status:0,weight:4},
+  {id:9,name:'苏离',alias:'suli',style:'胶片,旅拍',color:'a4',bio:'胶片旅拍，记录路上的光影。',status:1,weight:4},
+  {id:10,name:'安晴',alias:'anqing',style:'甜美,室内',color:'a6',bio:'室内甜美写真，光线控。',status:1,weight:2}
 ];
 let ALBUMS=[
-  {id:1001,title:'绝对主观美少女 Vol.6',authorId:1,imgs:37,videos:1,points:15,views:18234,favs:1204,cover:'a0',status:'published',date:'2026-11-17 14:20',tags:['日系','甜美','少女','室内']},
+  {id:1001,title:'绝对主观美少女 Vol.6',authorId:1,imgs:37,videos:1,points:15,views:18234,favs:1204,cover:'a0',status:'published',date:'2026-11-17 14:20',tags:['日系','甜美','少女','室内'],rec:1},
   {id:1002,title:'白裙与午后的窗',authorId:2,imgs:26,videos:0,points:12,views:9521,favs:733,cover:'a4',status:'published',date:'2026-11-14 10:05',tags:['清新','日系','室内']},
-  {id:1003,title:'都市霓虹漫游记',authorId:3,imgs:42,videos:2,points:18,views:12305,favs:986,cover:'a1',status:'published',date:'2026-11-12 18:40',tags:['都市','街拍','人像']},
+  {id:1003,title:'都市霓虹漫游记',authorId:3,imgs:42,videos:2,points:18,views:12305,favs:986,cover:'a1',status:'published',date:'2026-11-12 18:40',tags:['都市','街拍','人像'],rec:1},
   {id:1004,title:'汉服·朱砂记',authorId:5,imgs:31,videos:0,points:12,views:6720,favs:511,cover:'a5',status:'published',date:'2026-11-10 09:12',tags:['国风','汉服','外景']},
   {id:1005,title:'胶片夏日纪念册',authorId:1,imgs:29,videos:1,points:15,views:8801,favs:642,cover:'a6',status:'draft',date:'—',tags:['胶片','旅拍','外景']},
   {id:1006,title:'黑白光影手札',authorId:6,imgs:24,videos:0,points:10,views:4110,favs:305,cover:'a7',status:'offline',date:'2026-10-28 16:00',tags:['黑白','极简','人像']},
@@ -738,8 +1148,15 @@ let COMMENTS=[
   {id:513,user:'匿名用户',badge:'member',color:'#5a5a66',album:'绝对主观美少女 Vol.6',content:'加我微信看全部高清 xxx-xxxx',time:'5 天前',status:'rejected'},
   {id:514,user:'推广号A',badge:'member',color:'#5a5a66',album:'汉服·朱砂记',content:'低价代拍联系我们 → 网址',time:'6 天前',status:'rejected'}
 ];
+/* 评论提交日期（演示；真实系统对应 comment.created_at）：按相对时间换算，保证时间筛选可用 */
+COMMENTS.forEach(c=>{
+  const m=c.time.match(/^(\d+)\s*天前/),d=new Date();
+  if(m)d.setDate(d.getDate()-(+m[1]));
+  else if(c.time==='昨天')d.setDate(d.getDate()-1);
+  c.d=dstr(d);
+});
 let NOTICES=[
-  {id:1,type:'top',title:'v1 全站公测正式开启',summary:'注册即领 12 积分，付费会员限时 ¥19/月',date:'2026-11-15',status:1},
+  {id:1,type:'notice',pin:1,title:'v1 全站公测正式开启',summary:'注册即领 12 积分，付费会员限时 ¥19/月',date:'2026-11-15',status:1},
   {id:2,type:'update',title:'铃木美咲 发布了新图集',summary:'绝对主观美少女 Vol.6 已上架',date:'2026-11-17',status:1},
   {id:3,type:'activity',title:'双倍积分签到周',summary:'11/20-11/26 每日签到积分翻倍',date:'2026-11-14',status:1},
   {id:4,type:'maintain',title:'支付通道维护通知',summary:'11/18 02:00-04:00 支付宝下单可能失败',date:'2026-11-10',status:1},
@@ -797,20 +1214,43 @@ let LOGS=[
   {time:'2026-09-26 09:40',admin:'admin',action:'album.publish',target:'图集 #998',detail:'发布「校园运动会特辑」'},
   {time:'2026-09-20 13:05',admin:'admin',action:'order.refund',target:'订单 SV20260920003',detail:'退款 ¥19.00 · 用户申请'}
 ];
-const TAG_POOL=['日系','胶片','清新','私房','街拍','都市','甜美','少女','国风','汉服','黑白','极简','旅拍','外景','室内','人像'];
-let pbTags=[];let pbImgs=[];
+/* 日志编号与来源 IP（演示值；真实系统对应 admin_op_log.id / ip，编号越大越新） */
+LOGS.forEach((l,i)=>{l.id=1020-i;l.ip='116.24.'+((37+i*13)%200+2)+'.'+((108+i*29)%220+5)});
+let nextLogId=1021;
+let TAGS=[
+  {id:1,name:'日系',count:128,status:1,date:'2024-03-01'},
+  {id:2,name:'胶片',count:86,status:1,date:'2024-03-01'},
+  {id:3,name:'清新',count:74,status:1,date:'2024-04-12'},
+  {id:4,name:'私房',count:52,status:1,date:'2024-05-20'},
+  {id:5,name:'街拍',count:63,status:1,date:'2024-06-18'},
+  {id:6,name:'都市',count:47,status:1,date:'2024-06-18'},
+  {id:7,name:'甜美',count:69,status:1,date:'2024-08-02'},
+  {id:8,name:'少女',count:58,status:1,date:'2024-08-02'},
+  {id:9,name:'国风',count:44,status:1,date:'2024-09-27'},
+  {id:10,name:'汉服',count:39,status:1,date:'2024-09-27'},
+  {id:11,name:'黑白',count:28,status:1,date:'2024-11-15'},
+  {id:12,name:'极简',count:21,status:1,date:'2024-11-15'},
+  {id:13,name:'旅拍',count:57,status:1,date:'2025-02-09'},
+  {id:14,name:'外景',count:49,status:1,date:'2025-02-09'},
+  {id:15,name:'室内',count:66,status:1,date:'2025-05-30'},
+  {id:16,name:'人像',count:92,status:1,date:'2025-05-30'}
+];
+/* 标签下拉数据源 = 展示中的标签（隐藏标签不再出现在图集编辑/发布的选择列表） */
+const TAG_POOL=()=>TAGS.filter(t=>t.status).map(t=>t.name);
 const AL_PAGE=6;let alPage=1,alFilter='all';
+const TG_PAGE=8;let tgPage=1,tgFilter='all';
 const NT_PAGE=6;let ntPage=1;
 const AU_PAGE=6;let auPage=1;
 const US_PAGE=8;let usPage=1;
 const LG_PAGE=8;let lgPage=1;
 let cmtFilter='pending';
-let nextAlbumId=1008,noticeId=11,authorId=11;
+let nextAlbumId=1008,noticeId=11,authorId=11,nextTagId=17;
 
 /* ================= 工具 ================= */
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const A=id=>AUTHORS.find(a=>a.id==id);
+const AL=id=>ALBUMS.find(x=>x.id==id);
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2200)}
 let cfCb=null;
 function confirmDo(title,text,okText,cb){
@@ -822,7 +1262,8 @@ function openModal(id){$('#'+id).classList.add('on')}
 function closeModal(id){$('#'+id).classList.remove('on')}
 $$('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on')}));
 function log(action,target,detail){
-  LOGS.unshift({time:now(),admin:'admin',action,target,detail});
+  LOGS.unshift({id:nextLogId++,time:now(),admin:'admin',action,target,detail,
+    ip:'116.24.'+(Math.floor(Math.random()*200)+2)+'.'+(Math.floor(Math.random()*220)+5)});
   lgPage=1;
   renderLogs();
 }
@@ -831,20 +1272,52 @@ function now(){
   return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
 }
 const STATUS={published:['bg-pub','已发布'],draft:['bg-draft','草稿'],offline:['bg-off','已下架']};
-const NT_L={top:['bg-pub','置顶'],update:['bg-pub','更新'],activity:['bg-draft','活动'],maintain:['bg-draft','维护'],rule:['bg-draft','规则'],notice:['bg-draft','通知']};
+const NT_L={update:['bg-pub','更新'],activity:['bg-draft','活动'],maintain:['bg-draft','维护'],rule:['bg-draft','规则'],notice:['bg-draft','通知']};
 const ROLE={admin:['bg-adm','管理员'],vip:['bg-vip','付费会员'],member:['bg-mem','注册会员']};
 const AVA_COLORS=['#ff2d55','#3a8ef0','#f5a623','#3fbf62','#8e7cff','#ff7a45','#0ea5a5'];
 
 /* ================= 导航 ================= */
-const CRUMB={dash:'数据看板',albums:'图集管理',publish:'发布图集',comments:'评论审核',notices:'公告管理',authors:'作者管理',pay:'支付流水',users:'用户管理',config:'友链与配置',logs:'操作日志'};
-function go(k){
+const CRUMB={dash:'数据看板',albums:'图集管理',publish:'图集编辑器',comments:'评论审核',notices:'公告管理',tags:'标签管理',authors:'作者管理',pay:'支付流水',users:'用户管理',config:'友链与配置',logs:'操作日志'};
+function go(k,after){
   $$('.sec').forEach(s=>s.classList.remove('on'));
   $('#sec-'+k).classList.add('on');
   $$('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.k===k));
   $('#crumbCur').textContent=CRUMB[k];
   window.scrollTo({top:0});
+  if(k==='publish'&&edMode!=='new')openEditor('new'); // 经导航进入编辑器时回到新建模式
+  if(typeof after==='function')after();
+  if(k==='dash')layoutTrend(); // 看板从隐藏态切回时柱高需按真实容器高度重算
 }
 $$('.nav a').forEach(a=>a.addEventListener('click',()=>go(a.dataset.k)));
+
+/* ================= 登录入口 ================= */
+const LOGIN_ACC='admin',LOGIN_PWD='123456';
+function doLogin(){
+  const acc=$('#lgAcc').value.trim(),pwd=$('#lgPwd').value;
+  if(acc===LOGIN_ACC&&pwd===LOGIN_PWD){
+    $('#lgErr').classList.remove('on');
+    $('#loginScr').classList.add('off');
+    $('#lgPwd').value='';
+    document.body.classList.remove('locked'); // 解锁后台布局并回到看板（柱高需重新计算）
+    go('dash');
+    toast('欢迎回来，admin');
+  }else{
+    $('#lgErr').classList.add('on');
+    const b=$('#loginBox');b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');
+    $('#lgPwd').select();
+  }
+}
+function showLogin(){
+  document.body.classList.add('locked');
+  $('#loginScr').classList.remove('off');
+  $('#lgErr').classList.remove('on');
+  $('#lgPwd').value='';
+  go('dash'); // 退出后回到看板，下次登录从这里进入
+  setTimeout(()=>$('#lgAcc').focus(),160);
+}
+$('#lgAcc').addEventListener('keydown',e=>{if(e.key==='Enter')$('#lgPwd').focus()});
+$('#lgPwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+setTimeout(()=>$('#lgAcc').focus(),300);
 
 /* ================= 看板 ================= */
 function renderDash(){
@@ -858,19 +1331,122 @@ function renderDash(){
   $('#dashAlbums').innerHTML=ALBUMS.slice(0,6).map(a=>{
     const [cls,txt]=STATUS[a.status];
     const au=A(a.authorId);
-    return `<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="thumb"><div class="art ${a.cover}"></div></div><span class="tt">${esc(a.title)}</span></div></td>
+    return `<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="thumb"><div class="${artCls(a.cover)}" style="${artStyle(a.cover)}"></div></div><span class="tt">${esc(a.title)}</span></div></td>
     <td class="hide-m">${esc(au?au.name:'—')}</td>
     <td>${a.imgs}P${a.videos?' · '+a.videos+'V':''}</td>
     <td class="hide-m">${a.date}</td>
     <td><span class="badge ${cls}">${txt}</span></td></tr>`;
   }).join('');
-  // 今日概览：订单/营收与支付流水页同口径实时计算
+  // 今日运营指标：与支付流水页同口径实时计算
   const today=now().slice(0,10);
   const tPaid=PAYORDERS.filter(o=>o.status==='paid'&&o.time&&o.time.startsWith(today));
   const tCash=tPaid.filter(o=>o.pay==='alipay');
+  const cash=tCash.reduce((s,o)=>s+o.amount,0);
+  $('#stCash').textContent=yuan(cash);
+  $('#stCashD').textContent='今日 '+tCash.length+' 笔现金订单';
   const tUnlock=tPaid.filter(o=>o.biz==='unlock');
-  $('#ovOrders').innerHTML=`<b>新订单 ${tPaid.length}</b> 笔 · 营收 ${yuan(tCash.reduce((s,o)=>s+o.amount,0))}`;
-  $('#ovUnlock').innerHTML=`<b>下载 214</b> 次 · 积分解锁 ${tUnlock.length} 套`;
+  $('#stUnlock').textContent=tUnlock.length+' 套';
+  $('#stUnlockD').textContent='消耗 '+tUnlock.reduce((s,o)=>s+(o.points||0),0)+' 积分';
+  // 待办事项
+  setCnt('todoCmt',pend);
+  setCnt('todoDraft',ALBUMS.filter(a=>a.status==='draft').length);
+  setCnt('todoOff',ALBUMS.filter(a=>a.status==='offline').length);
+  setCnt('todoOrder',tPaid.length);
+  TREND_TODAY=cash;
+  renderTrend();
+}
+function setCnt(id,n){
+  const el=$('#'+id);el.textContent=n;
+  el.classList.toggle('zero',!n);
+}
+/* 营收趋势（现金订单；真实支付流水优先，无订单日为确定性演示值，与支付流水同口径） */
+let trendMode='7d',TREND_TODAY=0;
+function setTrendMode(m){
+  trendMode=m;
+  $$('#ttabs button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  renderTrend();
+}
+/* 单日现金营收：当日有真实订单取实付合计，否则取按日期散列的演示值（保证任意天打开数值稳定） */
+const CASH_POOL=[0,0,1900,1900,3800,3800,5700];
+function demoCash(ds){
+  let h=0;for(let i=0;i<ds.length;i++)h=(h*31+ds.charCodeAt(i))>>>0;
+  const d=new Date(ds),t=new Date(now().slice(0,10));
+  const months=(t.getFullYear()-d.getFullYear())*12+(t.getMonth()-d.getMonth());
+  /* 演示数据模拟站点成长：越早的月份营收越低（近 6 个月呈上升趋势） */
+  const growth=Math.max(0.42,1-months*0.11);
+  return Math.round(CASH_POOL[h%CASH_POOL.length]*growth/10)*10;
+}
+function cashOfDay(ds,todayCash){
+  if(ds===now().slice(0,10))return todayCash;
+  const real=PAYORDERS.filter(o=>o.status==='paid'&&o.pay==='alipay'&&o.time&&o.time.slice(0,10)===ds)
+    .reduce((s,o)=>s+o.amount,0);
+  return real||demoCash(ds);
+}
+function renderTrend(){
+  const today=now().slice(0,10);
+  const days=[],vals=[];let dense=false;
+  if(trendMode==='7d'){
+    for(let i=6;i>0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push((d.getMonth()+1)+'/'+d.getDate());vals.push(cashOfDay(dstr(d),TREND_TODAY))}
+    days.push('今天');vals.push(TREND_TODAY);
+  }else if(trendMode==='30d'){
+    dense=true;
+    for(let i=29;i>=0;i--){
+      const d=new Date();d.setDate(d.getDate()-i);
+      days.push((d.getMonth()+1)+'/'+d.getDate());vals.push(cashOfDay(dstr(d),TREND_TODAY));
+    }
+  }else{
+    /* 近六个月：按自然月聚合（当月累计至今天） */
+    for(let i=5;i>=0;i--){
+      const d=new Date();d.setMonth(d.getMonth()-i,1);
+      const y=d.getFullYear(),m=d.getMonth();
+      let sum=0;const cur=new Date(y,m,1);
+      const end=i===0?new Date():new Date(y,m+1,0);
+      while(cur<=end){sum+=cashOfDay(dstr(cur),TREND_TODAY);cur.setDate(cur.getDate()+1)}
+      days.push(i===0?'本月':(m+1)+'月');vals.push(sum);
+    }
+  }
+  const max=Math.max(...vals,1);
+  TREND_DATA={vals,max};
+  const wrap=$('#trendWrap');
+  wrap.classList.toggle('dense',dense);
+  wrap.innerHTML=vals.map((v,i)=>`
+    <div class="trend-col" title="${days[i]} 营收 ${yuan(v)}${v?'':'（无现金订单）'}">
+      <div class="trend-val">${v?yuan(v):'—'}</div>
+      <div class="trend-bar${v?'':' dim'}"></div>
+      <div class="trend-day${days[i]==='今天'||days[i]==='本月'?' today':''}${dense&&(i%5!==4&&i!==29)?'':' show'}">${days[i]}</div>
+    </div>`).join('');
+  layoutTrend();
+  const sum=vals.reduce((s,v)=>s+v,0);
+  const maxV=Math.max(...vals,0);
+  const maxIdx=vals.indexOf(maxV);
+  const isM=trendMode==='6m';
+  $('#tfSumL').textContent=isM?'近六个月合计':trendMode==='30d'?'近一个月合计':'近 7 天合计';
+  $('#tfAvgL').textContent=isM?'月均':'日均';
+  $('#tfMaxL').textContent=isM?'单月最高':'单日最高';
+  $('#tfSum').textContent=yuan(sum);
+  $('#tfAvg').textContent=yuan(Math.round(sum/(isM?6:vals.length)));
+  $('#tfMax').textContent=maxV?`${yuan(maxV)} · ${days[maxIdx]}`:'—';
+}
+let TREND_DATA=null;
+/* 柱高按图表区实际高度动态计算（减去金额与日期标签占位），避免溢出或悬空 */
+function layoutTrend(){
+  if(!TREND_DATA)return;
+  const wrap=$('#trendWrap');
+  const labelH=wrap.classList.contains('dense')?22:44;
+  const usable=Math.max(60,wrap.clientHeight-labelH);
+  const {vals,max}=TREND_DATA;
+  wrap.querySelectorAll('.trend-bar').forEach((b,i)=>{
+    b.style.height=Math.max(4,Math.round(vals[i]/max*usable))+'px';
+  });
+}
+/* 热搜词 TOP5（演示数据，对应 search_log 按近 7 天聚合） */
+const HOT_KEYWORDS=[
+  {w:'日系',n:342},{w:'胶片',n:287},{w:'汉服',n:201},
+  {w:'白露',n:156},{w:'私房',n:133}
+];
+function renderHotKw(){
+  $('#hotKw').innerHTML=HOT_KEYWORDS.map((h,i)=>
+    `<div class="mini-log"><b>${i+1}. #${esc(h.w)}</b> · ${h.n} 次</div>`).join('');
 }
 
 /* ================= 图集管理 ================= */
@@ -902,15 +1478,16 @@ function renderAlbums(){
   $('#alBody').innerHTML=slice.map(a=>{
     const [cls,txt]=STATUS[a.status],au=A(a.authorId);
     return `<tr>
-      <td><div style="display:flex;align-items:center;gap:10px"><div class="thumb"><div class="art ${a.cover}"></div></div>
+      <td><div style="display:flex;align-items:center;gap:10px"><div class="thumb"><div class="${artCls(a.cover)}" style="${artStyle(a.cover)}"></div></div>
         <div><div class="tt">${esc(a.title)}</div><div style="font-size:11px;color:var(--t3);margin-top:2px">#${a.id}</div></div></div></td>
       <td>${esc(au?au.name:'—')}</td>
       <td>${a.imgs}P${a.videos?' · '+a.videos+'V':''}</td>
       <td class="hide-m">${a.points} 分</td>
       <td class="hide-m">${fmt(a.views)} / ${fmt(a.favs)}</td>
       <td class="hide-m">${a.date}</td>
-      <td><span class="badge ${cls}">${txt}</span></td>
+      <td><span class="badge ${cls}">${txt}</span>${a.rec?'<span class="badge bg-vip" style="margin-left:5px">推荐</span>':''}</td>
       <td><div class="ops">
+        <button class="btn ${a.rec?'btn-amber':'btn-line'} btn-sm" onclick="toggleRec(${a.id})">${a.rec?'取消推荐':'推荐'}</button>
         ${a.status==='published'
           ?`<button class="btn btn-amber btn-sm" onclick="toggleAlbum(${a.id})">下架</button>`
           :`<button class="btn btn-green btn-sm" onclick="toggleAlbum(${a.id})">${a.status==='draft'?'发布':'上架'}</button>`}
@@ -921,84 +1498,53 @@ function renderAlbums(){
   renderPager($('#alPager'),pages,alPage,n=>{alPage=n;renderAlbums()});
 }
 function fmt(n){return n>=10000?(n/10000).toFixed(1)+'w':n}
+/* 标签收录数联动（按已发布图集口径，与前台标签云「收录数」一致） */
+function bumpTagByName(name,delta){
+  const t=TAGS.find(x=>x.name===name);
+  if(t)t.count=Math.max(0,t.count+delta);
+}
+function bumpTags(album,delta){
+  if(!album.tags||!delta)return;
+  album.tags.forEach(name=>bumpTagByName(name,delta));
+}
 function renderPager(el,pages,cur,cb){
   if(pages<=1){el.innerHTML='';return}
-  let h=`<button ${cur===1?'disabled':''} onclick="_pg(${cur-1})">‹</button>`;
-  for(let i=1;i<=pages;i++)h+=`<button class="${i===cur?'on':''}" onclick="_pg(${i})">${i}</button>`;
-  h+=`<button ${cur===pages?'disabled':''} onclick="_pg(${cur+1})">›</button>`;
+  let h=`<button ${cur===1?'disabled':''} onclick="_pg(event,${cur-1})">‹</button>`;
+  for(let i=1;i<=pages;i++)h+=`<button class="${i===cur?'on':''}" onclick="_pg(event,${i})">${i}</button>`;
+  h+=`<button ${cur===pages?'disabled':''} onclick="_pg(event,${cur+1})">›</button>`;
   el.innerHTML=h;el._cb=cb;el._pages=pages;
 }
-function _pg(n){const el=event.currentTarget.closest('.pager');if(n<1||n>el._pages)return;el._cb(n)}
+function _pg(e,n){const el=e.currentTarget.closest('.pager');if(n<1||n>el._pages)return;el._cb(n)}
 function toggleAlbum(id){
   const a=ALBUMS.find(x=>x.id===id);if(!a)return;
   const to=a.status==='published'?'offline':'published';
   const txt=to==='offline'?'下架':'上架';
   confirmDo(txt+'图集',`「${a.title}」${to==='offline'?'下架后前台将不可见':'上架后前台恢复可见'}`,txt,()=>{
+    const wasPub=a.status==='published';
     a.status=to;if(to==='published'&&!a.date.includes('-'))a.date=now();
+    bumpTags(a,(to==='published'?1:0)-(wasPub?1:0));
     log(to==='offline'?'album.offline':'album.online','图集 #'+id,(to==='offline'?'下架「':'上架「')+a.title+'」');
-    toast(txt+'成功');renderAlbums();renderDash();
+    toast(txt+'成功');renderAlbums();renderTags();renderDash();
   });
 }
-/* ================= 编辑图集 ================= */
-let editId=null,editTags=[];
-function openEdit(id){
-  const a=ALBUMS.find(x=>x.id===id);if(!a)return;
-  editId=id;editTags=a.tags?[...a.tags]:[];
-  $('#edId').textContent='#'+id;
-  $('#edTitle').value=a.title;
-  $('#edAuthor').innerHTML=AUTHORS.map(x=>`<option value="${x.id}" ${x.id==a.authorId?'selected':''}>${esc(x.name)}</option>`).join('');
-  $('#edPoints').value=a.points;
-  $('#edDesc').value=a.desc||'';
-  $('#edTagKw').value='';
-  setupTagDrop('edTagDd','edTagKw','edTagList','etoggleTag',()=>editTags);
-  renderTagDrop('edTagList','edTagKw','etoggleTag',editTags);
-  renderEdTags();
-  openModal('mEdit');
-}
-function etoggleTag(t){
-  const i=editTags.indexOf(t);
-  if(i>=0)editTags.splice(i,1);else{if(editTags.length>=8){toast('最多选择 8 个标签');return}editTags.push(t)}
-  renderTagDrop('edTagList','edTagKw','etoggleTag',editTags);
-  renderEdTags();
-}
-function renderEdTags(){
-  $('#edSel').innerHTML=editTags.length
-    ?editTags.map(t=>`<span class="tg">#${t}<b onclick="etoggleTag('${t}')">✕</b></span>`).join('')
-    :'<span style="font-size:12px;color:var(--t3)">未选择标签</span>';
-}
-function saveEdit(){
-  const a=ALBUMS.find(x=>x.id===editId);if(!a)return;
-  const title=$('#edTitle').value.trim();
-  const err=$('#edTitleErr');
-  if(!title||title.length>60){err.classList.add('on');$('#edTitle').focus();return}
-  err.classList.remove('on');
-  const au=A($('#edAuthor').value);
-  const points=+$('#edPoints').value||0;
-  const desc=$('#edDesc').value.trim();
-  const changed=[];
-  if(title!==a.title)changed.push('标题');
-  if(au.id!=a.authorId)changed.push('作者');
-  if(points!==a.points)changed.push('积分');
-  if(desc!==(a.desc||''))changed.push('简介');
-  if(JSON.stringify(editTags)!==JSON.stringify(a.tags||[]))changed.push('标签');
-  a.title=title;a.authorId=au.id;a.points=points;a.desc=desc;a.tags=[...editTags];
-  log('album.edit','图集 #'+a.id,'编辑「'+title+'」'+(changed.length?'（'+changed.join(' / ')+'）':''));
-  closeModal('mEdit');
-  toast('修改已保存，前台同步更新');
-  renderAlbums();renderDash();
-}
+/* ================= 图集编辑器（新建 / 编辑共用整页，替代旧编辑弹窗） ================= */
+let pbTags=[],pbImgs=[],pbVids=[],pbCover=0;
+let edMode='new',edId=null,edMediaTab='img',dragIdx=null;
+function openEdit(id){openEditor('edit',id)}
 function delAlbum(id){
   const a=ALBUMS.find(x=>x.id===id);if(!a)return;
   confirmDo('删除图集',`「${a.title}」删除后不可恢复，确认删除？`,'删除',()=>{    ALBUMS=ALBUMS.filter(x=>x.id!==id);
+    if(a.status==='published')bumpTags(a,-1);
     log('album.delete','图集 #'+id,'删除「'+a.title+'」');
-    toast('已删除');renderAlbums();renderDash();
+    toast('已删除');renderAlbums();renderTags();renderDash();
   });
 }
 
 /* ================= 标签搜索下拉 ================= */
 function renderTagDrop(listId,kwId,fn,selArr){
   const kw=$('#'+kwId).value.trim().toLowerCase();
-  const items=TAG_POOL.filter(t=>!kw||t.toLowerCase().includes(kw));
+  const pool=TAG_POOL();
+  const items=pool.filter(t=>!kw||t.toLowerCase().includes(kw));
   $('#'+listId).innerHTML=items.length
     ?items.map(t=>`<div class="tag-dd-it${selArr.includes(t)?' on':''}" onclick="${fn}('${t}')">${selArr.includes(t)?'<i>✓</i>':''}${t}</div>`).join('')
     :'<div class="tag-dd-empty">没有匹配的标签，试试其它关键词</div>';
@@ -1020,16 +1566,151 @@ document.addEventListener('click',e=>{
   $$('.tag-dd.open').forEach(dd=>{if(!dd.contains(e.target))dd.classList.remove('open')});
 });
 
-/* ================= 发布图集 ================= */
-function initPublish(){
+/* ================= 图集编辑器：打开与提交 ================= */
+/* 新建模式：清空表单与媒体（提交成功后复用，避免残留上一单的数据） */
+function fillNewEditor(){
+  edMode='new';edId=null;
+  $('#pbH1').textContent='发布图集';
+  $('#pbSub').textContent='所有图集仅管理员可发布 · 拖拽调整媒体顺序，编号即前台展示顺序';
   refreshAuthorsDropdown();
+  $('#pbTitle').value='';$('#pbPoints').value=15;$('#pbDesc').value='';
+  pbTags=[];pbImgs=[];pbVids=[];pbCover=0;
+  $('#pbTitleErr').classList.remove('on');$('#pbTagKw').value='';
+  renderMedia(); // 清空后重绘媒体网格，避免残留上一会话的缩略图
+}
+function openEditor(mode,id){
+  const a=mode==='edit'?AL(id):null;
+  if(mode==='edit'){
+    edMode='edit';edId=id;
+    $('#pbH1').textContent='编辑图集';
+    $('#pbSub').innerHTML=`#${a.id} · <span class="badge ${STATUS[a.status][0]}">${STATUS[a.status][1]}</span> · 媒体与信息改动保存后前台同步`;
+    $('#pbAuthor').innerHTML=AUTHORS.filter(x=>x.status||x.id==a.authorId)
+      .map(x=>`<option value="${x.id}" ${x.id==a.authorId?'selected':''}>${esc(x.name)}${x.status?'':'（已隐藏）'}</option>`).join('');
+    $('#pbTitle').value=a.title;$('#pbPoints').value=a.points;$('#pbDesc').value=a.desc||'';
+    pbTags=a.tags?[...a.tags]:[];
+    if(!a.media)a.media=Array.from({length:Math.min(a.imgs||8,12)},(_,i)=>i===0?(a.cover||'a0'):'a'+(i%8));
+    pbImgs=[...a.media];
+    const ci=pbImgs.indexOf(a.cover);pbCover=ci>=0?ci:0;
+    pbVids=Array.from({length:a.videos||0},(_,i)=>({name:`${a.title.slice(0,6)}-花絮${i+1}.mp4`,dur:'0'+(1+i)+':'+String((17+i*13)%60).padStart(2,'0')}));
+  }else{
+    fillNewEditor();
+  }
+  $('#pbTagKw').value='';
   setupTagDrop('pbTagDd','pbTagKw','pbTagList','toggleTag',()=>pbTags);
   renderTagDrop('pbTagList','pbTagKw','toggleTag',pbTags);
-  renderPbTags();renderUpGrid();
-  $('#upZone').onclick=addFakeImg;
+  renderPbTags();renderEditorActions();
+  setMediaTab('img');
+  renderMedia(); // 按当前模式（新建空列表 / 编辑载入图集媒体）重绘媒体网格
+  $$('.sec').forEach(s=>s.classList.remove('on'));
+  $('#sec-publish').classList.add('on');
+  $$('.nav a').forEach(x=>x.classList.toggle('on',x.dataset.k==='publish'));
+  $('#crumbCur').textContent=mode==='edit'?'编辑图集':'图集编辑器';
+  window.scrollTo({top:0});
+}
+function renderEditorActions(){
+  const box=$('#pbActions');
+  if(edMode==='new'){
+    box.innerHTML=`<button class="btn btn-line" style="flex:1" onclick="submitEditor('draft')">保存草稿</button>
+      <button class="btn btn-red" style="flex:2" onclick="submitEditor('published')">发布图集</button>`;
+  }else{
+    const a=AL(edId);
+    box.innerHTML=a.status==='draft'
+      ?`<button class="btn btn-line" style="flex:1" onclick="submitEditor(null)">保存修改</button>
+        <button class="btn btn-red" style="flex:2" onclick="submitEditor('published')">发布图集</button>`
+      :`<button class="btn btn-line" style="flex:1" onclick="openEditor('new')">放弃修改</button>
+        <button class="btn btn-red" style="flex:2" onclick="submitEditor(null)">保存修改</button>`;
+  }
+}
+function setMediaTab(t){
+  edMediaTab=t;
+  $$('#pbMedTabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  $('#pbPaneImg').style.display=t==='img'?'':'none';
+  $('#pbPaneVid').style.display=t==='vid'?'':'none';
+}
+function submitEditor(st){
+  const title=$('#pbTitle').value.trim(),err=$('#pbTitleErr');
+  if(!title||title.length>60){err.classList.add('on');$('#pbTitle').focus();return}
+  err.classList.remove('on');
+  const au=A($('#pbAuthor').value);
+  const base={title,authorId:au.id,
+    points:Math.min(99,Math.max(0,+$('#pbPoints').value||0)),
+    desc:$('#pbDesc').value.trim(),tags:[...pbTags],
+    imgs:pbImgs.length,videos:pbVids.length,
+    cover:pbImgs[pbCover]||'a0',media:[...pbImgs]};
+  if(edMode==='edit'){
+    const a=AL(edId);if(!a)return;
+    const oldTags=a.tags?[...a.tags]:[];
+    const changed=[];
+    if(base.title!==a.title)changed.push('标题');
+    if(base.authorId!==a.authorId)changed.push('作者');
+    if(base.points!==a.points)changed.push('积分');
+    if(base.desc!==(a.desc||''))changed.push('简介');
+    if(JSON.stringify(base.tags)!==JSON.stringify(a.tags||[]))changed.push('标签');
+    if(base.imgs!==a.imgs||base.videos!==a.videos||JSON.stringify(base.media)!==JSON.stringify(a.media||[]))changed.push('媒体（顺序/封面/增删）');
+    const wasPub=a.status==='published',toPub=st==='published';
+    Object.assign(a,base);
+    if(toPub&&!wasPub){a.status='published';a.date=now();changed.push('发布')}
+    if(a.status==='published'){
+      a.tags.forEach(t=>{if(!oldTags.includes(t))bumpTagByName(t,1)});
+      oldTags.forEach(t=>{if(!a.tags.includes(t))bumpTagByName(t,-1)});
+    }
+    log(toPub&&!wasPub?'album.publish':'album.edit','图集 #'+a.id,
+      (toPub&&!wasPub?'发布「':'编辑「')+title+'」'+(changed.length?'（'+changed.join(' / ')+'）':''));
+    toast(toPub&&!wasPub?'发布成功，已在前台展示':'修改已保存，前台同步更新');
+    fillNewEditor();
+    go('albums',()=>{renderAlbums();renderTags();renderDash()});
+  }else{
+    const isPub=st==='published';
+    confirmDo(isPub?'发布图集':'保存草稿',
+      isPub?`将发布「${title}」（作者：${au.name}，图片 ${pbImgs.length} 张${pbVids.length?'，视频 '+pbVids.length+' 个':''}），确认发布？`
+           :`将「${title}」（作者：${au.name}，图片 ${pbImgs.length} 张）暂存为草稿，稍后可在图集管理中继续编辑`,
+      isPub?'发布':'存草稿',()=>{
+      const rec={id:nextAlbumId++,status:isPub?'published':'draft',views:0,favs:0,
+        date:isPub?now():'—',...base};
+      ALBUMS.unshift(rec);
+      if(isPub)bumpTags(rec,1);
+      log(isPub?'album.publish':'album.draft','图集 #'+rec.id,
+        (isPub?'发布「':'存为草稿「')+title+'」'+(pbTags.length?' · '+pbTags.map(t=>'#'+t).join(' '):''));
+      toast(isPub?'发布成功，已在前台展示':'已保存为草稿，可在图集管理中继续编辑');
+      fillNewEditor();
+      alFilter=isPub?'all':'draft';alPage=1;
+      $$('#alTabs button').forEach(x=>x.classList.toggle('on',x.dataset.f===alFilter));
+      $('#alKw').value='';
+      go('albums',()=>{renderAlbums();renderTags();renderDash()});
+    });
+  }
+}
+
+/* ================= 图集编辑器：媒体工作台 ================= */
+let pbBound=false;
+function initPublish(){
+  if(!pbBound){
+    pbBound=true;
+    const zone=$('#upZone');
+    zone.onclick=()=>$('#imgFile').click(); // 点击打开文件选择框
+    zone.addEventListener('dragover',e=>{e.preventDefault();zone.style.borderColor='var(--red)'});
+    zone.addEventListener('dragleave',()=>zone.style.borderColor='');
+    zone.addEventListener('drop',e=>{e.preventDefault();zone.style.borderColor='';addImgFiles(e.dataTransfer.files)});
+    $('#imgFile').addEventListener('change',e=>{addImgFiles(e.target.files);e.target.value=''});
+    const vz=$('#vidZone');
+    vz.onclick=()=>$('#vidFile').click();
+    vz.addEventListener('dragover',e=>{e.preventDefault();vz.style.borderColor='var(--red)'});
+    vz.addEventListener('dragleave',()=>vz.style.borderColor='');
+    vz.addEventListener('drop',e=>{e.preventDefault();vz.style.borderColor='';addVidFiles(e.dataTransfer.files)});
+    $('#vidFile').addEventListener('change',e=>{addVidFiles(e.target.files);e.target.value=''});
+    $('#pbMedTabs').onclick=e=>{const b=e.target.closest('button');if(b)setMediaTab(b.dataset.t)};
+    document.addEventListener('keydown',e=>{
+      if(!$('#mPrev').classList.contains('on'))return;
+      if(e.key==='ArrowLeft'){e.preventDefault();pvStep(-1)}
+      else if(e.key==='ArrowRight'){e.preventDefault();pvStep(1)}
+      else if(e.key==='Escape')closeModal('mPrev');
+    });
+  }
+  if(edMode==='edit'&&edId)openEditor('edit',edId);
+  else{refreshAuthorsDropdown();renderMedia()} // 新建模式内容已静态预置，避免初始化时切换默认页
 }
 function refreshAuthorsDropdown(){
-  $('#pbAuthor').innerHTML=AUTHORS.map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join('');
+  $('#pbAuthor').innerHTML=AUTHORS.filter(a=>a.status).map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join('');
 }
 function toggleTag(t){
   const i=pbTags.indexOf(t);
@@ -1042,41 +1723,139 @@ function renderPbTags(){
     ?pbTags.map(t=>`<span class="tg">#${t}<b onclick="toggleTag('${t}')">✕</b></span>`).join('')
     :'<span style="font-size:12px;color:var(--t3)">未选择标签</span>';
 }
-function addFakeImg(){
-  if(pbImgs.length>=99){toast('图片数量已达上限');return}
-  pbImgs.push('a'+(pbImgs.length%8));renderUpGrid();
+/* 真实文件上传（点击选择 / 拖拽投放共用）：图片生成 blob 预览，视频记录文件名 */
+function addImgFiles(files){
+  let added=0;
+  for(const f of files||[]){
+    if(!/^image\//.test(f.type))continue;
+    if(pbImgs.length>=99){toast('图片数量已达上限（99 张）');break}
+    pbImgs.push(URL.createObjectURL(f));added++;
+  }
+  if(added){renderMedia();toast(`已添加 ${added} 张图片`)}
+  else if(files&&files.length){toast('未识别到图片文件（支持 jpg / png / webp）')}
 }
-function renderUpGrid(){
-  $('#upGrid').innerHTML=pbImgs.map((c,i)=>`
-    <div class="up-item"><div class="art ${c}" style="width:100%;height:100%"></div>
-      <span class="no">${i+1}</span><span class="rm" onclick="rmImg(${i})">✕</span></div>`).join('');
-  $('#pbMediaN').textContent=`图片 ${pbImgs.length} · 视频 ${$('#pbVideos').value||0}`;
+function addVidFiles(files){
+  let added=0;
+  for(const f of files||[]){
+    if(!/^video\//.test(f.type))continue;
+    if(pbVids.length>=3){toast('视频数量已达上限（3 个）');break}
+    pbVids.push({name:f.name,dur:'—'});added++;
+  }
+  if(added){renderMedia();toast(`已添加 ${added} 个视频`)}
+  else if(files&&files.length){toast('未识别到视频文件（支持 mp4 / mov）')}
 }
-$('#pbVideos').addEventListener('input',renderUpGrid);
-function rmImg(i){pbImgs.splice(i,1);renderUpGrid()}
-function submitPublish(){
-  const title=$('#pbTitle').value.trim();
-  const err=$('#pbTitleErr');
-  if(!title||title.length>60){err.classList.add('on');$('#pbTitle').focus();return}
-  err.classList.remove('on');
-  const au=A($('#pbAuthor').value);
-  confirmDo('发布图集',`将发布「${title}」（作者：${au.name}，图片 ${pbImgs.length} 张），确认发布？`,'发布',()=>{
-    ALBUMS.unshift({
-      id:nextAlbumId++,title,authorId:au.id,
-      imgs:pbImgs.length||12,videos:+$('#pbVideos').value||0,
-      points:+$('#pbPoints').value||0,views:0,favs:0,
-      desc:$('#pbDesc').value.trim(),tags:[...pbTags],
-      cover:pbImgs[0]||'a'+(nextAlbumId%8),status:'published',date:now()
+/* 示例素材（原型演示用，无真实文件时快速预览效果） */
+function addImgs(){
+  if(pbImgs.length>=99){toast('图片数量已达上限（99 张）');return}
+  const n=Math.min(3,99-pbImgs.length);
+  for(let k=0;k<n;k++)pbImgs.push('a'+(pbImgs.length%8));
+  renderMedia();toast(`已添加 ${n} 张示例图（原型演示）`);
+}
+function setCover(i){pbCover=i;renderMedia()}
+function moveImg(i,d){
+  const j=i+d;if(j<0||j>=pbImgs.length)return;
+  [pbImgs[i],pbImgs[j]]=[pbImgs[j],pbImgs[i]];
+  if(pbCover===i)pbCover=j;else if(pbCover===j)pbCover=i;
+  renderMedia();
+}
+function rmImg(i){
+  pbImgs.splice(i,1);
+  if(pbCover>=pbImgs.length)pbCover=Math.max(0,pbImgs.length-1);
+  renderMedia();
+}
+function bindDrag(){
+  $$('#upGrid .up-item').forEach(el=>{
+    el.addEventListener('dragstart',e=>{dragIdx=+el.dataset.i;el.classList.add('drag');try{e.dataTransfer.effectAllowed='move'}catch(_){}});
+    el.addEventListener('dragend',()=>{el.classList.remove('drag');dragIdx=null});
+    el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('over')});
+    el.addEventListener('dragleave',()=>el.classList.remove('over'));
+    el.addEventListener('drop',e=>{
+      e.preventDefault();el.classList.remove('over');
+      const from=dragIdx,to=+el.dataset.i;
+      if(from==null||isNaN(from)||from===to)return;
+      const[m]=pbImgs.splice(from,1);pbImgs.splice(to,0,m);
+      if(pbCover===from)pbCover=to;
+      else if(from<pbCover&&to>=pbCover)pbCover--;
+      else if(from>pbCover&&to<=pbCover)pbCover++;
+      dragIdx=null;renderMedia();
     });
-    log('album.publish','图集 #'+(nextAlbumId-1),'发布「'+title+'」· '+pbTags.map(t=>'#'+t).join(' '));
-    toast('发布成功，已在前台展示');
-    // 重置表单
-    $('#pbTitle').value='';$('#pbDesc').value='';pbTags=[];pbImgs=[];
-    $('#pbTagKw').value='';
-    renderTagDrop('pbTagList','pbTagKw','toggleTag',pbTags);
-    renderPbTags();renderUpGrid();
-    alFilter='all';alPage=1;$$('#alTabs button').forEach(x=>x.classList.toggle('on',x.dataset.f==='all'));
-    $('#alKw').value='';
+  });
+}
+function addVid(){
+  if(pbVids.length>=3){toast('视频数量已达上限（3 个）');return}
+  pbVids.push({name:'视频'+(pbVids.length+1)+'-'+(100+Math.floor(Math.random()*900))+'.mp4',dur:'01:'+(10+pbVids.length*9)});
+  renderMedia();toast('已添加 1 个示例视频（原型演示）');
+}
+function moveVid(i,d){
+  const j=i+d;if(j<0||j>=pbVids.length)return;
+  [pbVids[i],pbVids[j]]=[pbVids[j],pbVids[i]];renderMedia();
+}
+function rmVid(i){pbVids.splice(i,1);renderMedia()}
+/* 媒体项：'a0'-'a7' 为演示色卡，blob:/data:/http(s) 为真实文件预览 */
+const isRealSrc=c=>typeof c==='string'&&/^(blob:|data:|https?:)/.test(c);
+const artStyle=c=>isRealSrc(c)?`background-image:url("${c}");background-size:cover;background-position:center`:'';
+const artCls=c=>'art'+(isRealSrc(c)?'':' '+c);
+
+function renderMedia(){
+  $('#pbImgN').textContent=pbImgs.length;
+  $('#pbVidN').textContent=pbVids.length;
+  $('#pbMediaN').textContent=pbImgs.length
+    ?`图片 ${pbImgs.length} · 视频 ${pbVids.length} · 封面：第 ${pbCover+1} 张`
+    :`图片 0 · 视频 ${pbVids.length} · 尚未上传图片`;
+  $('#upGrid').innerHTML=pbImgs.map((c,i)=>`
+    <div class="up-item" draggable="true" data-i="${i}">
+      <div class="${artCls(c)}" style="width:100%;height:100%;${artStyle(c)}"></div>
+      ${i===pbCover?'<span class="cvb">封面</span>':''}
+      <span class="no">${i+1}</span>
+      <div class="ops">
+        <b title="预览大图" onclick="event.stopPropagation();previewAt(${i})">👁</b>
+        <b title="设为封面" onclick="event.stopPropagation();setCover(${i})">★</b>
+        <b title="前移一位" onclick="event.stopPropagation();moveImg(${i},-1)">‹</b>
+        <b title="后移一位" onclick="event.stopPropagation();moveImg(${i},1)">›</b>
+        <b class="rm" title="移除" onclick="event.stopPropagation();rmImg(${i})">✕</b>
+      </div>
+    </div>`).join('');
+  bindDrag();
+  $('#vidList').innerHTML=pbVids.length?pbVids.map((v,i)=>`
+    <div class="vid-row"><b style="color:var(--t3);font-size:12px">${i+1}</b><span class="ic">▶</span>
+      <b>${esc(v.name)}</b><span class="sl">${v.dur}</span>
+      <span class="mb"><b onclick="moveVid(${i},-1)">上移</b><b onclick="moveVid(${i},1)">下移</b><b class="rm" onclick="rmVid(${i})">删除</b></span>
+    </div>`).join('')
+    :'<div class="empty" style="padding:22px 0"><b>暂无视频</b>最多 3 个 · v1 暂不支持在线视频预览</div>';
+}
+
+/* ================= 图集编辑器：大图预览器 ================= */
+let pvIdx=0;
+function previewAt(i){
+  if(!pbImgs.length){toast('还没有图片，先上传几张吧');return}
+  pvIdx=Math.max(0,Math.min(i,pbImgs.length-1));
+  renderPv();openModal('mPrev');
+}
+function renderPv(){
+  const c=pbImgs[pvIdx];
+  $('#pvArt').className=artCls(c)+' lb-art';
+  $('#pvArt').style.backgroundImage=isRealSrc(c)?`url("${c}")`:'';
+  $('#pvPos').textContent=`第 ${pvIdx+1} / ${pbImgs.length} 张`;
+  $('#pvCoverTag').style.display=pvIdx===pbCover?'':'none';
+  /* 底部胶片条：点击跳转，★ 标记当前封面 */
+  $('#pvStrip').innerHTML=pbImgs.map((x,i)=>`
+    <div class="art ${artCls(x)}${i===pvIdx?' on':''}${i===pbCover?' cv-mark':''}"
+      style="${artStyle(x)}" title="第 ${i+1} 张${i===pbCover?' · 当前封面':''}"
+      onclick="pvGo(${i})"></div>`).join('');
+  const on=$('#pvStrip .art.on');if(on)on.scrollIntoView({block:'nearest',inline:'nearest'});
+}
+function pvStep(d){pvIdx=(pvIdx+d+pbImgs.length)%pbImgs.length;renderPv()}
+function pvGo(i){pvIdx=i;renderPv()}
+/* 瀑布流「个人推荐」池开关（对应 album.is_recommended） */
+function toggleRec(id){
+  const a=ALBUMS.find(x=>x.id===id);if(!a)return;
+  const to=a.rec?0:1;
+  confirmDo(to?'设为推荐':'取消推荐',
+    `「${a.title}」${to?'将进入瀑布流「个人推荐」池，获得推荐位曝光':'将从推荐池移除，仅保留常规列表曝光'}`,
+    to?'推荐':'取消',()=>{
+    a.rec=to;
+    log(to?'album.recommend':'album.unrecommend','图集 #'+id,(to?'设为推荐「':'取消推荐「')+a.title+'」');
+    toast(to?'已加入推荐池':'已取消推荐');
     renderAlbums();renderDash();
   });
 }
@@ -1089,29 +1868,37 @@ $('#cmtTabs').addEventListener('click',e=>{
   cmtFilter=b.dataset.f;cmtPage=1;renderComments();
 });
 $('#cmtKw').addEventListener('keydown',e=>{if(e.key==='Enter')cmtSearch()});
+bindQuickRange('cmtQuick','cmtRange','cmtFrom','cmtTo',()=>{cmtPage=1;renderComments()});
 function cmtSearch(){cmtPage=1;renderComments()}
 function renderComments(){
   const kw=$('#cmtKw').value.trim().toLowerCase();
+  const from=$('#cmtFrom').value,to=$('#cmtTo').value;
   let list=COMMENTS.filter(c=>c.status===cmtFilter);
   if(kw)list=list.filter(c=>(c.user+c.content+c.album).toLowerCase().includes(kw));
+  if(from||to)list=list.filter(c=>c.d&&(!from||c.d>=from)&&(!to||c.d<=to));
   const pages=Math.max(1,Math.ceil(list.length/CMT_PAGE));
   if(cmtPage>pages)cmtPage=pages;
   const view=list.slice((cmtPage-1)*CMT_PAGE,cmtPage*CMT_PAGE);
-  $('#cmtEmpty').style.display=(cmtFilter==='pending'&&!list.length&&!kw)?'':'none';
-  $('#cmtNoKw').style.display=(kw&&!list.length)?'':'none';
+  const EMPTY_TXT={pending:'没有待审核的评论',approved:'没有已通过的评论',rejected:'没有已拒绝的评论'};
+  const hasF=!!(kw||from||to);
+  $('#cmtEmptyB').textContent=EMPTY_TXT[cmtFilter];
+  $('#cmtEmpty').style.display=(!list.length&&!hasF)?'':'none';
+  $('#cmtNoKw').style.display=(hasF&&!list.length)?'':'none';
   $('#cmtList').innerHTML=view.map(c=>{
     const ops=c.status==='pending'
       ?`<button class="btn btn-green btn-sm" onclick="reviewComment(${c.id},'approved')">通过</button>
         <button class="btn btn-ghost-red btn-sm" onclick="reviewComment(${c.id},'rejected')">拒绝</button>`
-      :`<span class="badge ${c.status==='approved'?'bg-pub':'bg-rej'}">${c.status==='approved'?'已通过':'已拒绝'}</span>`;
+      :`<span class="badge ${c.status==='approved'?'bg-pub':'bg-rej'}">${c.status==='approved'?'已通过':'已拒绝'}</span>
+        <button class="btn btn-ghost-red btn-sm" onclick="delComment(${c.id})">删除</button>`;
     return `<div class="cmt">
       <div class="ava" style="background:${c.color}">${esc(c.user.slice(0,1))}</div>
       <div class="bd">
         <div class="m1"><b>${esc(c.user)}</b><span class="badge ${c.badge==='vip'?'bg-vip':'bg-mem'}">${c.badge==='vip'?'付费会员':'注册会员'}</span>
           <span>评论于「${esc(c.album)}」</span><span>${c.time}</span></div>
         <div class="ct">${esc(c.content)}</div>
-        <div class="ops">${ops}</div>
-      </div></div>`;
+      </div>
+      <div class="ops">${ops}</div>
+    </div>`;
   }).join('')||'';
   renderPager($('#cmtPager'),pages,cmtPage,n=>{cmtPage=n;renderComments()});
   renderDash();
@@ -1125,17 +1912,43 @@ function reviewComment(id,st){
     toast(txt+'成功');renderComments();
   });
 }
+/* 删除已通过评论（前台即时移除，对应 comment.status=deleted） */
+function delComment(id){
+  const c=COMMENTS.find(x=>x.id===id);if(!c)return;
+  confirmDo('删除评论',`将删除来自「${c.user}」在「${c.album}」的评论，操作不可恢复，确认删除？`,'删除',()=>{
+    c.status='deleted';
+    log('comment.delete','评论 #'+id,'删除「'+c.user+'」在「'+c.album+'」的评论');
+    toast('已删除');renderComments();
+  });
+}
 
 /* ================= 公告管理 ================= */
+$('#ntKw').addEventListener('keydown',e=>{if(e.key==='Enter')ntSearch()});
+bindQuickRange('ntQuick','ntRange','ntFrom','ntTo',()=>{ntPage=1;renderNotices()});
+let ntType='all',ntStatus='all';
+function ntSearch(){ntPage=1;renderNotices()}
+function ntFilterChange(){
+  ntType=$('#ntTypeSel').value;ntStatus=$('#ntStatusSel').value;
+  ntPage=1;renderNotices();
+}
 function renderNotices(){
-  const pages=Math.max(1,Math.ceil(NOTICES.length/NT_PAGE));
+  const kw=$('#ntKw').value.trim().toLowerCase();
+  const from=$('#ntFrom').value,to=$('#ntTo').value;
+  let list=NOTICES.filter(n=>
+    (ntType==='all'||n.type===ntType)&&
+    (ntStatus==='all'||String(n.status)===ntStatus));
+  if(kw)list=list.filter(n=>(n.title+n.summary).toLowerCase().includes(kw));
+  if(from||to)list=list.filter(n=>(!from||n.date>=from)&&(!to||n.date<=to));
+  list=[...list].sort((a,b)=>(b.pin||0)-(a.pin||0));   /* 置顶排首位（稳定排序，其余保持最新在前） */
+  const pages=Math.max(1,Math.ceil(list.length/NT_PAGE));
   if(ntPage>pages)ntPage=pages;
-  const slice=NOTICES.slice((ntPage-1)*NT_PAGE,ntPage*NT_PAGE);
-  $('#ntSub').textContent='置顶公告排首位 · 共 '+NOTICES.length+' 条';
+  const slice=list.slice((ntPage-1)*NT_PAGE,ntPage*NT_PAGE);
+  const hasF=!!(kw||ntType!=='all'||ntStatus!=='all'||from||to);
+  $('#ntSub').textContent=(hasF?`匹配 ${list.length} 条 · `:'')+'置顶公告排首位 · 共 '+NOTICES.length+' 条';
   $('#ntBody').innerHTML=slice.map(n=>{
     const [cls,txt]=NT_L[n.type];
     return `<tr>
-      <td><span class="tt" style="max-width:260px">${n.type==='top'?'<span class="badge bg-pub" style="margin-right:6px">置顶</span>':''}${esc(n.title)}</span></td>
+      <td><span class="tt" style="max-width:260px">${n.pin?'<span class="badge bg-pub" style="margin-right:6px">置顶</span>':''}${esc(n.title)}</span></td>
       <td><span class="badge ${cls}">${txt}</span></td>
       <td class="hide-m" style="white-space:normal;max-width:220px;color:var(--t3);font-size:12px">${esc(n.summary)}</td>
       <td>${n.date}</td>
@@ -1146,7 +1959,10 @@ function renderNotices(){
         <button class="btn btn-ghost-red btn-sm" onclick="delNotice(${n.id})">删除</button>
       </div></td></tr>`;
   }).join('');
-  $('#ntEmpty').style.display=NOTICES.length?'none':'';
+  $('#ntEmpty').innerHTML=hasF
+    ?'<b>没有符合条件的公告</b>换个筛选条件或清空搜索试试'
+    :'<b>没有公告</b>点击右上角「新建公告」发布第一条';
+  $('#ntEmpty').style.display=list.length?'none':'';
   renderPager($('#ntPager'),pages,ntPage,n=>{ntPage=n;renderNotices()});
 }
 function openNoticeModal(){
@@ -1166,8 +1982,8 @@ function openEditNotice(id){
   $('#ntSaveB').textContent='保存修改';
   $('#ntTitle').value=n.title;$('#ntSummary').value=n.summary||'';
   $('#ntContent').value=n.content||'';
-  $('#ntType').value=n.type==='top'?'notice':n.type;
-  $('#ntTop').classList.toggle('on',n.type==='top');
+  $('#ntType').value=n.type;
+  $('#ntTop').classList.toggle('on',!!n.pin);
   $('#ntTitleErr').classList.remove('on');
   openModal('mNotice');
 }
@@ -1175,26 +1991,29 @@ function saveNotice(){
   const title=$('#ntTitle').value.trim();
   if(!title){$('#ntTitleErr').classList.add('on');$('#ntTitle').focus();return}
   $('#ntTitleErr').classList.remove('on');
-  const type=$('#ntTop').classList.contains('on')?'top':$('#ntType').value;
+  const type=$('#ntType').value,pin=$('#ntTop').classList.contains('on')?1:0;
   const summary=$('#ntSummary').value.trim(),content=$('#ntContent').value;
   if(editNtId){
     const n=NOTICES.find(x=>x.id===editNtId);if(!n)return;
-    n.title=title;n.type=type;n.summary=summary;n.content=content;
-    log('announcement.edit','公告 #'+n.id,'编辑「'+title+'」');
+    n.title=title;n.type=type;n.pin=pin;n.summary=summary;n.content=content;
+    log('announcement.edit','公告 #'+n.id,'编辑「'+title+'」'+(pin?' · 置顶':''));
     closeModal('mNotice');toast('修改已保存');
     renderNotices();
     return;
   }
-  NOTICES.unshift({id:noticeId++,type,title,summary,content,date:now().slice(0,10),status:1});
+  NOTICES.unshift({id:noticeId++,type,pin,title,summary,content,date:now().slice(0,10),status:1});
   log('announcement.publish','公告 #'+(noticeId-1),'发布「'+title+'」');
   closeModal('mNotice');toast('公告已发布');
   ntPage=1;renderNotices();
 }
 function toggleNotice(id){
   const n=NOTICES.find(x=>x.id===id);if(!n)return;
-  n.status=n.status?0:1;
-  log('announcement.'+(n.status?'publish':'offline'),'公告 #'+id,(n.status?'发布「':'下线「')+n.title+'」');
-  toast(n.status?'已发布':'已下线');renderNotices();
+  const to=n.status?0:1,txt=to?'发布':'下线';
+  confirmDo(txt+'公告',`「${n.title}」${to?'发布后立即在前台公告列表展示':'下线后前台不再展示（可随时重新发布）'}`,txt,()=>{
+    n.status=to;
+    log('announcement.'+(n.status?'publish':'offline'),'公告 #'+id,(n.status?'发布「':'下线「')+n.title+'」');
+    toast(txt+'成功');renderNotices();
+  });
 }
 function delNotice(id){
   const n=NOTICES.find(x=>x.id===id);if(!n)return;
@@ -1205,12 +2024,113 @@ function delNotice(id){
   });
 }
 
+/* ================= 标签管理 ================= */
+$('#tgTabs').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  $$('#tgTabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  tgFilter=b.dataset.f;tgPage=1;renderTags();
+});
+$('#tgKw').addEventListener('keydown',e=>{if(e.key==='Enter')tgSearch()});
+function tgSearch(){tgPage=1;renderTags()}
+function tgFiltered(){
+  const kw=$('#tgKw').value.trim().toLowerCase();
+  return TAGS.filter(t=>{
+    if(tgFilter!=='all'&&(tgFilter==='on')!==!!t.status)return false;
+    if(kw&&!t.name.toLowerCase().includes(kw))return false;
+    return true;
+  });
+}
+function renderTags(){
+  const list=tgFiltered();
+  const pages=Math.max(1,Math.ceil(list.length/TG_PAGE));
+  if(tgPage>pages)tgPage=pages;
+  const slice=list.slice((tgPage-1)*TG_PAGE,tgPage*TG_PAGE);
+  $('#tgSub').textContent='前台标签云与图集筛选的数据源 · 共 '+TAGS.length+' 个 · 展示中 '+TAGS.filter(t=>t.status).length+' 个';
+  $('#tgEmpty').style.display=list.length?'none':'';
+  $('#tgBody').innerHTML=slice.map(t=>`
+    <tr>
+      <td><b style="font-weight:700">#${esc(t.name)}</b></td>
+      <td style="font-variant-numeric:tabular-nums">${t.count} 套</td>
+      <td class="hide-m" style="color:var(--t3)">${t.date}</td>
+      <td><span class="badge ${t.status?'bg-pub':'bg-off'}">${t.status?'展示中':'已隐藏'}</span></td>
+      <td><div class="ops">
+        <button class="btn btn-line btn-sm" onclick="openTagModal(${t.id})">编辑</button>
+        <button class="btn btn-amber btn-sm" onclick="toggleTagStatus(${t.id})">${t.status?'隐藏':'展示'}</button>
+        <button class="btn btn-ghost-red btn-sm" onclick="delTag(${t.id})">删除</button>
+      </div></td>
+    </tr>`).join('');
+  renderPager($('#tgPager'),pages,tgPage,n=>{tgPage=n;renderTags()});
+}
+let editTgId=null;
+function openTagModal(id){
+  editTgId=id||null;
+  $('#tgModalT').textContent=editTgId?'编辑标签 #'+editTgId:'新建标签';
+  const t=editTgId?TAGS.find(x=>x.id===editTgId):null;
+  $('#tgName').value=t?t.name:'';
+  $('#tgNameErr').classList.remove('on');
+  openModal('mTag');
+  setTimeout(()=>$('#tgName').focus(),60);
+}
+function saveTag(){
+  const name=$('#tgName').value.trim();
+  const err=$('#tgNameErr');
+  if(!name||name.length>20||/['"\\]/.test(name)||TAGS.some(t=>t.name===name&&t.id!==editTgId)){
+    err.classList.add('on');$('#tgName').focus();return;
+  }
+  err.classList.remove('on');
+  if(editTgId){
+    const t=TAGS.find(x=>x.id===editTgId);if(!t)return;
+    const old=t.name;t.name=name;
+    log('tag.edit','标签「'+old+'」','重命名为「'+name+'」');
+    closeModal('mTag');toast('标签已更新，前台同步生效');
+    renderTags();
+    return;
+  }
+  TAGS.unshift({id:nextTagId++,name,count:0,status:1,date:now().slice(0,10)});
+  log('tag.create','标签「'+name+'」','新建标签');
+  closeModal('mTag');toast('标签已创建');
+  tgFilter='all';tgPage=1;
+  $$('#tgTabs button').forEach(x=>x.classList.toggle('on',x.dataset.f==='all'));
+  renderTags();
+}
+function toggleTagStatus(id){
+  const t=TAGS.find(x=>x.id===id);if(!t)return;
+  const to=t.status?0:1,txt=to?'展示':'隐藏';
+  confirmDo(txt+'标签',`#${t.name} ${to?'恢复后前台标签云重新展示（当前收录 '+t.count+' 套）':'隐藏后前台标签云不再展示，图集发布 / 编辑中也不可再选用'}`,to?'展示':'隐藏',()=>{
+    t.status=to;
+    log(to?'tag.show':'tag.hide','标签「'+t.name+'」',to?'恢复展示标签':'隐藏标签');
+    toast(txt+'成功');renderTags();
+  });
+}
+function delTag(id){
+  const t=TAGS.find(x=>x.id===id);if(!t)return;
+  if(t.count>0){toast('#'+t.name+' 已被 '+t.count+' 套图集收录，不可删除（可先隐藏）');return}
+  confirmDo('删除标签',`#${t.name} 未被任何图集收录，删除后不可恢复，确认删除？`,'删除',()=>{
+    TAGS=TAGS.filter(x=>x.id!==id);
+    log('tag.delete','标签「'+t.name+'」','删除标签');
+    toast('已删除');renderTags();
+  });
+}
+
 /* ================= 作者管理 ================= */
+let auFilter='all';
+$('#auTabs').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  $$('#auTabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  auFilter=b.dataset.f;auPage=1;renderAuthors();
+});
+$('#auKw').addEventListener('keydown',e=>{if(e.key==='Enter')auSearch()});
+function auSearch(){auPage=1;renderAuthors()}
 function renderAuthors(){
-  $('#auCount').textContent='共 '+AUTHORS.length+' 位';
-  const pages=Math.max(1,Math.ceil(AUTHORS.length/AU_PAGE));
+  const kw=$('#auKw').value.trim().toLowerCase();
+  let list=[...AUTHORS].sort((x,y)=>(y.weight||0)-(x.weight||0)||x.id-y.id);
+  if(auFilter!=='all')list=list.filter(a=>auFilter==='on'?a.status:!a.status);
+  if(kw)list=list.filter(a=>(a.name+a.alias+a.style).toLowerCase().includes(kw));
+  const hasF=!!(kw||auFilter!=='all');
+  $('#auCount').textContent=(hasF?`匹配 ${list.length} 位 · `:'')+'共 '+AUTHORS.length+' 位 · 前台展示 '+AUTHORS.filter(a=>a.status).length+' 位';
+  const pages=Math.max(1,Math.ceil(list.length/AU_PAGE));
   if(auPage>pages)auPage=pages;
-  const slice=AUTHORS.slice((auPage-1)*AU_PAGE,auPage*AU_PAGE);
+  const slice=list.slice((auPage-1)*AU_PAGE,auPage*AU_PAGE);
   $('#auBody').innerHTML=slice.map(a=>`
     <tr>
       <td><div style="display:flex;align-items:center;gap:10px">
@@ -1219,15 +2139,30 @@ function renderAuthors(){
       <td class="hide-m">${esc(a.alias)||'—'}</td>
       <td>${ALBUMS.filter(x=>x.authorId===a.id).length} 套</td>
       <td class="hide-m">${esc(a.style)}</td>
-      <td class="hide-m">${a.since}</td>
-      <td><span class="badge bg-pub">展示中</span></td>
+      <td class="hide-m" style="font-variant-numeric:tabular-nums">${a.weight||0}</td>
+      <td><span class="badge ${a.status?'bg-pub':'bg-off'}">${a.status?'展示中':'已隐藏'}</span></td>
       <td><div class="ops">
+        <button class="btn btn-amber btn-sm" onclick="toggleAuthor(${a.id})">${a.status?'隐藏':'展示'}</button>
         <button class="btn btn-line btn-sm" onclick="openEditAuthor(${a.id})">编辑</button>
         <button class="btn btn-ghost-red btn-sm" onclick="delAuthor(${a.id})">删除</button>
       </div></td>
     </tr>`).join('');
-  $('#auEmpty').style.display=AUTHORS.length?'none':'';
+  $('#auEmpty').innerHTML=hasF
+    ?'<b>没有符合条件的作者</b>换个筛选条件或清空搜索试试'
+    :'<b>暂无作者</b>点击右上角「新建作者」创建';
+  $('#auEmpty').style.display=list.length?'none':'';
   renderPager($('#auPager'),pages,auPage,n=>{auPage=n;renderAuthors()});
+}
+/* 前台展示/隐藏作者（对应 author.status：隐藏后前台作者卡与作者主页不再展示） */
+function toggleAuthor(id){
+  const a=A(id);if(!a)return;
+  const to=a.status?0:1,txt=to?'展示':'隐藏';
+  confirmDo(txt+'作者',`「${a.name}」${to?'恢复后前台作者卡、作者主页重新可见':'隐藏后前台不再展示，其名下图集仍可通过直链访问'}`,to?'展示':'隐藏',()=>{
+    a.status=to;
+    log(to?'author.show':'author.hide','作者 #'+id,(to?'展示「':'隐藏「')+a.name+'」');
+    toast(txt+'成功');
+    renderAuthors();refreshAuthorsDropdown();
+  });
 }
 const AU_COLORS=[
   {k:'a0',t:'玫红'},{k:'a1',t:'橙红'},{k:'a4',t:'蓝紫'},
@@ -1281,7 +2216,7 @@ function openAuthorModal(){
   editAuId=null;
   $('#auModalT').textContent='新建作者';
   $('#auName').value='';$('#auAlias').value='';$('#auStyle').value='';$('#auBio').value='';
-  $('#auSince').value=now().slice(0,10);
+  $('#auWeight').value=10;
   auColorSel='a0';auAvatar=null;
   renderAuColors();applyAuAva();
   $('#auNameErr').classList.remove('on');
@@ -1293,7 +2228,7 @@ function openEditAuthor(id){
   $('#auModalT').textContent='编辑作者 #'+id;
   $('#auName').value=a.name;$('#auAlias').value=a.alias||'';
   $('#auStyle').value=a.style||'';$('#auBio').value=a.bio||'';
-  $('#auSince').value=a.since;
+  $('#auWeight').value=a.weight||0;
   auColorSel=a.color;auAvatar=a.avatar||null;
   renderAuColors();applyAuAva();
   $('#auNameErr').classList.remove('on');
@@ -1304,17 +2239,18 @@ function saveAuthor(){
   if(!name){$('#auNameErr').classList.add('on');$('#auName').focus();return}
   $('#auNameErr').classList.remove('on');
   const alias=$('#auAlias').value.trim(),style=$('#auStyle').value.trim()||'待定',
-        since=$('#auSince').value||now().slice(0,10),bio=$('#auBio').value.trim();
+        bio=$('#auBio').value.trim(),
+        weight=Math.max(0,+$('#auWeight').value||0);
   if(editAuId){
     const a=A(editAuId);if(!a)return;
-    a.name=name;a.alias=alias;a.style=style;a.since=since;a.bio=bio;a.color=auColorSel;a.avatar=auAvatar;
+    a.name=name;a.alias=alias;a.style=style;a.bio=bio;a.color=auColorSel;a.avatar=auAvatar;a.weight=weight;
     log('author.edit','作者 #'+a.id,'编辑「'+name+'」'+(auAvatar?' · 更新头像':''));
     closeModal('mAuthor');toast('修改已保存');
     renderAuthors();refreshAuthorsDropdown();
     return;
   }
   AUTHORS.push({id:authorId++,name,alias,style,
-    color:auColorSel,avatar:auAvatar,since,bio});
+    color:auColorSel,avatar:auAvatar,bio,status:1,weight});
   log('author.create','作者 #'+(authorId-1),'新建作者「'+name+'」');
   closeModal('mAuthor');toast('作者已创建');
   auPage=Math.ceil(AUTHORS.length/AU_PAGE);
@@ -1344,33 +2280,30 @@ $('#payTabs').addEventListener('click',e=>{
 $('#payKw').addEventListener('keydown',e=>{if(e.key==='Enter')paySearch()});
 function paySearch(){payPage=1;renderPay()}
 function dstr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-/* 时间筛选 */
-$('#payQuick').addEventListener('click',e=>{
-  const b=e.target.closest('button');if(!b)return;
-  $$('#payQuick button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-  const q=b.dataset.q,today=now().slice(0,10);
-  if(q==='all'){$('#payFrom').value='';$('#payTo').value=''}
-  else if(q==='today'){$('#payFrom').value=today;$('#payTo').value=today}
-  else{
-    const d=new Date();d.setDate(d.getDate()-(+q-1));
-    $('#payFrom').value=dstr(d);$('#payTo').value=today;
-  }
-  payPage=1;renderPay();
-});
-$('#payFrom').addEventListener('change',()=>{$$('#payQuick button').forEach(x=>x.classList.remove('on'));payPage=1;renderPay()});
-$('#payTo').addEventListener('change',()=>{$$('#payQuick button').forEach(x=>x.classList.remove('on'));payPage=1;renderPay()});
-function clearPayDate(){
-  $('#payFrom').value='';$('#payTo').value='';$('#payKw').value='';
-  $$('#payQuick button').forEach(x=>x.classList.toggle('on',x.dataset.q==='all'));
-  payPage=1;renderPay();
+/* 时间快捷筛选（支付流水 / 评论审核 / 公告管理共用）：页签为唯一入口，「自定义」展开日期区间，手动改日期自动切「自定义」 */
+function bindQuickRange(tabsId,rangeId,fromId,toId,apply){
+  const setTab=q=>$$('#'+tabsId+' button').forEach(x=>x.classList.toggle('on',x.dataset.q===q));
+  const setRange=v=>{$('#'+rangeId).style.display=v?'':'none'};
+  $$('#'+tabsId+' button').forEach(b=>b.addEventListener('click',()=>{
+    const q=b.dataset.q;setTab(q);
+    if(q==='custom'){setRange(true);$('#'+fromId).focus();return}
+    setRange(false);
+    const today=now().slice(0,10);
+    if(q==='all'){$('#'+fromId).value='';$('#'+toId).value=''}
+    else if(q==='today'){$('#'+fromId).value=today;$('#'+toId).value=today}
+    else{const d=new Date();d.setDate(d.getDate()-(+q-1));$('#'+fromId).value=dstr(d);$('#'+toId).value=today}
+    apply();
+  }));
+  [fromId,toId].forEach(id=>$('#'+id).addEventListener('change',()=>{setTab('custom');setRange(true);apply()}));
 }
+bindQuickRange('payQuick','payRange','payFrom','payTo',()=>{payPage=1;renderPay()});
 function payFiltered(){
   const kw=$('#payKw').value.trim().toLowerCase();
   const from=$('#payFrom').value,to=$('#payTo').value;
   return PAYORDERS.filter(o=>{
     if(payFilter!=='all'){
-      if(payFilter==='vip'&&o.biz!=='vip')return false;
-      if(payFilter==='unlock'&&o.biz!=='unlock')return false;
+      if(payFilter==='vip'||payFilter==='unlock'){if(o.biz!==payFilter)return false}
+      else if(o.status!==payFilter)return false; // 待支付 / 已退款按状态筛
     }
     if(kw&&!o.no.toLowerCase().includes(kw)&&!o.user.toLowerCase().includes(kw))return false;
     if((from||to)&&(!o.time||o.time==='—'))return false; // 待支付/已关闭无支付时间
@@ -1426,8 +2359,11 @@ function refundOrder(no){
   const o=PAYORDERS.find(x=>x.no===no);if(!o)return;
   confirmDo('订单退款',`将退还「${o.user}」${yuan(o.amount)}（${o.item}），会员权益同步失效，确认退款？`,'退款',()=>{
     o.status='refunded';
+    // 联动用户权益：演示口径——退款后该用户会员立即失效
+    const u=USERS.find(x=>x.name===o.user);
+    if(u&&u.role==='vip'&&(o.item.includes('月卡'))){u.vip='—';u.role='member';renderUsers();}
     log('order.refund','订单 '+no,'退款 '+yuan(o.amount)+' · '+o.user+' · '+o.item);
-    toast('退款成功');renderPay();
+    toast('退款成功，用户会员权益已同步失效');renderPay();
   });
 }
 /* 导出当前筛选结果为 CSV */
@@ -1461,13 +2397,19 @@ function exportPay(){
 /* ================= 用户管理 ================= */
 $('#usKw').addEventListener('keydown',e=>{if(e.key==='Enter')usSearch()});
 function usSearch(){usPage=1;renderUsers()}
+let usRole='all',usStatus='all';
+function usFilterChange(){usRole=$('#usRoleSel').value;usStatus=$('#usStatusSel').value;usPage=1;renderUsers()}
 function renderUsers(){
   const kw=$('#usKw').value.trim().toLowerCase();
-  const list=USERS.filter(u=>!kw||u.name.toLowerCase().includes(kw)||u.mail.toLowerCase().includes(kw));
-  $('#usSub').textContent='只读查看 + 封禁控制 · 共 '+list.length+' 位';
+  let list=USERS.filter(u=>(usRole==='all'||u.role===usRole)&&(usStatus==='all'||+u.banned===+usStatus));
+  if(kw)list=list.filter(u=>u.name.toLowerCase().includes(kw)||u.mail.toLowerCase().includes(kw));
+  const filtered=usRole!=='all'||usStatus!=='all'||!!kw;
+  $('#usSub').textContent=(filtered?`匹配 ${list.length} 位 · `:'')+'调积分 / 赠会员 / 重置密码 / 封禁控制 · 共 '+USERS.length+' 位';
   const pages=Math.max(1,Math.ceil(list.length/US_PAGE));
   if(usPage>pages)usPage=pages;
   const slice=list.slice((usPage-1)*US_PAGE,usPage*US_PAGE);
+  $('#usEmpty').innerHTML=kw||usRole!=='all'||usStatus!=='all'
+    ?'<b>没有符合条件的用户</b>调整筛选条件或换个关键词试试':'<b>没有找到该用户</b>换个昵称或邮箱试试';
   $('#usEmpty').style.display=list.length?'none':'';
   $('#usBody').innerHTML=slice.map(u=>{
     const [cls,txt]=ROLE[u.role];
@@ -1480,7 +2422,9 @@ function renderUsers(){
       <td class="hide-m">${u.date}</td>
       <td>${u.banned?'<span class="ban">已封禁</span>':'<span class="badge bg-pub">正常</span>'}</td>
       <td><div class="ops">${u.role==='admin'?'<span style="font-size:12px;color:var(--t3)">—</span>'
-        :`<button class="btn btn-line btn-sm" onclick="resetPwd(${u.id})">重置密码</button>
+        :`<button class="btn btn-line btn-sm" onclick="openPoints(${u.id})">调积分</button>
+          <button class="btn btn-line btn-sm" onclick="grantVip(${u.id})">赠会员</button>
+          <button class="btn btn-line btn-sm" onclick="resetPwd(${u.id})">重置密码</button>
           <button class="btn ${u.banned?'btn-green':'btn-ghost-red'} btn-sm" onclick="toggleBan(${u.id})">${u.banned?'解封':'封禁'}</button>`}</div></td>
     </tr>`;
   }).join('');
@@ -1512,21 +2456,62 @@ function copyPwd(){
     navigator.clipboard.writeText(t).then(()=>toast('已复制到剪贴板'),()=>toast('复制失败，请手动选择记录'));
   else toast('请手动选择复制');
 }
+/* 手动调整用户积分（对应 sys_config.checkin.points 之外的运营侧积分变动） */
+let ptUid=null;
+function openPoints(id){
+  const u=USERS.find(x=>x.id===id);if(!u)return;
+  ptUid=id;
+  $('#ptUser').innerHTML=`目标用户：<b style="color:var(--t1)">${esc(u.name)}</b>（${esc(u.mail)}）· 当前余额 <b style="color:var(--red2)">${u.points} 分</b>`;
+  $('#ptVal').value='';$('#ptErr').classList.remove('on');
+  openModal('mPoints');
+}
+function savePoints(){
+  const u=USERS.find(x=>x.id===ptUid);if(!u)return;
+  const v=Math.round(+$('#ptVal').value);
+  if(!v||isNaN(v)){$('#ptErr').classList.add('on');$('#ptVal').focus();return}
+  $('#ptErr').classList.remove('on');
+  const reason=$('#ptReason').value,before=u.points;
+  u.points=Math.max(0,u.points+v);
+  log('user.points','用户 #'+u.id,'调整「'+u.name+'」积分 '+(v>0?'+':'')+v+'（'+reason+'）· '+before+' → '+u.points+' 分');
+  closeModal('mPoints');
+  toast('积分已调整：'+before+' → '+u.points+' 分');
+  renderUsers();
+}
+/* 手动赠送付费会员 30 天（在现有有效期上叠加，对应 pay_type=admin 赠送单） */
+function grantVip(id){
+  const u=USERS.find(x=>x.id===id);if(!u)return;
+  confirmDo('赠送会员',`将为「${u.name}」（${u.mail}）开通付费会员 30 天${u.role==='vip'?'，在现有有效期上叠加':''}，确认赠送？`,'赠送',()=>{
+    const base=(u.vip&&u.vip!=='—'&&new Date(u.vip)>new Date())?new Date(u.vip):new Date();
+    base.setDate(base.getDate()+30);
+    u.vip=dstr(base);u.role='vip';
+    log('user.grantvip','用户 #'+id,'赠送「'+u.name+'」付费会员 30 天 · 到期 '+u.vip);
+    toast('已赠送会员，到期 '+u.vip);
+    renderUsers();
+  });
+}
 
 /* ================= 友链与配置 ================= */
+/* 从完整 URL 提取展示域名（解析失败回落原文） */
+function flDomain(url){
+  try{return new URL(url).hostname}catch(_){return url}
+}
 function renderFriends(){
   $('#flList').innerHTML=FRIENDS.map((f,i)=>`
     <div class="fl-row"><b>${esc(f.name)}</b><span class="sl">${esc(f.slogan)}</span>
+      <a class="lk" href="${esc(f.url)}" target="_blank" rel="noopener" title="${esc(f.url)}">${esc(flDomain(f.url))} ↗</a>
       <span class="rm" onclick="rmFriend(${i})">删除</span></div>`).join('')
-    ||'<div style="font-size:12.5px;color:var(--t3);padding:6px 0">暂无友链，页脚将不展示友链胶囊</div>';
+    ||'<div class="empty" style="grid-column:1/-1;margin:0;padding:22px 0"><b>暂无友链</b>在下方输入站名、简介与链接后点「添加友链」，页脚将同步展示胶囊</div>';
 }
 function addFriend(){
-  const name=$('#flName').value.trim(),slogan=$('#flSlogan').value.trim();
-  if(!name){toast('请输入站名');return}
-  FRIENDS.push({name,slogan,url:'#'});
-  $('#flName').value='';$('#flSlogan').value='';
-  log('friend.create','友链「'+name+'」','添加友链');
-  toast('友链已添加');renderFriends();
+  const name=$('#flName').value.trim(),slogan=$('#flSlogan').value.trim(),
+        url=$('#flUrl').value.trim();
+  if(!name){toast('请输入站名');$('#flName').focus();return}
+  if(!url){toast('请输入友链地址');$('#flUrl').focus();return}
+  if(!/^https?:\/\/.+\..+/.test(url)){toast('链接需以 http(s):// 开头且含域名');$('#flUrl').focus();return}
+  FRIENDS.push({name,slogan,url});
+  $('#flName').value='';$('#flSlogan').value='';$('#flUrl').value='';
+  log('friend.create','友链「'+name+'」','添加友链 · '+url);
+  toast('友链已添加，前台页脚同步展示');renderFriends();
 }
 function rmFriend(i){
   const f=FRIENDS[i];
@@ -1537,26 +2522,81 @@ function rmFriend(i){
   });
 }
 function saveConfig(){
-  log('config.update','站点配置','更新站点文案与水印设置');
-  toast('配置已保存');
+  const checkin=Math.max(1,+$('#cfgCheckin').value||2);
+  log('config.update','站点配置','更新站点文案、水印与签到积分（'+checkin+' 分/日）');
+  toast('配置已保存，前台实时生效');
+}
+/* 会员套餐（对应 membership_plan 表，v1 仅月卡） */
+function savePlan(){
+  const price=Math.max(1,+$('#planPrice').value||19);
+  const days=Math.max(1,+$('#planDays').value||30);
+  const benefits=$('#planBenefits').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  log('config.plan','会员套餐','更新月卡 ¥'+price+' / '+days+' 天 · 权益 '+benefits.length+' 条');
+  toast('套餐已保存：¥'+price+' / '+days+' 天');
 }
 
 /* ================= 日志 ================= */
-const ACT_T={ 'album.publish':'发布图集','album.edit':'编辑图集','album.offline':'下架图集','album.online':'上架图集','album.delete':'删除图集',
-  'comment.review':'审核评论','announcement.publish':'发布公告','announcement.edit':'编辑公告','announcement.offline':'下线公告','announcement.delete':'删除公告',
-  'author.create':'新建作者','author.edit':'编辑作者','author.delete':'删除作者','user.封禁':'封禁用户','user.解封':'解封用户','user.resetpwd':'重置密码','friend.create':'添加友链','friend.delete':'删除友链','config.update':'修改配置','order.refund':'订单退款','pay.export':'导出流水'};
+$('#lgKw').addEventListener('keydown',e=>{if(e.key==='Enter')lgSearch()});
+bindQuickRange('lgQuick','lgRange','lgFrom','lgTo',()=>{lgPage=1;renderLogs()});
+let lgAct='all';
+function lgSearch(){lgPage=1;renderLogs()}
+function lgFilterChange(){lgAct=$('#lgActSel').value;lgPage=1;renderLogs()}
+const ACT_T={ 'album.publish':'发布图集','album.draft':'存为草稿','album.edit':'编辑图集','album.offline':'下架图集','album.online':'上架图集','album.delete':'删除图集','album.recommend':'设为推荐','album.unrecommend':'取消推荐',
+  'comment.review':'审核评论','comment.delete':'删除评论',
+  'announcement.publish':'发布公告','announcement.edit':'编辑公告','announcement.offline':'下线公告','announcement.delete':'删除公告',
+  'tag.create':'新建标签','tag.edit':'编辑标签','tag.hide':'隐藏标签','tag.show':'恢复标签','tag.delete':'删除标签',
+  'author.create':'新建作者','author.edit':'编辑作者','author.delete':'删除作者','author.hide':'隐藏作者','author.show':'恢复作者',
+  'user.封禁':'封禁用户','user.解封':'解封用户','user.resetpwd':'重置密码','user.points':'调整积分','user.grantvip':'赠送会员',
+  'friend.create':'添加友链','friend.delete':'删除友链','config.update':'修改配置','config.plan':'修改会员套餐','order.refund':'订单退款','pay.export':'导出流水'};
+/* 动作筛选下拉：按类别分组（optgroup），选项与 ACT_T 动作映射保持同步 */
+const ACT_GRP={'album':'图集','comment':'评论','announcement':'公告','tag':'标签','author':'作者',
+  'user':'用户','friend':'友链','config':'配置','order':'订单','pay':'流水导出'};
+(function(){
+  const groups={};
+  Object.keys(ACT_T).forEach(k=>{const g=ACT_GRP[k.split('.')[0]]||'其他';(groups[g]=groups[g]||[]).push(k)});
+  $('#lgActSel').innerHTML='<option value="all">全部动作</option>'+
+    Object.keys(groups).map(g=>`<optgroup label="${g}">`+
+      groups[g].map(k=>`<option value="${k}">${ACT_T[k]}</option>`).join('')+'</optgroup>').join('');
+})();
 function renderLogs(){
-  $('#lgSub').textContent='管理员操作留痕 · 最新在前 · 共 '+LOGS.length+' 条';
-  const pages=Math.max(1,Math.ceil(LOGS.length/LG_PAGE));
+  const kw=$('#lgKw').value.trim().toLowerCase();
+  const from=$('#lgFrom').value,to=$('#lgTo').value;
+  let list=LOGS.filter(l=>lgAct==='all'||l.action===lgAct);
+  if(kw)list=list.filter(l=>((ACT_T[l.action]||l.action)+l.target+l.detail).toLowerCase().includes(kw));
+  if(from||to)list=list.filter(l=>{const d=l.time.slice(0,10);return (!from||d>=from)&&(!to||d<=to)});
+  const hasF=!!(kw||lgAct!=='all'||from||to);
+  $('#lgSub').textContent=(hasF?`匹配 ${list.length} 条 · `:'')+'管理员操作留痕 · 最新在前 · 共 '+LOGS.length+' 条';
+  const pages=Math.max(1,Math.ceil(list.length/LG_PAGE));
   if(lgPage>pages)lgPage=pages;
-  const slice=LOGS.slice((lgPage-1)*LG_PAGE,lgPage*LG_PAGE);
+  const slice=list.slice((lgPage-1)*LG_PAGE,lgPage*LG_PAGE);
   $('#lgBody').innerHTML=slice.map(l=>`
-    <tr><td style="color:var(--t3)">${l.time}</td><td>${esc(l.admin)}</td>
-    <td><span class="badge bg-draft">${ACT_T[l.action]||l.action}</span></td>
-    <td>${esc(l.target)}</td>
-    <td class="hide-m" style="white-space:normal;color:var(--t2);font-size:12px">${esc(l.detail)}</td></tr>`).join('');
-  $('#lgEmpty').style.display=LOGS.length?'none':'';
+    <tr style="cursor:pointer" onclick="openLog(${l.id})" title="点击查看详情">
+      <td style="color:var(--t3)">${l.time}</td><td>${esc(l.admin)}</td>
+      <td><span class="badge bg-draft">${ACT_T[l.action]||l.action}</span></td>
+      <td>${esc(l.target)}</td>
+      <td class="hide-m" style="white-space:normal;color:var(--t2);font-size:12px">${esc(l.detail)}</td>
+      <td><div class="ops"><button class="btn btn-line btn-sm" onclick="event.stopPropagation();openLog(${l.id})">详情</button></div></td></tr>`).join('');
+  $('#lgEmpty').innerHTML=hasF
+    ?'<b>没有符合条件的日志</b>换个筛选条件或清空搜索试试'
+    :'<b>暂无操作日志</b>管理操作发生后将自动记录';
+  $('#lgEmpty').style.display=list.length?'none':'';
   renderPager($('#lgPager'),pages,lgPage,n=>{lgPage=n;renderLogs()});
+}
+/* 日志详情弹窗（对应 admin_op_log：id / action / target_type+target_id / detail / ip / created_at） */
+function openLog(id){
+  const l=LOGS.find(x=>x.id===id);if(!l)return;
+  $('#logDetail').innerHTML=`
+    <div class="kv">
+      <span>日志编号</span><b>#${l.id}</b>
+      <span>时间</span><b>${l.time}</b>
+      <span>操作人</span><b>${esc(l.admin)} <span class="badge bg-vip" style="margin-left:5px">管理员</span></b>
+      <span>动作</span><b><span class="badge bg-draft">${ACT_T[l.action]||l.action}</span>
+        <code style="font-size:12px;color:var(--t3);background:var(--s2);border-radius:6px;padding:2px 7px;margin-left:6px">${esc(l.action)}</code></b>
+      <span>目标</span><b>${esc(l.target)}</b>
+      <span>详情</span><b style="white-space:normal;line-height:1.7">${esc(l.detail)}</b>
+      <span>来源 IP</span><b>${l.ip}</b>
+    </div>`;
+  openModal('mLog');
 }
 
 /* ================= 启动 ================= */
@@ -1566,9 +2606,11 @@ function renderLogs(){
   $('#cfgCopy').value='© 2020-2026 希尔薇图集. All rights reserved.';
   $('#cfgAge').value='本站内容仅供成年人浏览，进入即视为已知悉并同意。';
   $('#cfgDisc').value='所有图集仅由管理员发布，版权归原作者所有。';
-  initPublish();renderDash();renderAlbums();renderComments();
+  $('#cfgCheckin').value='2';
+  initPublish();renderDash();renderAlbums();renderComments();renderTags();renderHotKw();
   renderNotices();renderAuthors();renderPay();renderUsers();renderFriends();renderLogs();
 })();
+window.addEventListener('resize',layoutTrend);
 </script>
 </body>
 </html>

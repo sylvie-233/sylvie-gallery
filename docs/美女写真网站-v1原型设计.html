@@ -1065,6 +1065,8 @@ body.lb-open{overflow:hidden}
       <div class="field"><label>标签（英文逗号分隔）</label><input id="adTags" placeholder="日系,白裙,清新"></div>
       <div class="upload">点击上传图片 / 视频（支持批量拖入）<br>上传后自动生成多尺寸缩略图，进入审核队列</div>
       <button class="btn btn-red btn-block" onclick="publishAlbum()">发布图集</button>
+      <a style="display:block;text-align:center;font-size:12.5px;color:var(--t3);margin-top:12px"
+         onclick="location.href='美女写真网站-v1管理后台原型.html'">前往完整管理后台（图集编辑器 / 审核 / 运营）→</a>
     </div>
   </div>
 </div>
@@ -1139,26 +1141,19 @@ body.lb-open{overflow:hidden}
    数据
    ========================================================= */
 const AUTHORS=[
-  {id:'suzuki',name:'铃木美咲',initial:'铃',color:'linear-gradient(135deg,#ff2d55,#ff7a52)',works:14,subs:2841,bio:'日系自然光 · 少女感',
-   since:'2025-03-18',alias:'咲酱、Suzuki',
+  {id:'suzuki',name:'铃木美咲',initial:'铃',color:'linear-gradient(135deg,#ff2d55,#ff7a52)',works:14,subs:2841,bio:'日系自然光 · 少女感',alias:'咲酱、Suzuki',
    about:'长期更新日系写真，擅长自然光与室内弱光场景，作品以通透的肤色和不做作的姿态见长。拍摄多为自拍与双人协作，后期只做基础调色，尽量保留原始质感。已连续更新四十余套，稳定每月两更，近期开始尝试胶片机与逆光系列。'},
-  {id:'bailu',  name:'白露',    initial:'白',color:'linear-gradient(135deg,#5b8def,#8fc3ff)',works:9, subs:1632,bio:'清新旅拍 · 胶片质感',
-   since:'2025-06-02',alias:'BaiLu、阿露',
+  {id:'bailu',  name:'白露',    initial:'白',color:'linear-gradient(135deg,#5b8def,#8fc3ff)',works:9, subs:1632,bio:'清新旅拍 · 胶片质感',alias:'BaiLu、阿露',
    about:'偏好户外旅拍与胶片质感，常在海边、公路、老城区取景。构图安静，色调偏冷，喜欢用大光圈压缩背景。作品多为 35mm 胶片与数码混拍，一整套里通常保留一小部分虚焦废片作为花絮。'},
-  {id:'nanzhi', name:'南栀',    initial:'南',color:'linear-gradient(135deg,#2fbf8f,#7fe3bd)',works:8, subs:1245,bio:'都市夜景 · 情绪人像',
-   since:'2025-09-14',alias:'Nanzhi',
+  {id:'nanzhi', name:'南栀',    initial:'南',color:'linear-gradient(135deg,#2fbf8f,#7fe3bd)',works:8, subs:1245,bio:'都市夜景 · 情绪人像',alias:'Nanzhi',
    about:'城市夜景与情绪人像方向的创作者，习惯在便利店、地铁口、天台等生活场景里拍摄。灯光多用现场光加一支小型补光棒，追求颗粒感与轻微欠曝的氛围。偶尔会写拍摄手记，说明每套图的选址与时间。'},
-  {id:'taoyao', name:'桃夭',    initial:'桃',color:'linear-gradient(135deg,#ff8a3d,#ffc46b)',works:11,subs:2108,bio:'制服 · 洛丽塔',
-   since:'2025-01-27',alias:'桃桃、Taoyao',
+  {id:'taoyao', name:'桃夭',    initial:'桃',color:'linear-gradient(135deg,#ff8a3d,#ffc46b)',works:11,subs:2108,bio:'制服 · 洛丽塔',alias:'桃桃、Taoyao',
    about:'制服与洛丽塔主题的常驻作者，服装与道具基本自备，一套图往往会准备三到四组造型。拍摄风格偏甜美，喜欢用大面积柔光和浅色背景，也会定期做主题企划，例如茶会、女仆日、万圣节特别篇。'},
-  {id:'qingzhi',name:'青栀',    initial:'青',color:'linear-gradient(135deg,#8c63f0,#c49bff)',works:7, subs:986, bio:'国风 · 汉服',
-   since:'2025-08-05',alias:'QingZhi、小青',
+  {id:'qingzhi',name:'青栀',    initial:'青',color:'linear-gradient(135deg,#8c63f0,#c49bff)',works:7, subs:986, bio:'国风 · 汉服',alias:'QingZhi、小青',
    about:'专注国风与汉服，擅长把传统纹样、发饰与现代表情结合，场景多选园林、古建与竹林。拍摄前会做完整的造型设计稿，作品里常附服饰与妆造的说明，方便同好参考。'},
-  {id:'suhe',   name:'苏禾',    initial:'苏',color:'linear-gradient(135deg,#3f8fd6,#7fc4f0)',works:4, subs:742, bio:'校园 · 日系',
-   since:'2025-11-02',alias:'苏苏、Suhe',
+  {id:'suhe',   name:'苏禾',    initial:'苏',color:'linear-gradient(135deg,#3f8fd6,#7fc4f0)',works:4, subs:742, bio:'校园 · 日系',alias:'苏苏、Suhe',
    about:'校园题材常驻作者，取景以图书馆、教室、操场为主，偏好下午三点的侧逆光。服装多为自备的JK与白衬衫，一套图里会保留几张走神、低头的抓拍，气质干净不刻意。'},
-  {id:'linxi',  name:'林溪',    initial:'林',color:'linear-gradient(135deg,#e0a53a,#f5d68a)',works:3, subs:618, bio:'户外 · 泳装',
-   since:'2026-02-11',alias:'溪溪、Linxi',
+  {id:'linxi',  name:'林溪',    initial:'林',color:'linear-gradient(135deg,#e0a53a,#f5d68a)',works:3, subs:618, bio:'户外 · 泳装',alias:'溪溪、Linxi',
    about:'户外与泳装方向的作者，作品多拍于海边、泳池与山间溪谷。习惯在日落前一小时开机，靠自然光做层次，色彩偏高饱和。夏季更新较密，冬季会转向温泉与旅拍系列。'}
 ];
 const A=id=>AUTHORS.find(x=>x.id===id);
@@ -1218,7 +1213,7 @@ const ALBUMS=RAW.map((r,i)=>{
 const byId=id=>ALBUMS.find(a=>a.id===id);
 
 const NOTICES=[
-  {tag:'置顶',title:'关于图集发布与内容审核的说明',date:'2026-11-17',desc:'全站图集仅由管理员统一发布与审核，注册用户与会员均不提供上传入口。',body:[
+  {tag:'规则',pin:1,title:'关于图集发布与内容审核的说明',date:'2026-11-17',desc:'全站图集仅由管理员统一发布与审核，注册用户与会员均不提供上传入口。',body:[
     '为保障内容质量与合规性，希尔薇图集所有图集均由管理员统一编排、发布与上架，站点不开放用户上传或发布入口。',
     '作者如需合作投稿，请通过「联系我们」提交作品集与身份信息，审核通过后由管理员代为发布，并在图集页标注作者信息。',
     '所有图片均经过人工复核后展示，违规内容一律不予上架。'
@@ -1469,7 +1464,7 @@ function renderHome(){
 
   $('#homeNotice').innerHTML=NOTICES.slice(0,4).map((n,i)=>`
     <div class="notice-row" onclick="openNotice(${i})">
-      <span class="ntag ${n.tag==='置顶'?'':'gray'}">${n.tag}</span>
+      <span class="ntag">${n.pin?'置顶':n.tag}</span><span class="ntag gray">${n.tag}</span>
       <span class="ntitle">${esc(n.title)}</span>
       <span class="ndate">${n.date.slice(5).replace('-','/')}</span>
     </div>`).join('');
@@ -1581,7 +1576,6 @@ function renderAuthor(){
             </button>
           </div>
           <div class="au-meta">
-            <span>${au.since}</span>
             <span><b>收录 ${total} 套</b> · 当前可下载 ${total} 套</span>
             <span>最近更新 ${latest}</span>
             <span>别名：${au.alias}</span>
@@ -1713,7 +1707,7 @@ function fillNotices(kw){
     <div class="notice-row notice-page-row" onclick="openNotice(${o.i})">
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
-          <span class="ntag ${o.n.tag==='置顶'?'':'gray'}">${o.n.tag}</span>
+          <span class="ntag">${o.n.pin?'置顶':o.n.tag}</span><span class="ntag gray">${o.n.tag}</span>
           <span class="ntitle">${esc(o.n.title)}</span>
           <span class="ndate">${o.n.date}</span>
         </div>
