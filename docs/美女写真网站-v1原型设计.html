@@ -553,6 +553,13 @@ a.chip:hover{color:var(--t1);border-color:#3a3a45}
 .field input::placeholder{color:var(--t3)}
 .mbody .btn-block{width:100%;padding:12px 0;border-radius:10px;font-size:14.5px;margin-top:6px}
 .mtip{text-align:center;font-size:11.5px;color:var(--t3);margin-top:14px;line-height:1.7}
+/* 注册邮箱验证码 */
+.code-row{display:flex;gap:8px}
+.code-row input{flex:1;min-width:0}
+.code-row .btn{flex:none;padding:0 14px;border-radius:9px;font-size:12.5px;white-space:nowrap;
+  border:1px solid var(--line2);color:var(--t2);background:transparent}
+.code-row .btn:hover:not(:disabled){border-color:var(--red);color:var(--red2)}
+.code-row .btn:disabled{opacity:.5;cursor:default;color:var(--t3);border-color:var(--line)}
 .pay-plan{text-align:center;background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
 .pay-plan b{font-size:26px;color:var(--red2);font-weight:800}
 .pay-plan p{font-size:12.5px;color:var(--t3);margin-top:5px}
@@ -1017,8 +1024,15 @@ body.lb-open{overflow:hidden}
       <div id="regName" class="field" style="display:none"><label>昵称</label><input id="inName" placeholder="给自己起个名字"></div>
       <div class="field"><label>邮箱</label><input id="inMail" type="email" placeholder="you@example.com"></div>
       <div class="field"><label>密码</label><input id="inPwd" type="password" placeholder="至少 6 位"></div>
+      <div class="field" id="regCode" style="display:none">
+        <label>邮箱验证码</label>
+        <div class="code-row">
+          <input id="inCode" maxlength="6" inputmode="numeric" placeholder="6 位验证码">
+          <button class="btn" id="codeBtn" onclick="sendCode()">获取验证码</button>
+        </div>
+      </div>
       <button class="btn btn-red btn-block" id="loginSubmit" onclick="submitAuth()">登 录</button>
-      <div class="mtip">本站以邮箱注册为主 · 原型演示：任意邮箱 + 6 位密码即可<br>管理员演示账号：admin@sylvie.cc</div>
+      <div class="mtip">注册需邮箱验证码 · 原型演示：验证码固定 123456<br>管理员演示账号：admin@sylvie.cc</div>
     </div>
   </div>
 </div>
@@ -1220,7 +1234,7 @@ const NOTICES=[
   ]},
   {tag:'更新',title:'11 月第三批图集已更新（6 套 / 189 张）',date:'2026-11-16',desc:'铃木美咲、白露、南栀三位作者的新图已上架，付费会员可打包下载原图。',body:[
     '本次共更新 6 套图集，合计 189 张图片与 3 段视频。',
-    '付费会员可直接在详情页右侧点击「解锁 / 下载」获取整包原图；注册会员可用下载积分解锁单套图集。'
+    '付费会员可直接在详情页右侧点击「解锁 / 下载」获取整包原图；注册会员可用解锁积分兑换单套图集。'
   ]},
   {tag:'活动',title:'月卡限时 8 折 · 至 11 月 30 日',date:'2026-11-12',desc:'付费会员月卡活动价 ¥15.2，活动结束后恢复 ¥19。',body:[
     '活动期间开通付费会员月卡享 8 折优惠，权益与正价一致。',
@@ -1888,7 +1902,7 @@ function renderDetail(){
           <div class="sv">${a.videos}</div>
         </div>
         <div class="stat">
-          <div class="st"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 21h16"/></svg>下载积分</div>
+          <div class="st"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 21h16"/></svg>解锁积分</div>
           <div class="sv red">${a.points}</div>
         </div>
         <div class="stat">
@@ -1986,7 +2000,7 @@ function renderDetail(){
       <div class="m-stat">
         <div><b>${a.imgs}</b><span>图片</span></div>
         <div><b>${a.videos}</b><span>视频</span></div>
-        <div><b style="color:var(--red2)">${a.points}</b><span>下载积分</span></div>
+        <div><b style="color:var(--red2)">${a.points}</b><span>解锁积分</span></div>
         <div><b>${a.size.split(' ')[0]}</b><span>MB 压缩包</span></div>
       </div>
 
@@ -2047,7 +2061,7 @@ function doUnlock(){
   if(!state.user){toast('登录后可解锁全部内容');openLogin();return}
   if(state.vip||state.unlocked.has(a.id)){downloadAll();return}
   const pts=state.user.points||12;
-  if(pts<a.points){toast('下载积分不足，可签到或开通付费会员');return}
+  if(pts<a.points){toast('解锁积分不足，可签到或开通付费会员');return}
   confirmDo({
     title:`消耗 ${a.points} 积分解锁本套？`,
     text:`解锁后可查看全部 ${a.imgs} 张图片${a.videos?`与 ${a.videos} 段视频`:''}，并支持打包下载。当前积分 ${pts} 分，解锁后剩余 ${pts-a.points} 分。`,
@@ -2221,10 +2235,31 @@ function setAuthMode(m){
   authMode=m;
   $$('#loginTabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===m));
   $('#regName').style.display=m==='register'?'block':'none';
+  $('#regCode').style.display=m==='register'?'block':'none';
   $('#loginTitle').textContent=m==='register'?'注册':'登录';
   $('#loginSubmit').textContent=m==='register'?'注 册':'登 录';
 }
 $$('#loginTabs button').forEach(b=>b.onclick=()=>setAuthMode(b.dataset.t));
+
+/* 注册邮箱验证码：对应 verify_code 表（email / scene=register / code / expired_at / used_at） */
+const DEMO_CODE='123456';
+const CODE_TTL=10*60*1000; // 10 分钟内有效
+let vcode=null,codeTimer=null;
+function sendCode(){
+  const mail=$('#inMail').value.trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)){toast('请先填写有效的邮箱地址');return}
+  if(codeTimer)return;
+  vcode={mail,code:DEMO_CODE,exp:Date.now()+CODE_TTL};
+  toast(`验证码已发送至 ${mail}（演示码 ${DEMO_CODE}）`);
+  const btn=$('#codeBtn');let left=60;
+  btn.disabled=true;btn.textContent=`重新获取(${left}s)`;
+  codeTimer=setInterval(()=>{
+    left--;
+    if(left<=0){clearInterval(codeTimer);codeTimer=null;btn.disabled=false;btn.textContent='重新获取';return}
+    btn.textContent=`重新获取(${left}s)`;
+  },1000);
+  $('#inCode').focus();
+}
 
 function submitAuth(){
   const mail=$('#inMail').value.trim();
@@ -2232,11 +2267,17 @@ function submitAuth(){
   const name=$('#inName').value.trim();
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)){toast('请输入有效的邮箱地址');return}
   if(pwd.length<6){toast('密码至少 6 位');return}
-  if(authMode==='register'&&!name){toast('请填写昵称');return}
+  if(authMode==='register'){
+    if(!name){toast('请填写昵称');return}
+    if(!vcode||vcode.mail!==mail){toast('请先获取邮箱验证码');return}
+    if(Date.now()>vcode.exp){toast('验证码已过期，请重新获取');return}
+    if($('#inCode').value.trim()!==vcode.code){toast('验证码不正确');return}
+  }
 
   const isAdmin=mail.toLowerCase()==='admin@sylvie.cc';
   const uname=authMode==='register'?name:(cache.user&&cache.user.mail===mail?cache.user.name:mail.split('@')[0]);
-  state.user={name:uname,mail,points:12,admin:isAdmin,avatar:0};
+  state.user={name:uname,mail,points:12,admin:isAdmin,avatar:0,emailVerified:authMode==='register'};
+  if(authMode==='register'){vcode=null;$('#inCode').value='';}
   save();applyUser();closeModal('mLogin');
   toast(authMode==='register'?'注册成功，已自动登录 🎉':`欢迎回来，${uname}`);
   if(state.view==='detail')renderDetail();
@@ -2489,7 +2530,7 @@ function renderMeBody(){
         <div class="list-row"><div class="li"><div class="lt">账号邮箱</div></div><div style="font-size:13px;color:var(--t2)">${state.user.mail}</div></div>
         <div class="list-row"><div class="li"><div class="lt">会员状态</div></div>
           <div style="font-size:13px;color:${state.vip?'var(--red2)':'var(--t2)'}">${memberText()}</div></div>
-        <div class="list-row"><div class="li"><div class="lt">下载积分</div><div class="ld">每日签到可得 2 积分，用于解锁单套图集（查看全部 + 下载）</div></div>
+        <div class="list-row"><div class="li"><div class="lt">解锁积分</div><div class="ld">每日签到可得 2 积分，用于解锁单套图集（查看全部 + 下载）</div></div>
           <div style="font-size:13px;color:var(--red2)">${state.user.points||12} 分</div></div>
         <div class="list-row"><div class="li"><div class="lt">已订阅作者</div></div>
           <div style="font-size:13px;color:var(--t2)">${subList.length} 位 · 更新时会收到通知</div></div>

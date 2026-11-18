@@ -610,7 +610,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
             <div class="seg"><input type="text" id="alKw" placeholder="搜索标题 / 作者"><button class="btn btn-line btn-sm" onclick="alSearch()">搜索</button></div>
           </div>
           <table class="tb">
-            <thead><tr><th>图集</th><th>作者</th><th>规格</th><th class="hide-m">积分</th><th class="hide-m">浏览 / 收藏</th><th class="hide-m">发布时间</th><th>状态</th><th>操作</th></tr></thead>
+            <thead><tr><th>图集</th><th>作者</th><th>规格</th><th class="hide-m">解锁积分</th><th class="hide-m">浏览 / 收藏</th><th class="hide-m">发布时间</th><th>状态</th><th>操作</th></tr></thead>
             <tbody id="alBody"></tbody>
           </table>
           <div class="empty" id="alEmpty" style="display:none"><b>没有符合条件的图集</b>换个筛选条件试试</div>
@@ -871,7 +871,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
             <div class="seg"><input type="text" id="usKw" placeholder="搜索昵称 / 邮箱"><button class="btn btn-line btn-sm" onclick="usSearch()">搜索</button></div>
           </div>
           <table class="tb">
-            <thead><tr><th>用户</th><th>角色</th><th class="hide-m">积分</th><th class="hide-m">会员到期</th><th class="hide-m">注册时间</th><th>状态</th><th>操作</th></tr></thead>
+            <thead><tr><th>用户</th><th>角色</th><th class="hide-m">解锁积分</th><th class="hide-m">会员到期</th><th class="hide-m">注册时间</th><th>状态</th><th>操作</th></tr></thead>
             <tbody id="usBody"></tbody>
           </table>
           <div class="empty" id="usEmpty" style="display:none"><b>没有找到该用户</b>换个昵称或邮箱试试</div>
@@ -892,10 +892,10 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
             <div class="frow">
               <div class="field"><label>每日签到积分</label><input type="number" id="cfgCheckin" value="2" min="1" max="99"></div>
               <div class="field"><label>图片水印</label>
-                <div class="seg" style="margin-top:4px"><div class="switch on" id="swWm" onclick="this.classList.toggle('on')"></div><span style="font-size:12.5px;color:var(--t3)" id="swWmTip">开启后预览图与下载图均带水印</span></div>
+                <div class="seg" style="margin-top:4px"><div class="switch on" id="swWm" onclick="this.classList.toggle('on')"></div><span style="font-size:12.5px;color:var(--t3)" id="swWmTip">开启后未解锁用户的前 3 张预览图带水印</span></div>
               </div>
             </div>
-            <div class="pub-tip" style="margin-bottom:12px">· 签到积分为注册会员每日签到可领的分值<br>· 水印开启后前台预览图与下载图同步生效</div>
+            <div class="pub-tip" style="margin-bottom:12px">· 签到积分为注册会员每日签到可领的分值<br>· 水印仅作用于未解锁预览；积分解锁后与付费会员的在线查看、下载均为原图</div>
             <button class="btn btn-red" style="width:100%" onclick="saveConfig()">保存配置</button>
           </div>
           <div class="panel">
@@ -1094,13 +1094,13 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
     <div class="mhead"><h3>调整积分</h3><button class="x" onclick="closeModal('mPoints')">✕</button></div>
     <div class="mbody">
       <div class="pub-tip" id="ptUser" style="margin-bottom:12px"></div>
-      <div class="field"><label>变动积分（正数发放 / 负数扣减） <i>*</i></label><input type="number" id="ptVal" placeholder="如：5 或 -3"><div class="ferr" id="ptErr">请输入非 0 的整数积分</div></div>
+      <div class="field"><label>变动解锁积分（正数发放 / 负数扣减） <i>*</i></label><input type="number" id="ptVal" placeholder="如：5 或 -3"><div class="ferr" id="ptErr">请输入非 0 的整数积分</div></div>
       <div class="field"><label>调整原因</label>
         <select id="ptReason">
           <option>活动奖励</option><option>运营补偿</option><option>违规扣除</option><option>其他</option>
         </select>
       </div>
-      <div class="pub-tip">· 调整后用户积分余额即时生效，并写入操作日志<br>· 余额不会为负：扣减超出余额时按 0 处理</div>
+      <div class="pub-tip">· 调整后用户解锁积分余额即时生效，并写入操作日志<br>· 余额不会为负：扣减超出余额时按 0 处理</div>
     </div>
     <div class="mfoot"><button class="btn btn-line" onclick="closeModal('mPoints')">取消</button>
       <button class="btn btn-red" onclick="savePoints()">确认调整</button></div>
@@ -1643,7 +1643,7 @@ function submitEditor(st){
     const changed=[];
     if(base.title!==a.title)changed.push('标题');
     if(base.authorId!==a.authorId)changed.push('作者');
-    if(base.points!==a.points)changed.push('积分');
+    if(base.points!==a.points)changed.push('解锁积分');
     if(base.desc!==(a.desc||''))changed.push('简介');
     if(JSON.stringify(base.tags)!==JSON.stringify(a.tags||[]))changed.push('标签');
     if(base.imgs!==a.imgs||base.videos!==a.videos||JSON.stringify(base.media)!==JSON.stringify(a.media||[]))changed.push('媒体（顺序/封面/增删）');
@@ -2472,7 +2472,7 @@ function savePoints(){
   $('#ptErr').classList.remove('on');
   const reason=$('#ptReason').value,before=u.points;
   u.points=Math.max(0,u.points+v);
-  log('user.points','用户 #'+u.id,'调整「'+u.name+'」积分 '+(v>0?'+':'')+v+'（'+reason+'）· '+before+' → '+u.points+' 分');
+  log('user.points','用户 #'+u.id,'调整「'+u.name+'」解锁积分 '+(v>0?'+':'')+v+'（'+reason+'）· '+before+' → '+u.points+' 分');
   closeModal('mPoints');
   toast('积分已调整：'+before+' → '+u.points+' 分');
   renderUsers();

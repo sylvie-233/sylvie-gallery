@@ -19,7 +19,7 @@
 --   user_checkin      每日签到              → 签到领积分（每日 +2，sys_config 可配）
 --   author            作者                  → 首页个人写真/作者列表/作者主页（后台可隐藏/排序）
 --   album             图集                  → 首页/图集页/瀑布流/详情页（含推荐池标记）
---   album_image       图集图片/视频         → 详情页媒体、前 3 张预览规则
+--   album_image       图集图片/视频         → 详情页媒体、前 3 张预览规则、未解锁水印取图
 --   tag               标签                  → 标签云（#前缀 + 收录数）；后台标签管理可新建/改名/隐藏
 --   album_tag         图集-标签关联         → 图集页标签筛选/标签结果页
 --   announcement      公告                  → 公告列表/搜索/详情弹层
@@ -61,7 +61,7 @@ CREATE TABLE `user` (
   `avatar_index`  TINYINT UNSIGNED NOT NULL DEFAULT 0    COMMENT '预设色卡序号（0-7）',
   `avatar_url`    VARCHAR(255)    NULL                    COMMENT '自定义头像 URL（对象存储，≤2MB 原图服务端压 256×256）',
   `role`          ENUM('member','vip','admin') NOT NULL DEFAULT 'member' COMMENT '角色：注册会员/付费会员/管理员',
-  `points`        INT UNSIGNED    NOT NULL DEFAULT 0      COMMENT '下载积分余额（签到获取，解锁消耗）',
+  `points`        INT UNSIGNED    NOT NULL DEFAULT 0      COMMENT '解锁积分余额（签到获取，解锁消耗）',
   `vip_expire_at` DATETIME        NULL                    COMMENT '付费会员到期时间（NULL=非会员；续费= max(当前,到期)+30天）',
   `status`        TINYINT UNSIGNED NOT NULL DEFAULT 1    COMMENT '状态 1=正常 0=封禁',
   `email_verified`TINYINT UNSIGNED NOT NULL DEFAULT 0    COMMENT '邮箱是否已验证',
@@ -157,6 +157,8 @@ CREATE TABLE `album` (
 -- 5. 图集媒体表（图片 + 视频）
 --    覆盖：详情页图片卡片（右下角 当前/总数）、视频卡片置顶、
 --          未解锁只看前 3 张（应用层按 sort_order <= 3 过滤）
+--    取图规则：未解锁（游客/注册会员）预览前 3 张取 watermark_url（开关关闭时取原图）；
+--              积分解锁后的在线查看与下载、付费会员在线查看与下载一律取原图 url
 -- ---------------------------------------------------------------------
 CREATE TABLE `album_image` (
   `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -164,7 +166,7 @@ CREATE TABLE `album_image` (
   `media_type`  ENUM('image','video') NOT NULL DEFAULT 'image' COMMENT '类型：图片/视频',
   `url`         VARCHAR(255)   NOT NULL COMMENT '原图 URL（对象存储+签名防盗链）',
   `thumb_url`   VARCHAR(255)   NULL     COMMENT '缩略图 URL（多尺寸可另建 CDN 规则）',
-  `watermark_url` VARCHAR(255) NULL     COMMENT '带水印图 URL（未解锁预览用）',
+  `watermark_url` VARCHAR(255) NULL     COMMENT '水印版图 URL（仅未解锁预览用；积分解锁/付费会员一律取原图）',
   `width`       SMALLINT UNSIGNED NULL,
   `height`      SMALLINT UNSIGNED NULL,
   `duration`    SMALLINT UNSIGNED NULL COMMENT '视频时长（秒）',
@@ -436,7 +438,7 @@ CREATE TABLE `sys_dict_data` (
 
 -- ---------------------------------------------------------------------
 -- 19. 站点配置表
---     覆盖：页脚版权文案、ICP 备案号、年龄声明/免责声明、水印开关与文案、
+--     覆盖：页脚版权文案、ICP 备案号、年龄声明/免责声明、未解锁预览水印开关、
 --           友链开关等站点级配置（技术支撑 · 安全与合规）
 -- ---------------------------------------------------------------------
 CREATE TABLE `sys_config` (
@@ -584,7 +586,7 @@ INSERT INTO `sys_config` (`config_key`, `config_value`, `remark`) VALUES
 ('site.icp_no',      '',                                       'ICP 备案号（备案后填写）'),
 ('site.age_statement', '本站内容仅供成年人浏览，进入即视为已知悉并同意。', '年龄声明'),
 ('site.disclaimer',  '所有图集仅由管理员发布，版权归原作者所有。', '内容免责声明'),
-('image.watermark_on', '1',                                    '是否开启水印（1=开启）'),
+('image.watermark_on', '1',                                    '未解锁预览是否使用水印版（1=开启；解锁/会员始终原图）'),
 ('checkin.points',   '2',                                       '每日签到积分');
 
 -- 系统字典类型（内置分组，与业务枚举一一对应）
