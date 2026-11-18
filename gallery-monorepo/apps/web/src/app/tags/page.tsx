@@ -7,6 +7,7 @@ import type { TagDto } from '@sylvie/types';
 import { cn } from '@sylvie/utils';
 
 import { EmptyState } from '@/components/empty-state';
+import { TagCloudSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 
 const SIZE_CLASSES = [
@@ -34,7 +35,7 @@ export default function TagsPage() {
       </div>
 
       {isLoading && !data ? (
-        <div className="skeleton h-52 w-full" />
+        <TagCloudSkeleton />
       ) : error && !data ? (
         <div className="panel px-6 py-14 text-center">
           <p className="text-t2">标签加载失败</p>

@@ -11,6 +11,7 @@ import { cn } from '@sylvie/utils';
 import { AlbumCard } from '@/components/album-card';
 import { EmptyState } from '@/components/empty-state';
 import { Pagination } from '@/components/pagination';
+import { AlbumGridSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
@@ -134,11 +135,7 @@ function AlbumsContent() {
       ) : null}
 
       {isLoading && !data ? (
-        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {Array.from({ length: 10 }).map((_, index) => (
-            <div key={index} className="skeleton aspect-[3/4]" />
-          ))}
-        </div>
+        <AlbumGridSkeleton count={10} />
       ) : error && !data ? (
         <div className="panel px-6 py-16 text-center">
           <p className="text-t2">图集加载失败</p>
@@ -179,10 +176,8 @@ export default function AlbumsPage() {
       fallback={
         <div className="wrap">
           <div className="skeleton h-8 w-32" />
-          <div className="mt-6 grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {Array.from({ length: 10 }).map((_, index) => (
-              <div key={index} className="skeleton aspect-[3/4]" />
-            ))}
+          <div className="mt-6">
+            <AlbumGridSkeleton count={10} />
           </div>
         </div>
       }

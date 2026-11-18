@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { cn } from '@sylvie/utils';
 
@@ -13,7 +13,12 @@ interface CoverImageProps {
   fit?: 'cover' | 'contain';
 }
 
-/** 带渐变兜底的封面图，避免外链图片失败时出现破图。 */
+/**
+ * 图片展示统一入口：
+ * - 原生懒加载（首屏图片可传 eager 提前加载）；
+ * - 加载中显示 shimmer 骨架，加载完成后淡入；
+ * - 外链失败时回落到渐变占位，避免破图。
+ */
 export function CoverImage({
   src,
   alt,
@@ -22,9 +27,13 @@ export function CoverImage({
   eager = false,
   fit = 'cover',
 }: CoverImageProps) {
-  const [failed, setFailed] = useState(false);
+  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
 
-  if (!src || failed) {
+  useEffect(() => {
+    setStatus('loading');
+  }, [src]);
+
+  if (!src || status === 'error') {
     return (
       <div className={cn('cover-fallback h-full w-full', className)} aria-label={alt}>
         {fallback ?? alt.slice(0, 2)}
@@ -33,14 +42,33 @@ export function CoverImage({
   }
 
   return (
-    <img
-      src={src}
-      alt={alt}
-      className={cn('h-full w-full', fit === 'contain' ? 'object-contain' : 'object-cover', className)}
-      loading={eager ? 'eager' : 'lazy'}
-      decoding="async"
-      referrerPolicy="no-referrer"
-      onError={() => setFailed(true)}
-    />
+    <span
+      className={cn(
+        'relative block h-full w-full overflow-hidden bg-[#19191f]',
+        fit === 'contain' && 'flex items-center justify-center',
+        className,
+      )}
+      aria-busy={status === 'loading'}
+    >
+      {status === 'loading' ? (
+        <span className="skeleton absolute inset-0 rounded-none" aria-hidden="true" />
+      ) : null}
+      <img
+        src={src}
+        alt={alt}
+        className={cn(
+          'block transition-opacity duration-500 ease-out',
+          fit === 'contain' ? 'max-h-full max-w-full object-contain' : 'h-full w-full object-cover',
+          status === 'loaded' ? 'opacity-100' : 'opacity-0',
+        )}
+        loading={eager ? 'eager' : 'lazy'}
+        decoding="async"
+        fetchPriority={eager ? 'high' : 'auto'}
+        referrerPolicy="no-referrer"
+        draggable={false}
+        onLoad={() => setStatus('loaded')}
+        onError={() => setStatus('error')}
+      />
+    </span>
   );
 }

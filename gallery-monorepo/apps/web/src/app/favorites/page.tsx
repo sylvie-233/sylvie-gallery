@@ -11,6 +11,7 @@ import { AlbumCard } from '@/components/album-card';
 import { AuthGate } from '@/components/auth-gate';
 import { EmptyState } from '@/components/empty-state';
 import { Pagination } from '@/components/pagination';
+import { AlbumGridSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
@@ -37,11 +38,7 @@ function FavoritesContent() {
       </div>
 
       {isLoading && !data ? (
-        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <div key={index} className="skeleton aspect-[3/4]" />
-          ))}
-        </div>
+        <AlbumGridSkeleton count={8} />
       ) : error && !data ? (
         <div className="panel px-6 py-14 text-center">
           <p className="text-t2">收藏列表加载失败</p>

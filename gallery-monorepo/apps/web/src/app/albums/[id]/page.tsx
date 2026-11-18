@@ -32,6 +32,7 @@ import { cn, formatCount, formatDateTime, formatPrice } from '@sylvie/utils';
 import { Avatar, AuthorAvatar } from '@/components/avatar';
 import { CoverImage } from '@/components/cover-image';
 import { EmptyState } from '@/components/empty-state';
+import { DetailSkeleton } from '@/components/skeletons';
 import { Lightbox } from '@/components/lightbox';
 import { apiFetch, downloadFile } from '@/lib/api';
 import { revalidateAll as refreshAll, useAuth } from '@/lib/auth';
@@ -255,16 +256,7 @@ export default function AlbumDetailPage() {
   );
 
   if (isLoading && !data) {
-    return (
-      <div className="wrap">
-        <div className="skeleton h-4 w-64" />
-        <div className="skeleton mt-4 h-56 w-full" />
-        <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_346px]">
-          <div className="skeleton h-[520px] w-full" />
-          <div className="skeleton h-[420px] w-full" />
-        </div>
-      </div>
-    );
+    return <DetailSkeleton />;
   }
 
   if (error && !data) {

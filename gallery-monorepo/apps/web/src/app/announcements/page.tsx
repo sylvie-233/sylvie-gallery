@@ -10,6 +10,7 @@ import { formatDate } from '@sylvie/utils';
 import { AnnouncementModal } from '@/components/announcement-modal';
 import { EmptyState } from '@/components/empty-state';
 import { Pagination } from '@/components/pagination';
+import { NoticeListSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
@@ -63,14 +64,7 @@ export default function AnnouncementsPage() {
       </div>
 
       {isLoading && !data ? (
-        <div className="panel divide-y divide-line">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="p-4">
-              <div className="skeleton h-4 w-3/4" />
-              <div className="skeleton mt-2 h-3 w-1/2" />
-            </div>
-          ))}
-        </div>
+        <NoticeListSkeleton count={5} />
       ) : error && !data ? (
         <div className="panel px-6 py-14 text-center">
           <p className="text-t2">公告加载失败</p>

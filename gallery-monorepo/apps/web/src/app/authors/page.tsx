@@ -8,6 +8,7 @@ import type { AuthorDto } from '@sylvie/types';
 
 import { AuthorCard } from '@/components/author-card';
 import { EmptyState } from '@/components/empty-state';
+import { AuthorGridSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
@@ -53,11 +54,7 @@ export default function AuthorsPage() {
       </div>
 
       {isLoading && !data ? (
-        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7">
-          {Array.from({ length: 7 }).map((_, index) => (
-            <div key={index} className="skeleton aspect-square" />
-          ))}
-        </div>
+        <AuthorGridSkeleton count={7} />
       ) : error && !data ? (
         <div className="panel px-6 py-14 text-center">
           <p className="text-t2">作者列表加载失败</p>

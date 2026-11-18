@@ -13,6 +13,7 @@ import { AuthGate } from '@/components/auth-gate';
 import { CoverImage } from '@/components/cover-image';
 import { EmptyState } from '@/components/empty-state';
 import { Pagination } from '@/components/pagination';
+import { NotificationListSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
@@ -224,11 +225,7 @@ function NotificationsContent() {
       </div>
 
       {isLoading && !data ? (
-        <div className="space-y-2.5">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="skeleton h-[84px] w-full" />
-          ))}
-        </div>
+        <NotificationListSkeleton count={4} />
       ) : error && !data ? (
         <div className="panel px-6 py-14 text-center">
           <p className="text-t2">通知加载失败</p>

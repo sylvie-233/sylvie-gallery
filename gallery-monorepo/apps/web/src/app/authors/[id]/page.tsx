@@ -12,6 +12,7 @@ import { formatDate } from '@sylvie/utils';
 import { AlbumCard } from '@/components/album-card';
 import { EmptyState } from '@/components/empty-state';
 import { Pagination } from '@/components/pagination';
+import { AuthorDetailSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 import { useAuth, revalidateAll } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
@@ -31,16 +32,7 @@ export default function AuthorDetailPage() {
   );
 
   if (isLoading && !data) {
-    return (
-      <div className="wrap">
-        <div className="skeleton h-[190px] w-full" />
-        <div className="mt-6 grid grid-cols-2 gap-3.5 md:grid-cols-4 lg:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="skeleton aspect-[3/4]" />
-          ))}
-        </div>
-      </div>
-    );
+    return <AuthorDetailSkeleton />;
   }
 
   if (error && !data) {
@@ -105,7 +97,7 @@ export default function AuthorDetailPage() {
         <div className="flex flex-col gap-5 sm:flex-row">
           <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-line">
             {author.avatarUrl ? (
-              <img src={author.avatarUrl} alt={author.name} className="h-full w-full object-cover" />
+              <img src={author.avatarUrl} alt={author.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
             ) : (
               <div
                 className="flex h-full w-full items-center justify-center text-3xl font-bold text-white"

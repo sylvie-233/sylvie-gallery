@@ -10,6 +10,7 @@ import { AlbumCard } from '@/components/album-card';
 import { AnnouncementModal } from '@/components/announcement-modal';
 import { AuthorCard } from '@/components/author-card';
 import { SectionHead } from '@/components/section-head';
+import { HomeSkeleton } from '@/components/skeletons';
 import { useBootstrap } from '@/lib/hooks';
 
 export default function HomePage() {
@@ -17,16 +18,7 @@ export default function HomePage() {
   const [activeAnnouncement, setActiveAnnouncement] = useState<AnnouncementDto | null>(null);
 
   if (isLoading && !data) {
-    return (
-      <div className="wrap">
-        <div className="skeleton h-6 w-40" />
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {Array.from({ length: 12 }).map((_, index) => (
-            <div key={index} className="skeleton aspect-[3/4]" />
-          ))}
-        </div>
-      </div>
-    );
+    return <HomeSkeleton />;
   }
 
   if (error && !data) {

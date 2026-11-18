@@ -8,6 +8,7 @@ import type { AlbumCardDto, PageResult } from '@sylvie/types';
 
 import { AlbumCard } from '@/components/album-card';
 import { EmptyState } from '@/components/empty-state';
+import { AlbumGridSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
@@ -71,7 +72,8 @@ export default function WaterfallPage() {
         <div>
           <h1 className="page-title">瀑布流</h1>
           <p className="mt-1.5 text-[13px] text-t3">
-            根据浏览与收藏偏好推荐 · 已加载 {items.length} 套
+            根据浏览与收藏偏好推荐
+            {data ? ` · 已加载 ${items.length} 套` : ' · 正在加载…'}
           </p>
         </div>
         <span className="ml-auto inline-flex items-center gap-1.5 text-xs text-t3">
@@ -87,6 +89,8 @@ export default function WaterfallPage() {
             重新加载
           </button>
         </div>
+      ) : !data && isValidating ? (
+        <AlbumGridSkeleton masonry count={10} />
       ) : items.length === 0 && !isValidating ? (
         <div className="panel">
           <EmptyState title="暂时没有推荐内容" text="去图集页逛逛，收藏几套喜欢的作品吧。" />
@@ -99,13 +103,7 @@ export default function WaterfallPage() {
             ))}
           </div>
 
-          {loadingMore ? (
-            <div className="flex justify-center gap-3 py-6">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="skeleton h-40 w-1/5" />
-              ))}
-            </div>
-          ) : null}
+          {loadingMore ? <AlbumGridSkeleton masonry count={4} className="mt-3.5" /> : null}
 
           {hasMore ? <div ref={sentinelRef} className="h-10" /> : null}
 

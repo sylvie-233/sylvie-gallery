@@ -314,7 +314,7 @@ img {
   .skeleton {
     position: relative;
     overflow: hidden;
-    background: #19191f;
+    background: #1b1b23;
     border-radius: 10px;
   }
   .skeleton::after {
@@ -322,12 +322,17 @@ img {
     position: absolute;
     inset: 0;
     transform: translateX(-100%);
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-    animation: shimmer 1.4s infinite;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    animation: shimmer 1.35s infinite;
   }
   @keyframes shimmer {
     100% {
       transform: translateX(100%);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton::after {
+      animation: none;
     }
   }
 

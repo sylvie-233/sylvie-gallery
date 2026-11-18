@@ -69,14 +69,14 @@ export function Lightbox({ images, index, onIndexChange, onClose }: LightboxProp
           </button>
         ) : null}
 
-        <div className="max-h-full max-w-[min(100%,1000px)] overflow-hidden rounded-lg border border-white/10 bg-black/40">
+        <div className="flex h-full w-full max-w-[min(100%,1000px)] items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-black/40">
           <CoverImage
             src={current.url}
             alt={`图片 ${index + 1}`}
             fit="contain"
             eager
             fallback="希"
-            className="max-h-[calc(100vh-190px)] w-auto max-w-full"
+            className="max-h-full max-w-full"
           />
         </div>
 
@@ -106,7 +106,11 @@ export function Lightbox({ images, index, onIndexChange, onClose }: LightboxProp
             onClick={() => onIndexChange(imageIndex)}
             aria-label={`查看第 ${imageIndex + 1} 张`}
           >
-            <CoverImage src={image.thumbUrl ?? image.url} alt="" eager />
+            <CoverImage
+              src={image.thumbUrl ?? image.url}
+              alt=""
+              eager={imageIndex === index}
+            />
           </button>
         ))}
       </div>

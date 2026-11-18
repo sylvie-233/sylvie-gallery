@@ -12,6 +12,7 @@ import { AuthGate } from '@/components/auth-gate';
 import { CoverImage } from '@/components/cover-image';
 import { EmptyState } from '@/components/empty-state';
 import { Pagination } from '@/components/pagination';
+import { PurchaseSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useConfirm } from '@/lib/confirm';
@@ -64,14 +65,7 @@ function PurchasesContent() {
       </div>
 
       {isLoading && !data ? (
-        <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="skeleton h-20" />
-            ))}
-          </div>
-          <div className="skeleton h-32 w-full" />
-        </div>
+        <PurchaseSkeleton />
       ) : error && !data ? (
         <div className="panel px-6 py-14 text-center">
           <p className="text-t2">购买记录加载失败</p>
