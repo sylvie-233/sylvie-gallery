@@ -16,4 +16,9 @@ export const dbClient = new DatabaseClient({
   connectionLimit: env.DB_CONNECTION_LIMIT,
 });
 
-export * from '@sylvie/db';
+/**
+ * 显式重导出业务层用到的 `@sylvie/db` 成员。
+ * 不使用 `export *`：esbuild 打包时无法从外部包的星号重导出中解析具名导入。
+ */
+export { executeOn, queryOn, queryOneOn } from '@sylvie/db';
+export type { TransactionConnection } from '@sylvie/db';
