@@ -21,6 +21,7 @@ import {
   deleteAlbumTags,
   insertAdminAlbum,
   insertAlbumImage,
+  insertAlbumPublishNotifications,
   insertAlbumTag,
   offlineAdminAlbum,
   publishAdminAlbum,
@@ -48,8 +49,39 @@ import {
 } from '../../sql/admin/album-admin.sql.js';
 import { HttpError } from '../../utils/http.js';
 import { normalizePage, toBool, toPageResult, toSqlDateTime } from '../../utils/format.js';
+import { moduleLogger } from '../../utils/logger.js';
 import { getObjectSize } from '../storage.service.js';
 import { logAdminOp } from './log.service.js';
+
+const log = moduleLogger('album-admin');
+
+/**
+ * 图集首次发布后，向订阅该作者的用户批量写入「更新」通知。
+ *
+ * 通知属于非关键路径：失败只记录日志，不影响发布结果。这里直接写库
+ * （一条 `INSERT ... SELECT`），不经过消息队列；订阅规模或分发渠道扩展后，
+ * 可将本函数替换为 `@sylvie/job` 任务，调用方无需改动。
+ */
+async function notifyAlbumPublished(detail: AdminAlbumDetail): Promise<void> {
+  try {
+    const statement = insertAlbumPublishNotifications({
+      albumId: detail.id,
+      authorId: detail.authorId,
+      title: detail.title,
+      imageCount: detail.imageCount,
+      videoCount: detail.videoCount,
+    });
+    const result = await dbClient.execute(statement.sql, statement.params);
+    if (result.affectedRows > 0) {
+      log.info('已通知图集订阅者', {
+        albumId: detail.id,
+        count: result.affectedRows,
+      });
+    }
+  } catch (error) {
+    log.error('发布通知写入失败（不影响发布）', error, { albumId: detail.id });
+  }
+}
 
 /** 将数据库行转换为后台图集列表行，统一把 BIGINT / 0-1 值转成前端可用的数字与布尔值。 */
 function mapAlbumRow(row: AdminAlbumDbRow): AdminAlbumRow {
@@ -431,6 +463,11 @@ export async function saveAdminAlbum(
     return currentId;
   });
 
+  // 首次发布：新建且直接发布，或草稿首次转为发布。
+  // 已发布图集再次保存、下架后重新上架不重复通知。
+  const firstPublish =
+    status === 'published' && (!existing || existing.status === 'draft');
+
   // 事务提交后再记日志；按新建 / 草稿 / 编辑区分动作。
   const action = existing
     ? 'album.edit'
@@ -455,7 +492,12 @@ export async function saveAdminAlbum(
     ip,
   );
 
-  return getAdminAlbumDetail(targetId);
+  const detail = await getAdminAlbumDetail(targetId);
+  if (firstPublish) {
+    // 通知在发布事务提交后执行，失败不回滚发布。
+    await notifyAlbumPublished(detail);
+  }
+  return detail;
 }
 
 /**
@@ -502,7 +544,13 @@ export async function updateAdminAlbumStatus(
 
   const action = status === 'published' ? 'album.publish' : 'album.offline';
   await logAdminOp(adminId, action, 'album', albumId, { title: album.title, status }, ip);
-  return getAdminAlbumDetail(albumId);
+
+  const detail = await getAdminAlbumDetail(albumId);
+  // 仅草稿首次发布时通知订阅者；下架后重新上架不重复通知。
+  if (status === 'published' && album.status === 'draft') {
+    await notifyAlbumPublished(detail);
+  }
+  return detail;
 }
 
 /**

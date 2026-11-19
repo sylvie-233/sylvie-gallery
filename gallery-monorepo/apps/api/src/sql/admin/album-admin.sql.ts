@@ -156,6 +156,48 @@ export function selectAdminAlbumMedia(albumId: number): SqlStatement {
 }
 
 /** 保存图集时读取现有媒体（不排序）。 */
+/**
+ * 图集首次发布时向订阅该作者的正常用户批量写入「更新」通知。
+ *
+ * 使用 `INSERT ... SELECT` 一次完成扇出，避免按订阅者逐条插入；
+ * `NOT EXISTS` 保证同一用户对同一图集最多只有一条更新通知，
+ * 即使并发发布或重复调用也不会产生重复消息。
+ *
+ * @returns 实际写入的通知条数（由调用方的 `affectedRows` 获取）。
+ */
+export function insertAlbumPublishNotifications(input: {
+  albumId: number;
+  authorId: number;
+  title: string;
+  imageCount: number;
+  videoCount: number;
+}): SqlStatement {
+  const spec =
+    input.videoCount > 0
+      ? `${input.imageCount}P · ${input.videoCount}V`
+      : `${input.imageCount}P`;
+  return {
+    sql: `INSERT INTO user_notification (user_id, type, title, content, album_id)
+          SELECT s.user_id, 'update', ?, ?, ?
+            FROM subscription s
+            JOIN \`user\` u ON u.id = s.user_id AND u.is_deleted = 0 AND u.status = 1
+           WHERE s.author_id = ?
+             AND NOT EXISTS (
+               SELECT 1 FROM user_notification n
+                WHERE n.user_id = s.user_id
+                  AND n.type = 'update'
+                  AND n.album_id = ?
+             )`,
+    params: [
+      '你订阅的作者发布了新图集',
+      `《${input.title}》已更新，共 ${spec}`,
+      input.albumId,
+      input.authorId,
+      input.albumId,
+    ],
+  };
+}
+
 export function selectAdminAlbumMediaForSync(albumId: number): SqlStatement {
   return {
     sql: `SELECT id, media_type AS mediaType, url, thumb_url AS thumbUrl,

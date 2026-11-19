@@ -70,7 +70,7 @@ API 启动后可访问 `http://localhost:3000/api/docs` 查看接口文档，Ope
 - **图集访问**：游客与注册会员未解锁时只能看前 3 张。注册会员消耗 `album.points` 永久解锁单套图集，解锁后可查看全部并重复下载。付费会员全站查看与下载，不消耗积分。
 - **积分**：界面统一称「解锁积分」。通过每日签到获得（`sys_config.checkin.points`，默认 2 分），仅在解锁图集时消耗，下载不扣分；`user.points` 不得为负。
 - **水印**：仅未解锁时的前 3 张预览使用 `album_image.watermark_url`；解锁后及付费会员一律返回原图 `url`。全局开关 `sys_config.image.watermark_on` 只控制未解锁预览。
-- **发布**：`album.status` 为 `draft` / `published` / `offline`；`published_at` 是最新排序依据；`is_recommended` 进入瀑布流推荐池。
+- **发布**：`album.status` 为 `draft` / `published` / `offline`；`published_at` 是最新排序依据；`is_recommended` 进入瀑布流推荐池。图集首次发布（新建即发布或草稿首次转已发布）时，向订阅该作者的用户批量写入 `type='update'` 通知并携带 `album_id`；下架后重新上架不重复通知，通知失败不影响发布。
 - **支付**：v1 仅支持支付宝；后台赠送会员走 `pay_type='admin'` 的 0 元订单；续费在剩余 `user.vip_expire_at` 上叠加 30 天。本地开发默认 `ALIPAY_MOCK=true` 模拟支付。
 - **软删除**：优先使用 `is_deleted` / `status`，不做物理删除。冗余计数（`album.view_count` / `fav_count` / `download_count` / `comment_count`、`author.album_count`、`tag.use_count`）必须与底层数据变更在同一操作中维护。
 
