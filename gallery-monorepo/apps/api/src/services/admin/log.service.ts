@@ -1,5 +1,6 @@
 import { dbClient } from '../../db/index.js';
 import { moduleLogger } from '../../utils/logger.js';
+import { insertAdminOpLog } from '../../sql/admin/log.sql.js';
 
 const log = moduleLogger('admin-log');
 
@@ -19,11 +20,15 @@ export async function logAdminOp(
         : typeof detail === 'string'
           ? detail
           : JSON.stringify(detail);
-    await dbClient.execute(
-      `INSERT INTO admin_op_log (admin_id, action, target_type, target_id, detail, ip)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [adminId, action, targetType, targetId, detailText, ip ?? null],
+    const statement = insertAdminOpLog(
+      adminId,
+      action,
+      targetType,
+      targetId,
+      detailText,
+      ip ?? null,
     );
+    await dbClient.execute(statement.sql, statement.params);
   } catch (error) {
     log.error('操作日志写入失败', error);
   }

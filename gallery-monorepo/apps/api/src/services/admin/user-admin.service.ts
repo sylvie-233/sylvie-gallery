@@ -6,30 +6,31 @@ import type {
   AdminResetPasswordResult,
   AdminUserPage,
   AdminUserRow,
-  Role,
 } from '@sylvie/types';
 
 import { dbClient, queryOneOn, type TransactionConnection } from '../../db/index.js';
 import { HttpError } from '../../utils/http.js';
 import { createOrderNo, normalizePage, toPageResult } from '../../utils/format.js';
+import {
+  buildUserWhere,
+  countAdminUsers,
+  countAllUsers,
+  grantVipToUser,
+  insertPointsNotification,
+  insertStatusNotification,
+  insertVipGrantNotification,
+  insertVipGrantOrder,
+  selectAdminUserById,
+  selectAdminUserForUpdate,
+  selectAdminUsers,
+  updateUserPasswordHash,
+  updateUserPoints,
+  updateUserStatus,
+  type UserRow,
+} from '../../sql/admin/user-admin.sql.js';
 import { logAdminOp } from './log.service.js';
 
-interface UserDbRow {
-  id: number;
-  nickname: string;
-  email: string;
-  role: Role;
-  points: number;
-  vipExpireAt: string | null;
-  status: number;
-  emailVerified: number;
-  createdAt: string;
-}
-
-const USER_SELECT = `id, nickname, email, role, points, vip_expire_at AS vipExpireAt,
-  status, email_verified AS emailVerified, created_at AS createdAt`;
-
-function mapUser(row: UserDbRow): AdminUserRow {
+function mapUser(row: UserRow): AdminUserRow {
   return {
     id: Number(row.id),
     nickname: row.nickname,
@@ -51,41 +52,15 @@ export async function getAdminUsers(query: {
   pageSize?: number;
 }): Promise<AdminUserPage> {
   const { page, pageSize, offset } = normalizePage(query.page, query.pageSize, 8);
-  const conditions = ['is_deleted = 0'];
-  const params: unknown[] = [];
+  const where = buildUserWhere(query);
+  const countStatement = countAdminUsers(where);
+  const allStatement = countAllUsers();
+  const rowsStatement = selectAdminUsers(where, pageSize, offset);
 
-  if (query.role === 'admin' || query.role === 'vip' || query.role === 'member') {
-    conditions.push('role = ?');
-    params.push(query.role);
-  }
-  if (query.status === '1') {
-    conditions.push('status = 1');
-  } else if (query.status === '0') {
-    conditions.push('status = 0');
-  }
-  const keyword = query.keyword?.trim() ?? '';
-  if (keyword) {
-    const like = `%${keyword}%`;
-    conditions.push('(nickname LIKE ? OR email LIKE ?)');
-    params.push(like, like);
-  }
-
-  const where = conditions.join(' AND ');
   const [countRow, allRow, rows] = await Promise.all([
-    dbClient.queryOne<{ total: number }>(
-      `SELECT COUNT(*) AS total FROM \`user\` WHERE ${where}`,
-      params,
-    ),
-    dbClient.queryOne<{ total: number }>(
-      `SELECT COUNT(*) AS total FROM \`user\` WHERE is_deleted = 0`,
-    ),
-    dbClient.query<UserDbRow>(
-      `SELECT ${USER_SELECT} FROM \`user\`
-        WHERE ${where}
-        ORDER BY created_at DESC, id DESC
-        LIMIT ? OFFSET ?`,
-      [...params, pageSize, offset],
-    ),
+    dbClient.queryOne<{ total: number }>(countStatement.sql, countStatement.params),
+    dbClient.queryOne<{ total: number }>(allStatement.sql, allStatement.params),
+    dbClient.query<UserRow>(rowsStatement.sql, rowsStatement.params),
   ]);
 
   return {
@@ -95,24 +70,17 @@ export async function getAdminUsers(query: {
 }
 
 async function getAdminUser(userId: number): Promise<AdminUserRow> {
-  const row = await dbClient.queryOne<UserDbRow>(
-    `SELECT ${USER_SELECT} FROM \`user\`
-      WHERE id = ? AND is_deleted = 0 LIMIT 1`,
-    [userId],
-  );
+  const statement = selectAdminUserById(userId);
+  const row = await dbClient.queryOne<UserRow>(statement.sql, statement.params);
   if (!row) {
     throw new HttpError(404, '用户不存在');
   }
   return mapUser(row);
 }
 
-async function requireOperableUser(conn: TransactionConnection, userId: number): Promise<UserDbRow> {
-  const row = await queryOneOn<UserDbRow>(
-    conn,
-    `SELECT ${USER_SELECT} FROM \`user\`
-      WHERE id = ? AND is_deleted = 0 FOR UPDATE`,
-    [userId],
-  );
+async function requireOperableUser(conn: TransactionConnection, userId: number): Promise<UserRow> {
+  const statement = selectAdminUserForUpdate(userId);
+  const row = await queryOneOn<UserRow>(conn, statement.sql, statement.params);
   if (!row) {
     throw new HttpError(404, '用户不存在');
   }
@@ -138,11 +106,8 @@ export async function adjustAdminUserPoints(
   }
 
   await dbClient.transaction(async (conn) => {
-    const user = await queryOneOn<UserDbRow>(
-      conn,
-      `SELECT ${USER_SELECT} FROM \`user\` WHERE id = ? AND is_deleted = 0 FOR UPDATE`,
-      [userId],
-    );
+    const userStatement = selectAdminUserForUpdate(userId);
+    const user = await queryOneOn<UserRow>(conn, userStatement.sql, userStatement.params);
     if (!user) {
       throw new HttpError(404, '用户不存在');
     }
@@ -151,12 +116,13 @@ export async function adjustAdminUserPoints(
     }
     const before = Number(user.points);
     const after = Math.max(0, before + delta);
-    await conn.query(`UPDATE \`user\` SET points = ? WHERE id = ?`, [after, userId]);
-    await conn.query(
-      `INSERT INTO user_notification (user_id, type, title, content)
-       VALUES (?, 'benefit', '解锁积分调整', ?)`,
-      [userId, `管理员调整了你的解锁积分：${before} → ${after}（${reason}）。`],
+    const pointsStatement = updateUserPoints(after, userId);
+    await conn.query(pointsStatement.sql, pointsStatement.params);
+    const notificationStatement = insertPointsNotification(
+      userId,
+      `管理员调整了你的解锁积分：${before} → ${after}（${reason}）。`,
     );
+    await conn.query(notificationStatement.sql, notificationStatement.params);
     await logAdminOp(
       adminId,
       'user.points',
@@ -177,25 +143,16 @@ export async function grantAdminUserVip(
 ): Promise<AdminUserRow> {
   await dbClient.transaction(async (conn) => {
     const user = await requireOperableUser(conn, userId);
-    await conn.query(
-      `UPDATE \`user\` SET role = 'vip',
-         vip_expire_at = DATE_ADD(GREATEST(COALESCE(vip_expire_at, NOW()), NOW()), INTERVAL 30 DAY)
-       WHERE id = ?`,
-      [userId],
-    );
+    const grantStatement = grantVipToUser(userId);
+    await conn.query(grantStatement.sql, grantStatement.params);
     const orderNo = createOrderNo();
-    await conn.query(
-      `INSERT INTO pay_order (order_no, user_id, biz_type, plan_id, pay_type, amount_cents,
-         points_cost, vip_days, status, paid_at)
-       VALUES (?, ?, 'vip', (SELECT id FROM membership_plan WHERE code = 'monthly' LIMIT 1),
-         'admin', 0, 0, 30, 'paid', NOW())`,
-      [orderNo, userId],
+    const orderStatement = insertVipGrantOrder(orderNo, userId);
+    await conn.query(orderStatement.sql, orderStatement.params);
+    const notificationStatement = insertVipGrantNotification(
+      userId,
+      '管理员为你赠送了 30 天付费会员，权益已在剩余有效期上叠加。',
     );
-    await conn.query(
-      `INSERT INTO user_notification (user_id, type, title, content)
-       VALUES (?, 'benefit', '付费会员已赠送', ?)`,
-      [userId, '管理员为你赠送了 30 天付费会员，权益已在剩余有效期上叠加。'],
-    );
+    await conn.query(notificationStatement.sql, notificationStatement.params);
     await logAdminOp(
       adminId,
       'user.grantvip',
@@ -224,7 +181,8 @@ export async function resetAdminUserPassword(
 
   await dbClient.transaction(async (conn) => {
     const user = await requireOperableUser(conn, userId);
-    await conn.query(`UPDATE \`user\` SET password_hash = ? WHERE id = ?`, [passwordHash, userId]);
+    const passwordStatement = updateUserPasswordHash(passwordHash, userId);
+    await conn.query(passwordStatement.sql, passwordStatement.params);
     await logAdminOp(
       adminId,
       'user.resetpwd',
@@ -247,16 +205,14 @@ export async function toggleAdminUserStatus(
   await dbClient.transaction(async (conn) => {
     const user = await requireOperableUser(conn, userId);
     nextStatus = Number(user.status) === 1 ? 0 : 1;
-    await conn.query(`UPDATE \`user\` SET status = ? WHERE id = ?`, [nextStatus, userId]);
-    await conn.query(
-      `INSERT INTO user_notification (user_id, type, title, content)
-       VALUES (?, 'system', ?, ?)`,
-      [
-        userId,
-        nextStatus === 1 ? '账号已解封' : '账号已被封禁',
-        nextStatus === 1 ? '你的账号已恢复正常使用。' : '你的账号因违规操作已被封禁，请联系管理员。',
-      ],
+    const statusStatement = updateUserStatus(nextStatus, userId);
+    await conn.query(statusStatement.sql, statusStatement.params);
+    const notificationStatement = insertStatusNotification(
+      userId,
+      nextStatus === 1 ? '账号已解封' : '账号已被封禁',
+      nextStatus === 1 ? '你的账号已恢复正常使用。' : '你的账号因违规操作已被封禁，请联系管理员。',
     );
+    await conn.query(notificationStatement.sql, notificationStatement.params);
     await logAdminOp(
       adminId,
       nextStatus === 1 ? 'user.unban' : 'user.ban',

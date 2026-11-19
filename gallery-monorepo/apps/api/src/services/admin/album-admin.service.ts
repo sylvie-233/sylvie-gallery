@@ -9,53 +9,41 @@ import type {
 } from '@sylvie/types';
 
 import { dbClient, queryOn, type TransactionConnection } from '../../db/index.js';
+import {
+  buildAdminAlbumWhere,
+  countAdminAlbums,
+  deleteAlbumTags,
+  insertAdminAlbum,
+  insertAlbumImage,
+  insertAlbumTag,
+  offlineAdminAlbum,
+  publishAdminAlbum,
+  recalcAuthorStats,
+  recalcTagUseCount,
+  selectAdminAlbumDetail,
+  selectAdminAlbumMedia,
+  selectAdminAlbumMediaForSync,
+  selectAdminAlbumRecommend,
+  selectAdminAlbumTags,
+  selectAdminAlbums,
+  selectAlbumTagIds,
+  selectAuthorForAlbum,
+  selectValidTagIds,
+  softDeleteAdminAlbum,
+  softDeleteAlbumImages,
+  softDeleteStaleAlbumImages,
+  updateAdminAlbum,
+  updateAdminAlbumRecommend,
+  updateAlbumImage,
+  type AdminAlbumDbRow,
+  type AlbumTagIdRow,
+  type AlbumTagRow,
+  type MediaDbRow,
+} from '../../sql/admin/album-admin.sql.js';
 import { HttpError } from '../../utils/http.js';
 import { normalizePage, toBool, toPageResult, toSqlDateTime } from '../../utils/format.js';
 import { getObjectSize } from '../storage.service.js';
 import { logAdminOp } from './log.service.js';
-
-interface AdminAlbumDbRow {
-  id: number;
-  title: string;
-  description: string | null;
-  coverUrl: string;
-  imageCount: number;
-  videoCount: number;
-  packageSize: string | number;
-  points: number;
-  viewCount: number;
-  favCount: number;
-  isRecommended: number;
-  status: AdminAlbumStatus;
-  publishedAt: string | null;
-  createdAt: string;
-  authorId: number;
-  authorName: string;
-  authorInitial: string;
-  authorColor: string;
-  authorAvatarUrl: string | null;
-}
-
-interface MediaDbRow {
-  id: number;
-  mediaType: 'image' | 'video';
-  url: string;
-  thumbUrl: string | null;
-  watermarkUrl: string | null;
-  width: number | null;
-  height: number | null;
-  duration: number | null;
-  sortOrder: number;
-}
-
-const ALBUM_SELECT = `a.id, a.title, a.description, a.cover_url AS coverUrl,
-  a.image_count AS imageCount, a.video_count AS videoCount, a.package_size AS packageSize,
-  a.points, a.view_count AS viewCount, a.fav_count AS favCount,
-  a.is_recommended AS isRecommended, a.status, a.published_at AS publishedAt,
-  a.created_at AS createdAt,
-  au.id AS authorId, au.name AS authorName, au.initial AS authorInitial,
-  au.color AS authorColor, au.avatar_url AS authorAvatarUrl`;
-const ALBUM_FROM = `FROM album a JOIN author au ON au.id = a.author_id`;
 
 function mapAlbumRow(row: AdminAlbumDbRow): AdminAlbumRow {
   return {
@@ -98,64 +86,34 @@ export async function getAdminAlbums(query: {
   pageSize?: number;
 }): Promise<PageResult<AdminAlbumRow>> {
   const { page, pageSize, offset } = normalizePage(query.page, query.pageSize, 6);
-  const status = query.status;
-  const keyword = query.keyword?.trim().slice(0, 64) ?? '';
-  const conditions = ['a.is_deleted = 0'];
-  const params: unknown[] = [];
+  const where = buildAdminAlbumWhere({ status: query.status, keyword: query.keyword });
 
-  if (status === 'published' || status === 'draft' || status === 'offline') {
-    conditions.push('a.status = ?');
-    params.push(status);
-  }
-  if (keyword) {
-    const like = `%${keyword}%`;
-    conditions.push('(a.title LIKE ? OR au.name LIKE ?)');
-    params.push(like, like);
-  }
-
-  const where = conditions.join(' AND ');
+  const countStatement = countAdminAlbums(where);
   const countRow = await dbClient.queryOne<{ total: number }>(
-    `SELECT COUNT(*) AS total ${ALBUM_FROM} WHERE ${where}`,
-    params,
+    countStatement.sql,
+    countStatement.params,
   );
-  const rows = await dbClient.query<AdminAlbumDbRow>(
-    `SELECT ${ALBUM_SELECT} ${ALBUM_FROM}
-      WHERE ${where}
-      ORDER BY COALESCE(a.published_at, a.created_at) DESC, a.id DESC
-      LIMIT ? OFFSET ?`,
-    [...params, pageSize, offset],
-  );
+  const listStatement = selectAdminAlbums(where, pageSize, offset);
+  const rows = await dbClient.query<AdminAlbumDbRow>(listStatement.sql, listStatement.params);
 
   return toPageResult(rows.map(mapAlbumRow), Number(countRow?.total ?? 0), page, pageSize);
 }
 
 export async function getAdminAlbumDetail(albumId: number): Promise<AdminAlbumDetail> {
+  const detailStatement = selectAdminAlbumDetail(albumId);
   const row = await dbClient.queryOne<AdminAlbumDbRow>(
-    `SELECT ${ALBUM_SELECT} ${ALBUM_FROM}
-      WHERE a.id = ? AND a.is_deleted = 0
-      LIMIT 1`,
-    [albumId],
+    detailStatement.sql,
+    detailStatement.params,
   );
   if (!row) {
     throw new HttpError(404, '图集不存在');
   }
 
+  const tagsStatement = selectAdminAlbumTags(albumId);
+  const mediaStatement = selectAdminAlbumMedia(albumId);
   const [tagRows, mediaRows] = await Promise.all([
-    dbClient.query<{ id: number; name: string; useCount: number }>(
-      `SELECT t.id, t.name, t.use_count AS useCount
-         FROM album_tag at JOIN tag t ON t.id = at.tag_id
-        WHERE at.album_id = ? AND t.is_deleted = 0
-        ORDER BY t.use_count DESC, t.id ASC`,
-      [albumId],
-    ),
-    dbClient.query<MediaDbRow>(
-      `SELECT id, media_type AS mediaType, url, thumb_url AS thumbUrl,
-              watermark_url AS watermarkUrl, width, height, duration, sort_order AS sortOrder
-         FROM album_image
-        WHERE album_id = ? AND is_deleted = 0
-        ORDER BY sort_order ASC, id ASC`,
-      [albumId],
-    ),
+    dbClient.query<AlbumTagRow>(tagsStatement.sql, tagsStatement.params),
+    dbClient.query<MediaDbRow>(mediaStatement.sql, mediaStatement.params),
   ]);
 
   const tags: TagDto[] = tagRows.map((tag) => ({
@@ -217,29 +175,15 @@ async function recalcTags(conn: TransactionConnection, tagIds: number[]): Promis
   if (unique.length === 0) {
     return;
   }
-  const placeholders = unique.map(() => '?').join(', ');
-  await conn.query(
-    `UPDATE tag t SET use_count = (
-       SELECT COUNT(*) FROM album_tag at
-       JOIN album a ON a.id = at.album_id AND a.status = 'published' AND a.is_deleted = 0
-       WHERE at.tag_id = t.id
-     ) WHERE t.id IN (${placeholders})`,
-    unique,
-  );
+  const statement = recalcTagUseCount(unique);
+  await conn.query(statement.sql, statement.params);
 }
 
 async function recalcAuthors(conn: TransactionConnection, authorIds: number[]): Promise<void> {
   const unique = [...new Set(authorIds)];
   for (const authorId of unique) {
-    await conn.query(
-      `UPDATE author a SET
-         album_count = (SELECT COUNT(*) FROM album al
-           WHERE al.author_id = a.id AND al.status = 'published' AND al.is_deleted = 0),
-         last_update_at = (SELECT MAX(al.published_at) FROM album al
-           WHERE al.author_id = a.id AND al.status = 'published' AND al.is_deleted = 0)
-       WHERE a.id = ?`,
-      [authorId],
-    );
+    const statement = recalcAuthorStats(authorId);
+    await conn.query(statement.sql, statement.params);
   }
 }
 
@@ -261,40 +205,32 @@ async function syncMedia(
       const sortOrder = index + 1;
       if (media.id && existingIds.has(media.id)) {
         usedIds.add(media.id);
-        await conn.query(
-          `UPDATE album_image SET media_type = ?, url = ?, thumb_url = ?, watermark_url = ?,
-                  width = ?, height = ?, duration = ?, sort_order = ?, is_deleted = 0
-            WHERE id = ? AND album_id = ?`,
-          [
-            mediaType,
-            media.url,
-            media.thumbUrl ?? null,
-            media.watermarkUrl ?? null,
-            media.width ?? null,
-            media.height ?? null,
-            media.duration ?? null,
-            sortOrder,
-            media.id,
-            albumId,
-          ],
-        );
+        const statement = updateAlbumImage({
+          mediaType,
+          url: media.url,
+          thumbUrl: media.thumbUrl ?? null,
+          watermarkUrl: media.watermarkUrl ?? null,
+          width: media.width ?? null,
+          height: media.height ?? null,
+          duration: media.duration ?? null,
+          sortOrder,
+          id: media.id,
+          albumId,
+        });
+        await conn.query(statement.sql, statement.params);
       } else {
-        await conn.query(
-          `INSERT INTO album_image (album_id, media_type, url, thumb_url, watermark_url,
-             width, height, duration, sort_order, is_deleted)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
-          [
-            albumId,
-            mediaType,
-            media.url,
-            media.thumbUrl ?? null,
-            media.watermarkUrl ?? null,
-            media.width ?? null,
-            media.height ?? null,
-            media.duration ?? null,
-            sortOrder,
-          ],
-        );
+        const statement = insertAlbumImage({
+          mediaType,
+          url: media.url,
+          thumbUrl: media.thumbUrl ?? null,
+          watermarkUrl: media.watermarkUrl ?? null,
+          width: media.width ?? null,
+          height: media.height ?? null,
+          duration: media.duration ?? null,
+          sortOrder,
+          albumId,
+        });
+        await conn.query(statement.sql, statement.params);
       }
     }
   };
@@ -304,11 +240,8 @@ async function syncMedia(
 
   const staleIds = [...existingIds].filter((id) => !usedIds.has(id));
   if (staleIds.length > 0) {
-    const placeholders = staleIds.map(() => '?').join(', ');
-    await conn.query(
-      `UPDATE album_image SET is_deleted = 1 WHERE album_id = ? AND id IN (${placeholders})`,
-      [albumId, ...staleIds],
-    );
+    const statement = softDeleteStaleAlbumImages(albumId, staleIds);
+    await conn.query(statement.sql, statement.params);
   }
 }
 
@@ -330,19 +263,18 @@ export async function saveAdminAlbum(
   }
   const points = Math.min(99, Math.max(0, Math.floor(input.points)));
 
-  const existing = albumId
-    ? await dbClient.queryOne<AdminAlbumDbRow>(
-        `SELECT ${ALBUM_SELECT} ${ALBUM_FROM} WHERE a.id = ? AND a.is_deleted = 0 LIMIT 1`,
-        [albumId],
-      )
+  const existingStatement = albumId ? selectAdminAlbumDetail(albumId) : null;
+  const existing = existingStatement
+    ? await dbClient.queryOne<AdminAlbumDbRow>(existingStatement.sql, existingStatement.params)
     : null;
   if (albumId && !existing) {
     throw new HttpError(404, '图集不存在');
   }
 
+  const authorStatement = selectAuthorForAlbum(input.authorId);
   const author = await dbClient.queryOne<{ id: number; status: number }>(
-    `SELECT id, status FROM author WHERE id = ? AND is_deleted = 0 LIMIT 1`,
-    [input.authorId],
+    authorStatement.sql,
+    authorStatement.params,
   );
   if (!author) {
     throw new HttpError(400, '归属作者不存在');
@@ -356,10 +288,10 @@ export async function saveAdminAlbum(
     throw new HttpError(400, '最多选择 8 个标签');
   }
   if (tagIds.length > 0) {
-    const placeholders = tagIds.map(() => '?').join(', ');
+    const validStatement = selectValidTagIds(tagIds);
     const validRows = await dbClient.query<{ id: number }>(
-      `SELECT id FROM tag WHERE id IN (${placeholders}) AND is_deleted = 0`,
-      tagIds,
+      validStatement.sql,
+      validStatement.params,
     );
     if (validRows.length !== tagIds.length) {
       throw new HttpError(400, '包含无效标签，请刷新后重试');
@@ -374,14 +306,15 @@ export async function saveAdminAlbum(
   const coverUrl = input.coverUrl || input.images[0]?.url || existing?.coverUrl || '';
   const imageCount = input.images.length;
   const videoCount = input.videos.length;
-  const oldTagIds = existing
-    ? (
-        await dbClient.query<{ tagId: number }>(
-          `SELECT tag_id AS tagId FROM album_tag WHERE album_id = ?`,
-          [albumId],
-        )
-      ).map((row) => Number(row.tagId))
-    : [];
+  let oldTagIds: number[] = [];
+  if (existing && albumId) {
+    const oldTagsStatement = selectAlbumTagIds(albumId);
+    const oldTagRows = await dbClient.query<AlbumTagIdRow>(
+      oldTagsStatement.sql,
+      oldTagsStatement.params,
+    );
+    oldTagIds = oldTagRows.map((row) => Number(row.tagId));
+  }
 
   const targetId = await dbClient.transaction(async (conn) => {
     let currentId = albumId;
@@ -394,58 +327,50 @@ export async function saveAdminAlbum(
     }
 
     if (!currentId) {
-      const [result] = await conn.query(
-        `INSERT INTO album (author_id, title, description, cover_url, image_count, video_count,
-           package_size, points, status, published_at, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          input.authorId,
-          title,
-          input.description?.trim() || null,
-          coverUrl,
-          imageCount,
-          videoCount,
-          packageSize,
-          points,
-          status,
-          publishedAt,
-          adminId,
-        ],
-      );
+      const statement = insertAdminAlbum({
+        authorId: input.authorId,
+        title,
+        description: input.description?.trim() || null,
+        coverUrl,
+        imageCount,
+        videoCount,
+        packageSize,
+        points,
+        status,
+        publishedAt,
+        adminId,
+      });
+      const [result] = await conn.query(statement.sql, statement.params);
       currentId = (result as { insertId: number }).insertId;
     } else {
-      await conn.query(
-        `UPDATE album SET author_id = ?, title = ?, description = ?, cover_url = ?,
-                image_count = ?, video_count = ?, package_size = ?, points = ?,
-                status = ?, published_at = ?
-          WHERE id = ?`,
-        [
-          input.authorId,
-          title,
-          input.description?.trim() || null,
-          coverUrl,
-          imageCount,
-          videoCount,
-          packageSize,
-          points,
-          status,
-          publishedAt,
-          currentId,
-        ],
-      );
+      const statement = updateAdminAlbum({
+        authorId: input.authorId,
+        title,
+        description: input.description?.trim() || null,
+        coverUrl,
+        imageCount,
+        videoCount,
+        packageSize,
+        points,
+        status,
+        publishedAt,
+        albumId: currentId,
+      });
+      await conn.query(statement.sql, statement.params);
     }
 
-    await conn.query(`DELETE FROM album_tag WHERE album_id = ?`, [currentId]);
+    const deleteTagsStatement = deleteAlbumTags(currentId);
+    await conn.query(deleteTagsStatement.sql, deleteTagsStatement.params);
     for (const tagId of tagIds) {
-      await conn.query(`INSERT INTO album_tag (album_id, tag_id) VALUES (?, ?)`, [currentId, tagId]);
+      const statement = insertAlbumTag(currentId, tagId);
+      await conn.query(statement.sql, statement.params);
     }
 
+    const mediaStatement = selectAdminAlbumMediaForSync(currentId);
     const existingMedia = await queryOn<MediaDbRow>(
       conn,
-      `SELECT id, media_type AS mediaType, url, thumb_url AS thumbUrl,
-              watermark_url AS watermarkUrl, width, height, duration, sort_order AS sortOrder
-         FROM album_image WHERE album_id = ? AND is_deleted = 0`,
-      [currentId],
+      mediaStatement.sql,
+      mediaStatement.params,
     );
     await syncMedia(conn, currentId, existingMedia, input.images, input.videos);
 
@@ -487,30 +412,30 @@ export async function updateAdminAlbumStatus(
   status: 'published' | 'offline',
   ip?: string | null,
 ): Promise<AdminAlbumDetail> {
+  const albumStatement = selectAdminAlbumDetail(albumId);
   const album = await dbClient.queryOne<AdminAlbumDbRow>(
-    `SELECT ${ALBUM_SELECT} ${ALBUM_FROM} WHERE a.id = ? AND a.is_deleted = 0 LIMIT 1`,
-    [albumId],
+    albumStatement.sql,
+    albumStatement.params,
   );
   if (!album) {
     throw new HttpError(404, '图集不存在');
   }
 
-  const tagIds = (
-    await dbClient.query<{ tagId: number }>(
-      `SELECT tag_id AS tagId FROM album_tag WHERE album_id = ?`,
-      [albumId],
-    )
-  ).map((row) => Number(row.tagId));
+  const tagIdsStatement = selectAlbumTagIds(albumId);
+  const tagRows = await dbClient.query<AlbumTagIdRow>(
+    tagIdsStatement.sql,
+    tagIdsStatement.params,
+  );
+  const tagIds = tagRows.map((row) => Number(row.tagId));
 
   await dbClient.transaction(async (conn) => {
     if (status === 'published') {
       const publishedAt = album.status === 'published' ? album.publishedAt : toSqlDateTime();
-      await conn.query(
-        `UPDATE album SET status = 'published', published_at = ? WHERE id = ?`,
-        [publishedAt, albumId],
-      );
+      const statement = publishAdminAlbum(publishedAt, albumId);
+      await conn.query(statement.sql, statement.params);
     } else {
-      await conn.query(`UPDATE album SET status = 'offline' WHERE id = ?`, [albumId]);
+      const statement = offlineAdminAlbum(albumId);
+      await conn.query(statement.sql, statement.params);
     }
     await recalcTags(conn, tagIds);
     await recalcAuthors(conn, [album.authorId]);
@@ -526,19 +451,17 @@ export async function toggleAdminAlbumRecommend(
   albumId: number,
   ip?: string | null,
 ): Promise<{ isRecommended: boolean }> {
+  const albumStatement = selectAdminAlbumRecommend(albumId);
   const album = await dbClient.queryOne<{ id: number; title: string; isRecommended: number }>(
-    `SELECT id, title, is_recommended AS isRecommended FROM album
-      WHERE id = ? AND is_deleted = 0 LIMIT 1`,
-    [albumId],
+    albumStatement.sql,
+    albumStatement.params,
   );
   if (!album) {
     throw new HttpError(404, '图集不存在');
   }
   const next = !toBool(album.isRecommended);
-  await dbClient.execute(`UPDATE album SET is_recommended = ? WHERE id = ?`, [
-    next ? 1 : 0,
-    albumId,
-  ]);
+  const updateStatement = updateAdminAlbumRecommend(next ? 1 : 0, albumId);
+  await dbClient.execute(updateStatement.sql, updateStatement.params);
   await logAdminOp(
     adminId,
     next ? 'album.recommend' : 'album.unrecommend',
@@ -555,23 +478,26 @@ export async function deleteAdminAlbum(
   albumId: number,
   ip?: string | null,
 ): Promise<void> {
+  const albumStatement = selectAdminAlbumDetail(albumId);
   const album = await dbClient.queryOne<AdminAlbumDbRow>(
-    `SELECT ${ALBUM_SELECT} ${ALBUM_FROM} WHERE a.id = ? AND a.is_deleted = 0 LIMIT 1`,
-    [albumId],
+    albumStatement.sql,
+    albumStatement.params,
   );
   if (!album) {
     throw new HttpError(404, '图集不存在');
   }
-  const tagIds = (
-    await dbClient.query<{ tagId: number }>(
-      `SELECT tag_id AS tagId FROM album_tag WHERE album_id = ?`,
-      [albumId],
-    )
-  ).map((row) => Number(row.tagId));
+  const tagIdsStatement = selectAlbumTagIds(albumId);
+  const tagRows = await dbClient.query<AlbumTagIdRow>(
+    tagIdsStatement.sql,
+    tagIdsStatement.params,
+  );
+  const tagIds = tagRows.map((row) => Number(row.tagId));
 
   await dbClient.transaction(async (conn) => {
-    await conn.query(`UPDATE album SET is_deleted = 1 WHERE id = ?`, [albumId]);
-    await conn.query(`UPDATE album_image SET is_deleted = 1 WHERE album_id = ?`, [albumId]);
+    const deleteAlbumStatement = softDeleteAdminAlbum(albumId);
+    await conn.query(deleteAlbumStatement.sql, deleteAlbumStatement.params);
+    const deleteMediaStatement = softDeleteAlbumImages(albumId);
+    await conn.query(deleteMediaStatement.sql, deleteMediaStatement.params);
     await recalcTags(conn, tagIds);
     await recalcAuthors(conn, [album.authorId]);
   });

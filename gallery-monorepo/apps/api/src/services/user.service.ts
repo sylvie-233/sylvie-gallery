@@ -1,33 +1,26 @@
 import type { CheckinResult, CheckinStatus, UserProfile } from '@sylvie/types';
 
 import { dbClient, queryOneOn } from '../db/index.js';
+import {
+  addUserPoints,
+  buildUpdateUserProfile,
+  insertUserCheckin,
+  selectCheckinPointsConfig,
+  selectTodayCheckinCount,
+  selectUnreadCount,
+  selectUserById,
+  selectUserPoints,
+  setUserAvatarUrl,
+  type PointsRow,
+  type UserRow,
+} from '../sql/user.sql.js';
 import type { AuthUser } from '../types/context.js';
 import { HttpError } from '../utils/http.js';
 import { effectiveRole, isVipActive } from '../utils/format.js';
 
-interface UserRow {
-  id: number;
-  email: string;
-  nickname: string;
-  avatarType: number;
-  avatarIndex: number;
-  avatarUrl: string | null;
-  role: 'member' | 'vip' | 'admin';
-  points: number;
-  vipExpireAt: string | null;
-  emailVerified: number;
-  createdAt: string;
-}
-
-const USER_COLUMNS = `id, email, nickname, avatar_type AS avatarType, avatar_index AS avatarIndex,
-  avatar_url AS avatarUrl, role, points, vip_expire_at AS vipExpireAt,
-  email_verified AS emailVerified, created_at AS createdAt`;
-
 export async function countUnread(userId: number): Promise<number> {
-  const row = await dbClient.queryOne<{ total: number }>(
-    `SELECT COUNT(*) AS total FROM user_notification WHERE user_id = ? AND is_read = 0`,
-    [userId],
-  );
+  const statement = selectUnreadCount(userId);
+  const row = await dbClient.queryOne<{ total: number }>(statement.sql, statement.params);
   return Number(row?.total ?? 0);
 }
 
@@ -52,10 +45,8 @@ export function mapProfile(row: UserRow, unreadCount: number): UserProfile {
 }
 
 export async function getProfileById(userId: number): Promise<UserProfile> {
-  const row = await dbClient.queryOne<UserRow>(
-    `SELECT ${USER_COLUMNS} FROM \`user\` WHERE id = ? AND is_deleted = 0 LIMIT 1`,
-    [userId],
-  );
+  const statement = selectUserById(userId);
+  const row = await dbClient.queryOne<UserRow>(statement.sql, statement.params);
   if (!row) {
     throw new HttpError(404, '用户不存在');
   }
@@ -70,13 +61,16 @@ export function isVipUser(user: AuthUser | undefined): boolean {
 }
 
 export async function getCheckinStatus(userId: number): Promise<CheckinStatus> {
+  const configStatement = selectCheckinPointsConfig();
   const config = await dbClient.queryOne<{ value: string }>(
-    `SELECT config_value AS value FROM sys_config WHERE config_key = 'checkin.points' LIMIT 1`,
+    configStatement.sql,
+    configStatement.params,
   );
   const dailyPoints = Number(config?.value ?? 2);
+  const checkinStatement = selectTodayCheckinCount(userId);
   const row = await dbClient.queryOne<{ total: number }>(
-    `SELECT COUNT(*) AS total FROM user_checkin WHERE user_id = ? AND checkin_date = CURDATE()`,
-    [userId],
+    checkinStatement.sql,
+    checkinStatement.params,
   );
   return { checkedIn: Number(row?.total ?? 0) > 0, dailyPoints };
 }
@@ -93,18 +87,17 @@ export async function checkin(userId: number): Promise<CheckinResult> {
   }
 
   const totalPoints = await dbClient.transaction(async (conn) => {
-    await conn.query(
-      `INSERT INTO user_checkin (user_id, points, checkin_date) VALUES (?, ?, CURDATE())`,
-      [userId, status.dailyPoints],
-    );
-    await conn.query(`UPDATE \`user\` SET points = points + ? WHERE id = ?`, [
-      status.dailyPoints,
-      userId,
-    ]);
-    const row = await queryOneOn<{ points: number }>(
+    const checkinStatement = insertUserCheckin(userId, status.dailyPoints);
+    await conn.query(checkinStatement.sql, checkinStatement.params);
+
+    const pointsStatement = addUserPoints(status.dailyPoints, userId);
+    await conn.query(pointsStatement.sql, pointsStatement.params);
+
+    const selectStatement = selectUserPoints(userId);
+    const row = await queryOneOn<PointsRow>(
       conn,
-      `SELECT points FROM \`user\` WHERE id = ? LIMIT 1`,
-      [userId],
+      selectStatement.sql,
+      selectStatement.params,
     );
     return Number(row?.points ?? 0);
   });
@@ -118,10 +111,8 @@ export async function checkin(userId: number): Promise<CheckinResult> {
 }
 
 async function getPoints(userId: number): Promise<number | null> {
-  const row = await dbClient.queryOne<{ points: number }>(
-    `SELECT points FROM \`user\` WHERE id = ? LIMIT 1`,
-    [userId],
-  );
+  const statement = selectUserPoints(userId);
+  const row = await dbClient.queryOne<PointsRow>(statement.sql, statement.params);
   return row ? Number(row.points) : null;
 }
 
@@ -129,34 +120,17 @@ export async function updateProfile(
   userId: number,
   input: { nickname?: string; avatarType?: number; avatarIndex?: number },
 ): Promise<UserProfile> {
-  const sets: string[] = [];
-  const params: unknown[] = [];
-
-  if (input.nickname !== undefined) {
-    sets.push('nickname = ?');
-    params.push(input.nickname);
-  }
-  if (input.avatarType !== undefined) {
-    sets.push('avatar_type = ?');
-    params.push(input.avatarType);
-    if (input.avatarType === 0 && input.avatarIndex !== undefined) {
-      sets.push('avatar_index = ?');
-      params.push(input.avatarIndex);
-    }
-  }
-  if (sets.length === 0) {
+  const statement = buildUpdateUserProfile(userId, input);
+  if (!statement) {
     return getProfileById(userId);
   }
 
-  params.push(userId);
-  await dbClient.execute(`UPDATE \`user\` SET ${sets.join(', ')} WHERE id = ?`, params);
+  await dbClient.execute(statement.sql, statement.params);
   return getProfileById(userId);
 }
 
 export async function setAvatarUrl(userId: number, avatarUrl: string): Promise<UserProfile> {
-  await dbClient.execute(
-    `UPDATE \`user\` SET avatar_type = 1, avatar_url = ? WHERE id = ?`,
-    [avatarUrl, userId],
-  );
+  const statement = setUserAvatarUrl(avatarUrl, userId);
+  await dbClient.execute(statement.sql, statement.params);
   return getProfileById(userId);
 }

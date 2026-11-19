@@ -1,26 +1,21 @@
 import type { FriendLinkDto, SiteBootstrap } from '@sylvie/types';
 
 import { dbClient } from '../db/index.js';
+import {
+  selectConfigMap,
+  selectFriendLinks,
+  selectSiteStats,
+  type FriendLinkRow,
+} from '../sql/site.sql.js';
 import { listHomeAnnouncements } from './announcement.service.js';
 import { listAlbums } from './album.service.js';
 import { listAuthors } from './author.service.js';
 import { listPlans } from './order.service.js';
 import { listTags } from './tag.service.js';
 
-interface FriendLinkRow {
-  id: number;
-  name: string;
-  slogan: string | null;
-  url: string;
-}
-
 export async function getFriendLinks(): Promise<FriendLinkDto[]> {
-  const rows = await dbClient.query<FriendLinkRow>(
-    `SELECT id, name, slogan, url
-       FROM friend_link
-      WHERE status = 1
-      ORDER BY sort_order ASC, id ASC`,
-  );
+  const statement = selectFriendLinks();
+  const rows = await dbClient.query<FriendLinkRow>(statement.sql, statement.params);
   return rows.map((row) => ({
     id: Number(row.id),
     name: row.name,
@@ -30,8 +25,10 @@ export async function getFriendLinks(): Promise<FriendLinkDto[]> {
 }
 
 export async function getConfigMap(): Promise<Record<string, string>> {
+  const statement = selectConfigMap();
   const rows = await dbClient.query<{ key: string; value: string | null }>(
-    `SELECT config_key AS \`key\`, config_value AS value FROM sys_config`,
+    statement.sql,
+    statement.params,
   );
   const map: Record<string, string> = {};
   for (const row of rows) {
@@ -51,20 +48,16 @@ export async function getSiteBootstrap(userId?: number): Promise<SiteBootstrap> 
       listAuthors(undefined, userId),
       listAlbums({ page: 1, pageSize: 24, sort: 'new' }, userId),
       listHomeAnnouncements(4),
-      dbClient.queryOne<{
-        albumCount: number;
-        authorCount: number;
-        imageCount: string | number;
-        todayAdded: number;
-        latestDate: string | null;
-      }>(
-        `SELECT
-           (SELECT COUNT(*) FROM album WHERE status = 'published' AND is_deleted = 0) AS albumCount,
-           (SELECT COUNT(*) FROM author WHERE status = 1 AND is_deleted = 0) AS authorCount,
-           (SELECT COALESCE(SUM(image_count), 0) FROM album WHERE status = 'published' AND is_deleted = 0) AS imageCount,
-           (SELECT COUNT(*) FROM album WHERE status = 'published' AND is_deleted = 0 AND DATE(published_at) = CURDATE()) AS todayAdded,
-           (SELECT MAX(DATE(published_at)) FROM album WHERE status = 'published' AND is_deleted = 0) AS latestDate`,
-      ),
+      (() => {
+        const statement = selectSiteStats();
+        return dbClient.queryOne<{
+          albumCount: number;
+          authorCount: number;
+          imageCount: string | number;
+          todayAdded: number;
+          latestDate: string | null;
+        }>(statement.sql, statement.params);
+      })(),
     ]);
 
   return {

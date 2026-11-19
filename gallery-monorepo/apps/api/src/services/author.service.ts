@@ -1,31 +1,21 @@
 import type { AuthorDetailDto, AuthorDto, PageResult } from '@sylvie/types';
 
 import { dbClient, queryOneOn } from '../db/index.js';
+import {
+  countSubscribedAuthors,
+  deleteSubscription,
+  insertSubscription,
+  selectActiveAuthorId,
+  selectAuthorById,
+  selectAuthors,
+  selectSubscribedAuthorIds,
+  selectSubscribedAuthors,
+  selectSubscriptionForUpdate,
+  type AuthorRow,
+} from '../sql/author.sql.js';
 import { HttpError } from '../utils/http.js';
 import { normalizePage, toPageResult } from '../utils/format.js';
 import { listAlbums } from './album.service.js';
-
-interface AuthorRow {
-  id: number;
-  name: string;
-  alias: string | null;
-  initial: string;
-  avatarUrl: string | null;
-  coverUrl: string | null;
-  color: string;
-  bio: string | null;
-  styleTags: string | null;
-  albumCount: number;
-  lastUpdateAt: string | null;
-  sortWeight: number;
-}
-
-const AUTHOR_COLUMNS = `a.id, a.name, a.alias, a.initial, a.avatar_url AS avatarUrl,
-  COALESCE(a.cover_url, (SELECT al.cover_url FROM album al
-    WHERE al.author_id = a.id AND al.status = 'published' AND al.is_deleted = 0
-    ORDER BY al.published_at DESC, al.id DESC LIMIT 1)) AS coverUrl,
-  a.color, a.bio, a.style_tags AS styleTags, a.album_count AS albumCount,
-  a.last_update_at AS lastUpdateAt, a.sort_weight AS sortWeight`;
 
 function mapAuthor(row: AuthorRow, subscribed: boolean): AuthorDto {
   return {
@@ -54,31 +44,16 @@ async function loadSubscribedIds(userId: number | undefined): Promise<Set<number
   if (!userId) {
     return new Set();
   }
-  const rows = await dbClient.query<{ authorId: number }>(
-    `SELECT author_id AS authorId FROM subscription WHERE user_id = ?`,
-    [userId],
-  );
+  const statement = selectSubscribedAuthorIds(userId);
+  const rows = await dbClient.query<{ authorId: number }>(statement.sql, statement.params);
   return new Set(rows.map((row) => Number(row.authorId)));
 }
 
 /** 作者列表：按排序权重降序，支持姓名 / 别名 / 风格标签搜索。 */
 export async function listAuthors(keyword?: string, userId?: number): Promise<AuthorDto[]> {
   const term = keyword?.trim().slice(0, 32) ?? '';
-  const params: unknown[] = [];
-  let search = '';
-  if (term) {
-    const like = `%${term}%`;
-    search = 'AND (a.name LIKE ? OR a.alias LIKE ? OR a.style_tags LIKE ?)';
-    params.push(like, like, like);
-  }
-
-  const rows = await dbClient.query<AuthorRow>(
-    `SELECT ${AUTHOR_COLUMNS}
-       FROM author a
-      WHERE a.status = 1 AND a.is_deleted = 0 ${search}
-      ORDER BY a.sort_weight DESC, a.album_count DESC, a.id ASC`,
-    params,
-  );
+  const statement = selectAuthors(term);
+  const rows = await dbClient.query<AuthorRow>(statement.sql, statement.params);
   const subscribed = await loadSubscribedIds(userId);
   return rows.map((row) => mapAuthor(row, subscribed.has(Number(row.id))));
 }
@@ -90,13 +65,8 @@ export async function getAuthorDetail(
   page = 1,
   pageSize = 12,
 ): Promise<AuthorDetailDto> {
-  const row = await dbClient.queryOne<AuthorRow>(
-    `SELECT ${AUTHOR_COLUMNS}
-       FROM author a
-      WHERE a.id = ? AND a.status = 1 AND a.is_deleted = 0
-      LIMIT 1`,
-    [authorId],
-  );
+  const statement = selectAuthorById(authorId);
+  const row = await dbClient.queryOne<AuthorRow>(statement.sql, statement.params);
   if (!row) {
     throw new HttpError(404, '作者不存在或已隐藏');
   }
@@ -125,24 +95,20 @@ export async function listSubscribedAuthors(
   pageSize = 12,
 ): Promise<PageResult<AuthorDto>> {
   const normalized = normalizePage(page, pageSize, 12);
-  const where = `s.user_id = ? AND a.status = 1 AND a.is_deleted = 0`;
 
+  const countStatement = countSubscribedAuthors(userId);
   const countRow = await dbClient.queryOne<{ total: number }>(
-    `SELECT COUNT(*) AS total
-       FROM subscription s JOIN author a ON a.id = s.author_id
-      WHERE ${where}`,
-    [userId],
+    countStatement.sql,
+    countStatement.params,
   );
   const total = Number(countRow?.total ?? 0);
 
-  const rows = await dbClient.query<AuthorRow>(
-    `SELECT ${AUTHOR_COLUMNS}
-       FROM subscription s JOIN author a ON a.id = s.author_id
-      WHERE ${where}
-      ORDER BY s.created_at DESC, s.id DESC
-      LIMIT ? OFFSET ?`,
-    [userId, normalized.pageSize, normalized.offset],
+  const pageStatement = selectSubscribedAuthors(
+    userId,
+    normalized.pageSize,
+    normalized.offset,
   );
+  const rows = await dbClient.query<AuthorRow>(pageStatement.sql, pageStatement.params);
 
   return toPageResult(
     rows.map((row) => mapAuthor(row, true)),
@@ -157,28 +123,29 @@ export async function toggleSubscription(
   authorId: number,
   userId: number,
 ): Promise<{ subscribed: boolean }> {
+  const authorStatement = selectActiveAuthorId(authorId);
   const author = await dbClient.queryOne<{ id: number }>(
-    `SELECT id FROM author WHERE id = ? AND status = 1 AND is_deleted = 0 LIMIT 1`,
-    [authorId],
+    authorStatement.sql,
+    authorStatement.params,
   );
   if (!author) {
     throw new HttpError(404, '作者不存在或已隐藏');
   }
 
   return dbClient.transaction(async (conn) => {
+    const existingStatement = selectSubscriptionForUpdate(userId, authorId);
     const existing = await queryOneOn<{ id: number }>(
       conn,
-      `SELECT id FROM subscription WHERE user_id = ? AND author_id = ? FOR UPDATE`,
-      [userId, authorId],
+      existingStatement.sql,
+      existingStatement.params,
     );
     if (existing) {
-      await conn.query(`DELETE FROM subscription WHERE id = ?`, [existing.id]);
+      const deleteStatement = deleteSubscription(Number(existing.id));
+      await conn.query(deleteStatement.sql, deleteStatement.params);
       return { subscribed: false };
     }
-    await conn.query(`INSERT INTO subscription (user_id, author_id) VALUES (?, ?)`, [
-      userId,
-      authorId,
-    ]);
+    const insertStatement = insertSubscription(userId, authorId);
+    await conn.query(insertStatement.sql, insertStatement.params);
     return { subscribed: true };
   });
 }

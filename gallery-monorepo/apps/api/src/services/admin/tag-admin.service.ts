@@ -1,17 +1,26 @@
 import type { AdminTagRow, PageResult } from '@sylvie/types';
 
 import { dbClient } from '../../db/index.js';
+import {
+  buildAdminTagWhere,
+  countAdminTags,
+  countTagAlbumUsage,
+  insertAdminTag,
+  restoreAdminTag,
+  selectAdminTagById,
+  selectAdminTags,
+  selectTagByName,
+  selectTagDuplicate,
+  selectTagForEdit,
+  selectTagForToggle,
+  softDeleteAdminTag,
+  updateAdminTagName,
+  updateAdminTagStatus,
+  type TagDbRow,
+} from '../../sql/admin/tag-admin.sql.js';
 import { HttpError } from '../../utils/http.js';
 import { normalizePage, toPageResult } from '../../utils/format.js';
 import { logAdminOp } from './log.service.js';
-
-interface TagDbRow {
-  id: number;
-  name: string;
-  useCount: number;
-  status: number;
-  createdAt: string;
-}
 
 function mapTag(row: TagDbRow): AdminTagRow {
   return {
@@ -42,33 +51,15 @@ export async function getAdminTags(query: {
   pageSize?: number;
 }): Promise<PageResult<AdminTagRow>> {
   const { page, pageSize, offset } = normalizePage(query.page, query.pageSize, 8, 200);
-  const conditions = ['is_deleted = 0'];
-  const params: unknown[] = [];
+  const where = buildAdminTagWhere(query);
 
-  if (query.status === 'on') {
-    conditions.push('status = 1');
-  } else if (query.status === 'off') {
-    conditions.push('status = 0');
-  }
-  const keyword = query.keyword?.trim() ?? '';
-  if (keyword) {
-    conditions.push('name LIKE ?');
-    params.push(`%${keyword}%`);
-  }
-
-  const where = conditions.join(' AND ');
+  const countStatement = countAdminTags(where);
   const countRow = await dbClient.queryOne<{ total: number }>(
-    `SELECT COUNT(*) AS total FROM tag WHERE ${where}`,
-    params,
+    countStatement.sql,
+    countStatement.params,
   );
-  const rows = await dbClient.query<TagDbRow>(
-    `SELECT id, name, use_count AS useCount, status, created_at AS createdAt
-       FROM tag
-      WHERE ${where}
-      ORDER BY use_count DESC, id DESC
-      LIMIT ? OFFSET ?`,
-    [...params, pageSize, offset],
-  );
+  const listStatement = selectAdminTags(where, pageSize, offset);
+  const rows = await dbClient.query<TagDbRow>(listStatement.sql, listStatement.params);
   return toPageResult(rows.map(mapTag), Number(countRow?.total ?? 0), page, pageSize);
 }
 
@@ -78,9 +69,10 @@ export async function createAdminTag(
   ip?: string | null,
 ): Promise<AdminTagRow> {
   const name = validateTagName(nameInput);
+  const existingStatement = selectTagByName(name);
   const existing = await dbClient.queryOne<{ id: number; isDeleted: number }>(
-    `SELECT id, is_deleted AS isDeleted FROM tag WHERE name = ? LIMIT 1`,
-    [name],
+    existingStatement.sql,
+    existingStatement.params,
   );
   if (existing && Number(existing.isDeleted) === 0) {
     throw new HttpError(409, '该标签已存在');
@@ -88,25 +80,18 @@ export async function createAdminTag(
 
   let tagId: number;
   if (existing) {
-    await dbClient.execute(
-      `UPDATE tag SET is_deleted = 0, status = 1, created_by = ? WHERE id = ?`,
-      [adminId, existing.id],
-    );
+    const statement = restoreAdminTag(adminId, existing.id);
+    await dbClient.execute(statement.sql, statement.params);
     tagId = Number(existing.id);
   } else {
-    const [result] = await dbClient.pool.query(
-      `INSERT INTO tag (name, use_count, status, created_by) VALUES (?, 0, 1, ?)`,
-      [name, adminId],
-    );
+    const statement = insertAdminTag(name, adminId);
+    const [result] = await dbClient.pool.query(statement.sql, statement.params);
     tagId = (result as { insertId: number }).insertId;
   }
 
   await logAdminOp(adminId, 'tag.create', 'tag', tagId, { name }, ip);
-  const row = await dbClient.queryOne<TagDbRow>(
-    `SELECT id, name, use_count AS useCount, status, created_at AS createdAt
-       FROM tag WHERE id = ? LIMIT 1`,
-    [tagId],
-  );
+  const detailStatement = selectAdminTagById(tagId);
+  const row = await dbClient.queryOne<TagDbRow>(detailStatement.sql, detailStatement.params);
   if (!row) {
     throw new HttpError(500, '标签创建失败');
   }
@@ -120,28 +105,28 @@ export async function updateAdminTag(
   ip?: string | null,
 ): Promise<AdminTagRow> {
   const name = validateTagName(nameInput);
+  const tagStatement = selectTagForEdit(tagId);
   const tag = await dbClient.queryOne<{ id: number; name: string }>(
-    `SELECT id, name FROM tag WHERE id = ? AND is_deleted = 0 LIMIT 1`,
-    [tagId],
+    tagStatement.sql,
+    tagStatement.params,
   );
   if (!tag) {
     throw new HttpError(404, '标签不存在');
   }
+  const duplicateStatement = selectTagDuplicate(name, tagId);
   const duplicate = await dbClient.queryOne<{ id: number }>(
-    `SELECT id FROM tag WHERE name = ? AND id <> ? LIMIT 1`,
-    [name, tagId],
+    duplicateStatement.sql,
+    duplicateStatement.params,
   );
   if (duplicate) {
     throw new HttpError(409, '该标签名已被使用');
   }
 
-  await dbClient.execute(`UPDATE tag SET name = ? WHERE id = ?`, [name, tagId]);
+  const updateStatement = updateAdminTagName(name, tagId);
+  await dbClient.execute(updateStatement.sql, updateStatement.params);
   await logAdminOp(adminId, 'tag.edit', 'tag', tagId, { before: tag.name, after: name }, ip);
-  const row = await dbClient.queryOne<TagDbRow>(
-    `SELECT id, name, use_count AS useCount, status, created_at AS createdAt
-       FROM tag WHERE id = ? LIMIT 1`,
-    [tagId],
-  );
+  const detailStatement = selectAdminTagById(tagId);
+  const row = await dbClient.queryOne<TagDbRow>(detailStatement.sql, detailStatement.params);
   if (!row) {
     throw new HttpError(500, '标签更新失败');
   }
@@ -153,15 +138,17 @@ export async function toggleAdminTag(
   tagId: number,
   ip?: string | null,
 ): Promise<AdminTagRow> {
+  const tagStatement = selectTagForToggle(tagId);
   const tag = await dbClient.queryOne<{ id: number; name: string; status: number }>(
-    `SELECT id, name, status FROM tag WHERE id = ? AND is_deleted = 0 LIMIT 1`,
-    [tagId],
+    tagStatement.sql,
+    tagStatement.params,
   );
   if (!tag) {
     throw new HttpError(404, '标签不存在');
   }
   const next = Number(tag.status) === 1 ? 0 : 1;
-  await dbClient.execute(`UPDATE tag SET status = ? WHERE id = ?`, [next, tagId]);
+  const updateStatement = updateAdminTagStatus(next, tagId);
+  await dbClient.execute(updateStatement.sql, updateStatement.params);
   await logAdminOp(
     adminId,
     next === 1 ? 'tag.show' : 'tag.hide',
@@ -170,11 +157,8 @@ export async function toggleAdminTag(
     { name: tag.name, status: next },
     ip,
   );
-  const row = await dbClient.queryOne<TagDbRow>(
-    `SELECT id, name, use_count AS useCount, status, created_at AS createdAt
-       FROM tag WHERE id = ? LIMIT 1`,
-    [tagId],
-  );
+  const detailStatement = selectAdminTagById(tagId);
+  const row = await dbClient.queryOne<TagDbRow>(detailStatement.sql, detailStatement.params);
   if (!row) {
     throw new HttpError(500, '标签更新失败');
   }
@@ -186,23 +170,24 @@ export async function deleteAdminTag(
   tagId: number,
   ip?: string | null,
 ): Promise<void> {
+  const tagStatement = selectTagForEdit(tagId);
   const tag = await dbClient.queryOne<{ id: number; name: string }>(
-    `SELECT id, name FROM tag WHERE id = ? AND is_deleted = 0 LIMIT 1`,
-    [tagId],
+    tagStatement.sql,
+    tagStatement.params,
   );
   if (!tag) {
     throw new HttpError(404, '标签不存在');
   }
+  const usedStatement = countTagAlbumUsage(tagId);
   const usedRow = await dbClient.queryOne<{ total: number }>(
-    `SELECT COUNT(*) AS total
-       FROM album_tag at JOIN album a ON a.id = at.album_id AND a.is_deleted = 0
-      WHERE at.tag_id = ?`,
-    [tagId],
+    usedStatement.sql,
+    usedStatement.params,
   );
   const used = Number(usedRow?.total ?? 0);
   if (used > 0) {
     throw new HttpError(400, `已被 ${used} 套图集收录，不可删除，可先隐藏`);
   }
-  await dbClient.execute(`UPDATE tag SET is_deleted = 1, status = 0 WHERE id = ?`, [tagId]);
+  const deleteStatement = softDeleteAdminTag(tagId);
+  await dbClient.execute(deleteStatement.sql, deleteStatement.params);
   await logAdminOp(adminId, 'tag.delete', 'tag', tagId, { name: tag.name }, ip);
 }

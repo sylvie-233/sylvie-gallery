@@ -27,7 +27,7 @@
 | `scripts/init/02-demo-data.sql` | 演示数据（37 套图集 / 1140 条媒体 / 公告 / 评论 / 收藏 / 订单），由 `scripts/generate-demo-data.mjs` 生成。 |
 | `gallery-monorepo/apps/web` | Next.js 15 App Router 前台，Tailwind CSS v4 + SWR；通过 rewrites 代理 `/api`。 |
 | `gallery-monorepo/apps/admin` | React + Vite + React Router 管理后台，Tailwind CSS v4 + SWR；开发端口 3002。 |
-| `gallery-monorepo/apps/api` | Hono API：JWT、MySQL 参数化查询、RustFS 对象存储、Sharp 图片处理、ZIP 下载；`openapi/spec.ts` 维护 OpenAPI 3.1 描述，`/api/docs` 为 Scalar 文档页。 |
+| `gallery-monorepo/apps/api` | Hono API：JWT、MySQL 参数化查询、RustFS 对象存储、Sharp 图片处理、ZIP 下载。分层：`routes/` 用 `@hono/zod-openapi` 的 `createRoute` 声明接口 → `controllers/` 处理请求 → `services/` 编排业务 → `sql/` 构建参数化 SQL。`/api/docs` 为 Scalar 文档页，`/api/openapi.json` 由路由声明自动生成。 |
 | `gallery-monorepo/packages/types` | API 响应、DTO、枚举常量；Web 与 API 共用。 |
 | `gallery-monorepo/packages/db` | Drizzle schema（24 张表，`src/schema/`）、mysql2 连接池、事务与参数化查询封装。 |
 | `gallery-monorepo/packages/logger` | 基于 pino 的共享日志层：统一接口、敏感字段脱敏、开发彩色输出、`child` / `scope` 子日志。 |
@@ -53,7 +53,7 @@ pnpm dev:admin      # http://localhost:3002
 
 演示账号密码均为 `123456`：`admin@sylvie.cc`（管理员，后台也可输入简写 `admin`）、`demo@sylvie.cc`（注册会员）、`vip@sylvie.cc`（付费会员）。开发验证码固定为 `123456`。
 
-API 启动后可访问 `http://localhost:3000/api/docs` 查看接口文档，OpenAPI JSON 位于 `/api/openapi.json`。修改接口时需同步更新 `apps/api/src/openapi/spec.ts`。
+API 启动后可访问 `http://localhost:3000/api/docs` 查看接口文档，OpenAPI JSON 位于 `/api/openapi.json`。接口定义以 `createRoute` 声明为准，新增/调整接口时同步更新路由声明、validators 与响应模型。
 
 ## 跨文档业务规则
 
@@ -76,8 +76,8 @@ MySQL 8 / InnoDB / `utf8mb4_unicode_ci`；主键统一 `BIGINT UNSIGNED AUTO_INC
 - 前台登录态存 `localStorage`（`sylvie_token`），请求通过 `Authorization: Bearer` 传递；不要假设存在 Cookie 会话。
 - 后台独立登录态存 `sylvie_admin_token`（勾选「记住我」用 localStorage，否则 sessionStorage）；所有后台接口位于 `/api/admin/*`，由 `authenticate + requireAdmin` 保护。
 - 后台所有写操作必须调用 `logAdminOp` 写入 `admin_op_log`；标签收录数、作者图集数、评论数等冗余字段需在同一事务或操作后重算。
-- API 数据库访问使用参数化 SQL；列表计数与冗余字段需事务内同步。Drizzle schema 仅作为表结构的类型化映射（`db.db` 查询构建器），现有服务层仍以参数化 SQL 为主。
-- OpenAPI 文档为手工维护的单一描述文件，新增/调整路由时同步更新 `apps/api/src/openapi/spec.ts`。
+- API 数据库访问使用参数化 SQL，语句统一放在 `apps/api/src/sql/*.sql.ts` 并以 `{ sql, params }` 返回；列表计数与冗余字段需事务内同步。Drizzle schema 仅作为表结构的类型化映射（`db.db` 查询构建器），服务层仍以参数化 SQL 为主。
+- OpenAPI 文档由 `createRoute` 的路由声明自动生成（`@hono/zod-openapi`），不要再手写 spec 文件。新增接口时在 `routes/` 声明请求与响应模型（`validators/` 放请求 schema，`openapi/models/` 放响应模型），handler 放 `controllers/`。
 - 日志统一使用 `@sylvie/logger`：API 侧从 `apps/api/src/utils/logger.ts` 取实例，按模块用 `moduleLogger('模块名')` 派生；不要直接使用 `console.*`（`config/env.ts` 在日志初始化前的校验失败除外）。
 - 原型仅作视觉与交互参考，实际页面以 Web/Admin 实现为准；三者视觉语言一致：深色背景、玫红 `#ff2d55`、渐变「希」字 Logo。
 

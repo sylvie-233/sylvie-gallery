@@ -1,8 +1,6 @@
 import type {
   MembershipPlanDto,
   OrderDto,
-  OrderStatus,
-  PayType,
   PurchaseData,
   UnlockDto,
   VipOrderResult,
@@ -10,45 +8,40 @@ import type {
 
 import { env } from '../config/env.js';
 import { dbClient, queryOneOn } from '../db/index.js';
+import {
+  activateVipAfterPayment,
+  countAlbumUnlocks,
+  countPaidVipOrders,
+  deductUserPoints,
+  insertAlbumUnlock,
+  insertAlbumUnlockedNotification,
+  insertOrderPaidNotification,
+  insertUnlockOrder,
+  insertVipOrder,
+  markOrderPaid,
+  selectAlbumForUnlockForUpdate,
+  selectAlbumUnlock,
+  selectAlbumUnlocks,
+  selectOrderById,
+  selectOrderByNo,
+  selectPaidVipOrders,
+  selectPayOrderForUpdate,
+  selectPlanByCode,
+  selectPlans,
+  selectPurchaseOverview,
+  selectUserForUnlockForUpdate,
+  type OrderRow,
+  type PayOrderLockRow,
+  type PlanRow,
+  type PurchaseOverviewRow,
+  type UnlockAlbumRow,
+  type UnlockRow,
+  type UnlockUserRow,
+} from '../sql/order.sql.js';
 import type { AuthUser } from '../types/context.js';
 import { HttpError } from '../utils/http.js';
 import { createOrderNo, effectiveRole, normalizePage, toNumber, toPageResult } from '../utils/format.js';
 import { getAlbumCardsByIds } from './album.service.js';
-
-interface PlanRow {
-  id: number;
-  code: string;
-  name: string;
-  priceCents: number;
-  durationDays: number;
-  benefits: string | null;
-  status: number;
-}
-
-interface OrderRow {
-  id: number;
-  orderNo: string;
-  bizType: 'vip' | 'unlock';
-  payType: PayType;
-  amountCents: number;
-  pointsCost: number;
-  vipDays: number;
-  status: OrderStatus;
-  planName: string | null;
-  albumId: number | null;
-  albumTitle: string | null;
-  tradeNo: string | null;
-  paidAt: string | null;
-  createdAt: string;
-}
-
-const ORDER_SELECT = `o.id, o.order_no AS orderNo, o.biz_type AS bizType, o.pay_type AS payType,
-  o.amount_cents AS amountCents, o.points_cost AS pointsCost, o.vip_days AS vipDays,
-  o.status, p.name AS planName, o.album_id AS albumId, a.title AS albumTitle,
-  o.trade_no AS tradeNo, o.paid_at AS paidAt, o.created_at AS createdAt`;
-const ORDER_FROM = `FROM pay_order o
-  LEFT JOIN membership_plan p ON p.id = o.plan_id
-  LEFT JOIN album a ON a.id = o.album_id`;
 
 function mapOrder(row: OrderRow): OrderDto {
   return {
@@ -70,13 +63,8 @@ function mapOrder(row: OrderRow): OrderDto {
 }
 
 export async function listPlans(): Promise<MembershipPlanDto[]> {
-  const rows = await dbClient.query<PlanRow>(
-    `SELECT id, code, name, price_cents AS priceCents, duration_days AS durationDays,
-            benefits, status
-       FROM membership_plan
-      WHERE status = 1
-      ORDER BY price_cents ASC, id ASC`,
-  );
+  const statement = selectPlans();
+  const rows = await dbClient.query<PlanRow>(statement.sql, statement.params);
 
   return rows.map((row) => {
     let benefits: string[] = [];
@@ -101,16 +89,8 @@ export async function listPlans(): Promise<MembershipPlanDto[]> {
 }
 
 async function getOrderByNo(orderNo: string, userId?: number): Promise<OrderDto | null> {
-  const params: unknown[] = [orderNo];
-  let owner = '';
-  if (userId !== undefined) {
-    owner = 'AND o.user_id = ?';
-    params.push(userId);
-  }
-  const row = await dbClient.queryOne<OrderRow>(
-    `SELECT ${ORDER_SELECT} ${ORDER_FROM} WHERE o.order_no = ? ${owner} LIMIT 1`,
-    params,
-  );
+  const statement = selectOrderByNo(orderNo, userId);
+  const row = await dbClient.queryOne<OrderRow>(statement.sql, statement.params);
   return row ? mapOrder(row) : null;
 }
 
@@ -119,27 +99,24 @@ export async function createVipOrder(
   userId: number,
   planCode: string,
 ): Promise<VipOrderResult> {
-  const plan = await dbClient.queryOne<PlanRow>(
-    `SELECT id, code, name, price_cents AS priceCents, duration_days AS durationDays,
-            benefits, status
-       FROM membership_plan WHERE code = ? AND status = 1 LIMIT 1`,
-    [planCode],
-  );
+  const planStatement = selectPlanByCode(planCode);
+  const plan = await dbClient.queryOne<PlanRow>(planStatement.sql, planStatement.params);
   if (!plan) {
     throw new HttpError(404, '会员套餐不存在或已下架');
   }
 
   const orderNo = createOrderNo();
-  const [result] = await dbClient.pool.query(
-    `INSERT INTO pay_order (order_no, user_id, biz_type, plan_id, pay_type, amount_cents, vip_days, status)
-     VALUES (?, ?, 'vip', ?, 'alipay', ?, ?, 'created')`,
-    [orderNo, userId, plan.id, plan.priceCents, plan.durationDays],
-  );
-  const orderId = (result as { insertId: number }).insertId;
-  const order = await dbClient.queryOne<OrderRow>(
-    `SELECT ${ORDER_SELECT} ${ORDER_FROM} WHERE o.id = ? LIMIT 1`,
-    [orderId],
-  );
+  const insertStatement = insertVipOrder({
+    orderNo,
+    userId,
+    planId: plan.id,
+    amountCents: plan.priceCents,
+    vipDays: plan.durationDays,
+  });
+  const result = await dbClient.execute(insertStatement.sql, insertStatement.params);
+  const orderId = result.insertId;
+  const orderStatement = selectOrderById(orderId);
+  const order = await dbClient.queryOne<OrderRow>(orderStatement.sql, orderStatement.params);
   if (!order) {
     throw new HttpError(500, '订单创建失败，请稍后重试');
   }
@@ -167,23 +144,11 @@ export async function payOrder(orderNo: string, userId: number): Promise<OrderDt
   }
 
   await dbClient.transaction(async (conn) => {
-    const order = await queryOneOn<{
-      id: number;
-      userId: number;
-      bizType: 'vip' | 'unlock';
-      status: OrderStatus;
-      vipDays: number;
-      amountCents: number;
-      planName: string | null;
-    }>(
+    const orderStatement = selectPayOrderForUpdate(orderNo);
+    const order = await queryOneOn<PayOrderLockRow>(
       conn,
-      `SELECT o.id, o.user_id AS userId, o.biz_type AS bizType, o.status,
-              o.vip_days AS vipDays, o.amount_cents AS amountCents, p.name AS planName
-         FROM pay_order o
-         LEFT JOIN membership_plan p ON p.id = o.plan_id
-        WHERE o.order_no = ?
-        FOR UPDATE`,
-      [orderNo],
+      orderStatement.sql,
+      orderStatement.params,
     );
 
     if (!order) {
@@ -199,32 +164,22 @@ export async function payOrder(orderNo: string, userId: number): Promise<OrderDt
       throw new HttpError(400, '订单状态不允许支付');
     }
 
-    await conn.query(
-      `UPDATE pay_order SET status = 'paid', trade_no = ?, paid_at = NOW() WHERE id = ?`,
-      [`MOCK${Date.now()}`, order.id],
-    );
+    const paidStatement = markOrderPaid(`MOCK${Date.now()}`, order.id);
+    await conn.query(paidStatement.sql, paidStatement.params);
 
     if (order.bizType === 'vip') {
-      await conn.query(
-        `UPDATE \`user\`
-            SET role = IF(role = 'admin', 'admin', 'vip'),
-                vip_expire_at = DATE_ADD(GREATEST(COALESCE(vip_expire_at, NOW()), NOW()), INTERVAL ? DAY)
-          WHERE id = ?`,
-        [order.vipDays, userId],
-      );
+      const vipStatement = activateVipAfterPayment(order.vipDays, userId);
+      await conn.query(vipStatement.sql, vipStatement.params);
     }
 
-    await conn.query(
-      `INSERT INTO user_notification (user_id, type, title, content)
-       VALUES (?, 'benefit', ?, ?)`,
-      [
-        userId,
-        order.bizType === 'vip' ? '付费会员开通成功' : '订单支付成功',
-        order.bizType === 'vip'
-          ? `${order.planName ?? '付费会员'}已生效，续费天数会在剩余有效期上叠加。`
-          : `订单 ${orderNo} 已支付成功。`,
-      ],
+    const notificationStatement = insertOrderPaidNotification(
+      userId,
+      order.bizType === 'vip' ? '付费会员开通成功' : '订单支付成功',
+      order.bizType === 'vip'
+        ? `${order.planName ?? '付费会员'}已生效，续费天数会在剩余有效期上叠加。`
+        : `订单 ${orderNo} 已支付成功。`,
     );
+    await conn.query(notificationStatement.sql, notificationStatement.params);
   });
 
   const order = await getOrderByNo(orderNo, userId);
@@ -240,36 +195,32 @@ export async function unlockAlbum(
   albumId: number,
 ): Promise<{ access: boolean; already: boolean; pointsCost: number; points: number }> {
   return dbClient.transaction(async (conn) => {
-    const user = await queryOneOn<{
-      points: number;
-      role: 'member' | 'vip' | 'admin';
-      vipExpireAt: string | null;
-    }>(
+    const userStatement = selectUserForUnlockForUpdate(userId);
+    const user = await queryOneOn<UnlockUserRow>(
       conn,
-      `SELECT points, role, vip_expire_at AS vipExpireAt
-         FROM \`user\` WHERE id = ? AND is_deleted = 0 FOR UPDATE`,
-      [userId],
+      userStatement.sql,
+      userStatement.params,
     );
     if (!user) {
       throw new HttpError(404, '用户不存在');
     }
 
-    const album = await queryOneOn<{ id: number; title: string; points: number }>(
+    const albumStatement = selectAlbumForUnlockForUpdate(albumId);
+    const album = await queryOneOn<UnlockAlbumRow>(
       conn,
-      `SELECT id, title, points FROM album
-        WHERE id = ? AND status = 'published' AND is_deleted = 0
-        FOR UPDATE`,
-      [albumId],
+      albumStatement.sql,
+      albumStatement.params,
     );
     if (!album) {
       throw new HttpError(404, '图集不存在或已下架');
     }
 
     const role = effectiveRole(user.role, user.vipExpireAt);
+    const unlockStatement = selectAlbumUnlock(userId, albumId);
     const existing = await queryOneOn<{ id: number }>(
       conn,
-      `SELECT id FROM album_unlock WHERE user_id = ? AND album_id = ? LIMIT 1`,
-      [userId, albumId],
+      unlockStatement.sql,
+      unlockStatement.params,
     );
 
     if (role === 'vip' || role === 'admin' || existing) {
@@ -290,23 +241,27 @@ export async function unlockAlbum(
     }
 
     const orderNo = createOrderNo();
-    const [orderResult] = await conn.query(
-      `INSERT INTO pay_order (order_no, user_id, biz_type, album_id, pay_type, amount_cents, points_cost, status, paid_at)
-       VALUES (?, ?, 'unlock', ?, 'points', 0, ?, 'paid', NOW())`,
-      [orderNo, userId, albumId, required],
-    );
+    const orderStatement = insertUnlockOrder({ orderNo, userId, albumId, pointsCost: required });
+    const [orderResult] = await conn.query(orderStatement.sql, orderStatement.params);
     const orderId = (orderResult as { insertId: number }).insertId;
 
-    await conn.query(
-      `INSERT INTO album_unlock (user_id, album_id, order_id, points_cost) VALUES (?, ?, ?, ?)`,
-      [userId, albumId, orderId, required],
+    const unlockRecordStatement = insertAlbumUnlock({
+      userId,
+      albumId,
+      orderId,
+      pointsCost: required,
+    });
+    await conn.query(unlockRecordStatement.sql, unlockRecordStatement.params);
+
+    const deductStatement = deductUserPoints(required, userId);
+    await conn.query(deductStatement.sql, deductStatement.params);
+
+    const notificationStatement = insertAlbumUnlockedNotification(
+      userId,
+      `《${album.title}》已解锁，可在线查看全部图片并下载原图。`,
+      albumId,
     );
-    await conn.query(`UPDATE \`user\` SET points = points - ? WHERE id = ?`, [required, userId]);
-    await conn.query(
-      `INSERT INTO user_notification (user_id, type, title, content, album_id)
-       VALUES (?, 'benefit', '图集解锁成功', ?, ?)`,
-      [userId, `《${album.title}》已解锁，可在线查看全部图片并下载原图。`, albumId],
-    );
+    await conn.query(notificationStatement.sql, notificationStatement.params);
 
     return {
       access: true,
@@ -327,43 +282,25 @@ export async function getPurchases(
   const orderPage = normalizePage(ordersPage, pageSize, 6);
   const unlockPage = normalizePage(unlocksPage, pageSize, 6);
 
+  const [overviewStatement, orderCountStatement, unlockCountStatement] = [
+    selectPurchaseOverview(userId),
+    countPaidVipOrders(userId),
+    countAlbumUnlocks(userId),
+  ];
   const [overviewRow, orderCountRow, unlockCountRow] = await Promise.all([
-    dbClient.queryOne<{ totalSpent: number; vipOrders: number }>(
-      `SELECT COALESCE(SUM(amount_cents), 0) AS totalSpent,
-              SUM(CASE WHEN biz_type = 'vip' THEN 1 ELSE 0 END) AS vipOrders
-         FROM pay_order WHERE user_id = ? AND status = 'paid'`,
-      [userId],
-    ),
-    dbClient.queryOne<{ total: number }>(
-      `SELECT COUNT(*) AS total FROM pay_order
-        WHERE user_id = ? AND status = 'paid' AND biz_type = 'vip'`,
-      [userId],
-    ),
-    dbClient.queryOne<{ total: number }>(
-      `SELECT COUNT(*) AS total FROM album_unlock WHERE user_id = ?`,
-      [userId],
-    ),
+    dbClient.queryOne<PurchaseOverviewRow>(overviewStatement.sql, overviewStatement.params),
+    dbClient.queryOne<{ total: number }>(orderCountStatement.sql, orderCountStatement.params),
+    dbClient.queryOne<{ total: number }>(unlockCountStatement.sql, unlockCountStatement.params),
   ]);
 
   const ordersTotal = Number(orderCountRow?.total ?? 0);
   const unlocksTotal = Number(unlockCountRow?.total ?? 0);
 
+  const orderListStatement = selectPaidVipOrders(userId, orderPage.pageSize, orderPage.offset);
+  const unlockListStatement = selectAlbumUnlocks(userId, unlockPage.pageSize, unlockPage.offset);
   const [orderRows, unlockRows] = await Promise.all([
-    dbClient.query<OrderRow>(
-      `SELECT ${ORDER_SELECT} ${ORDER_FROM}
-        WHERE o.user_id = ? AND o.status = 'paid' AND o.biz_type = 'vip'
-        ORDER BY o.paid_at DESC, o.id DESC
-        LIMIT ? OFFSET ?`,
-      [userId, orderPage.pageSize, orderPage.offset],
-    ),
-    dbClient.query<{ id: number; albumId: number; pointsCost: number; createdAt: string }>(
-      `SELECT id, album_id AS albumId, points_cost AS pointsCost, created_at AS createdAt
-         FROM album_unlock
-        WHERE user_id = ?
-        ORDER BY created_at DESC, id DESC
-        LIMIT ? OFFSET ?`,
-      [userId, unlockPage.pageSize, unlockPage.offset],
-    ),
+    dbClient.query<OrderRow>(orderListStatement.sql, orderListStatement.params),
+    dbClient.query<UnlockRow>(unlockListStatement.sql, unlockListStatement.params),
   ]);
 
   const cards = await getAlbumCardsByIds(

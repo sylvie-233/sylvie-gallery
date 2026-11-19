@@ -8,17 +8,24 @@ import type {
 import { dbClient, type TransactionConnection } from '../../db/index.js';
 import { HttpError } from '../../utils/http.js';
 import { toBool, toNumber } from '../../utils/format.js';
+import {
+  insertFriendLink,
+  selectConfigRows,
+  selectFriendLinkById,
+  selectFriendLinks,
+  selectMaxFriendLinkSort,
+  selectMonthlyPlan,
+  softDeleteFriendLink,
+  updateMembershipPlan,
+  upsertConfig,
+  type ConfigRow,
+  type PlanRow,
+} from '../../sql/admin/config-admin.sql.js';
 import { logAdminOp } from './log.service.js';
 
-interface ConfigRow {
-  key: string;
-  value: string | null;
-}
-
 async function getConfigRows(): Promise<Record<string, string>> {
-  const rows = await dbClient.query<ConfigRow>(
-    `SELECT config_key AS \`key\`, config_value AS value FROM sys_config`,
-  );
+  const statement = selectConfigRows();
+  const rows = await dbClient.query<ConfigRow>(statement.sql, statement.params);
   const map: Record<string, string> = {};
   for (const row of rows) {
     map[row.key] = row.value ?? '';
@@ -27,21 +34,8 @@ async function getConfigRows(): Promise<Record<string, string>> {
 }
 
 async function getPlan(): Promise<AdminPlanConfig> {
-  const row = await dbClient.queryOne<{
-    id: number;
-    code: string;
-    name: string;
-    priceCents: number;
-    durationDays: number;
-    benefits: string | null;
-    status: number;
-  }>(
-    `SELECT id, code, name, price_cents AS priceCents, duration_days AS durationDays,
-            benefits, status
-       FROM membership_plan
-      WHERE code = 'monthly'
-      LIMIT 1`,
-  );
+  const statement = selectMonthlyPlan();
+  const row = await dbClient.queryOne<PlanRow>(statement.sql, statement.params);
   if (!row) {
     throw new HttpError(500, '会员套餐未初始化');
   }
@@ -66,18 +60,14 @@ async function getPlan(): Promise<AdminPlanConfig> {
 }
 
 async function getFriendLinks(): Promise<AdminFriendLinkRow[]> {
+  const statement = selectFriendLinks();
   const rows = await dbClient.query<{
     id: number;
     name: string;
     slogan: string | null;
     url: string;
     sortOrder: number;
-  }>(
-    `SELECT id, name, slogan, url, sort_order AS sortOrder
-       FROM friend_link
-      WHERE status = 1
-      ORDER BY sort_order ASC, id ASC`,
-  );
+  }>(statement.sql, statement.params);
   return rows.map((row) => ({
     id: Number(row.id),
     name: row.name,
@@ -104,18 +94,14 @@ export async function getAdminConfigBundle(): Promise<AdminConfigBundle> {
   return { site, plan, friendLinks };
 }
 
-async function upsertConfig(
+async function upsertConfigValue(
   conn: TransactionConnection,
   key: string,
   value: string,
   adminId: number,
 ): Promise<void> {
-  await conn.query(
-    `INSERT INTO sys_config (config_key, config_value, updated_by)
-     VALUES (?, ?, ?)
-     ON DUPLICATE KEY UPDATE config_value = VALUES(config_value), updated_by = VALUES(updated_by)`,
-    [key, value, adminId],
-  );
+  const statement = upsertConfig(key, value, adminId);
+  await conn.query(statement.sql, statement.params);
 }
 
 export async function updateAdminSiteConfig(
@@ -132,12 +118,12 @@ export async function updateAdminSiteConfig(
 ): Promise<AdminConfigBundle> {
   const checkinPoints = Math.min(99, Math.max(1, Math.floor(input.checkinPoints)));
   await dbClient.transaction(async (conn) => {
-    await upsertConfig(conn, 'site.copyright', input.copyright.trim(), adminId);
-    await upsertConfig(conn, 'site.icp_no', input.icpNo.trim(), adminId);
-    await upsertConfig(conn, 'site.age_statement', input.ageStatement.trim(), adminId);
-    await upsertConfig(conn, 'site.disclaimer', input.disclaimer.trim(), adminId);
-    await upsertConfig(conn, 'checkin.points', String(checkinPoints), adminId);
-    await upsertConfig(conn, 'image.watermark_on', input.watermarkOn ? '1' : '0', adminId);
+    await upsertConfigValue(conn, 'site.copyright', input.copyright.trim(), adminId);
+    await upsertConfigValue(conn, 'site.icp_no', input.icpNo.trim(), adminId);
+    await upsertConfigValue(conn, 'site.age_statement', input.ageStatement.trim(), adminId);
+    await upsertConfigValue(conn, 'site.disclaimer', input.disclaimer.trim(), adminId);
+    await upsertConfigValue(conn, 'checkin.points', String(checkinPoints), adminId);
+    await upsertConfigValue(conn, 'image.watermark_on', input.watermarkOn ? '1' : '0', adminId);
   });
 
   await logAdminOp(
@@ -169,11 +155,13 @@ export async function updateAdminPlan(
   }
 
   const plan = await getPlan();
-  await dbClient.execute(
-    `UPDATE membership_plan SET price_cents = ?, duration_days = ?, benefits = ?
-      WHERE id = ?`,
-    [priceCents, durationDays, JSON.stringify(benefits), plan.id],
+  const statement = updateMembershipPlan(
+    priceCents,
+    durationDays,
+    JSON.stringify(benefits),
+    plan.id,
   );
+  await dbClient.execute(statement.sql, statement.params);
   await logAdminOp(
     adminId,
     'config.plan',
@@ -212,14 +200,14 @@ export async function createAdminFriendLink(
     throw new HttpError(400, '简介最多 64 个字符');
   }
   const url = validateUrl(input.url);
+  const maxStatement = selectMaxFriendLinkSort();
   const maxRow = await dbClient.queryOne<{ maxSort: number | null }>(
-    `SELECT MAX(sort_order) AS maxSort FROM friend_link`,
+    maxStatement.sql,
+    maxStatement.params,
   );
   const sortOrder = Number(maxRow?.maxSort ?? 0) + 1;
-  const [result] = await dbClient.pool.query(
-    `INSERT INTO friend_link (name, slogan, url, sort_order, status) VALUES (?, ?, ?, ?, 1)`,
-    [name, slogan, url, sortOrder],
-  );
+  const insertStatement = insertFriendLink(name, slogan, url, sortOrder);
+  const [result] = await dbClient.pool.query(insertStatement.sql, insertStatement.params);
   const id = (result as { insertId: number }).insertId;
   await logAdminOp(adminId, 'friend.create', 'friend_link', id, { name, slogan, url }, ip);
   return { id, name, slogan, url, sortOrder };
@@ -230,14 +218,16 @@ export async function deleteAdminFriendLink(
   id: number,
   ip?: string | null,
 ): Promise<void> {
+  const identityStatement = selectFriendLinkById(id);
   const row = await dbClient.queryOne<{ id: number; name: string; url: string }>(
-    `SELECT id, name, url FROM friend_link WHERE id = ? AND status = 1 LIMIT 1`,
-    [id],
+    identityStatement.sql,
+    identityStatement.params,
   );
   if (!row) {
     throw new HttpError(404, '友链不存在');
   }
-  await dbClient.execute(`UPDATE friend_link SET status = 0 WHERE id = ?`, [id]);
+  const deleteStatement = softDeleteFriendLink(id);
+  await dbClient.execute(deleteStatement.sql, deleteStatement.params);
   await logAdminOp(adminId, 'friend.delete', 'friend_link', id, row, ip);
 }
 

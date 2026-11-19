@@ -1,30 +1,22 @@
 import {
   NOTIFICATION_TYPE_LABELS,
   type NotificationDto,
-  type NotificationType,
   type PageResult,
 } from '@sylvie/types';
 
 import { dbClient } from '../db/index.js';
+import {
+  buildNotificationWhere,
+  countNotifications,
+  countUnreadNotifications,
+  markAllNotificationsRead as markAllNotificationsReadStatement,
+  markNotificationRead as markNotificationReadStatement,
+  selectNotificationForUser,
+  selectNotifications,
+  type NotificationRow,
+} from '../sql/notification.sql.js';
 import { HttpError } from '../utils/http.js';
 import { normalizePage, toBool, toPageResult } from '../utils/format.js';
-
-interface NotificationRow {
-  id: number;
-  type: NotificationType;
-  title: string;
-  content: string;
-  isRead: number;
-  readAt: string | null;
-  createdAt: string;
-  albumId: number | null;
-  albumTitle: string | null;
-  coverUrl: string | null;
-  imageCount: number | null;
-  videoCount: number | null;
-  publishedAt: string | null;
-  authorName: string | null;
-}
 
 function mapNotification(row: NotificationRow): NotificationDto {
   return {
@@ -57,59 +49,33 @@ export async function listNotifications(
 ): Promise<PageResult<NotificationDto> & { unread: number }> {
   const { page, pageSize, offset } = normalizePage(query.page, query.pageSize, 5);
   const unreadOnly = query.filter === 'unread';
-  const where = unreadOnly
-    ? 'n.user_id = ? AND n.is_read = 0'
-    : 'n.user_id = ?';
-  const params: unknown[] = [userId];
+  const where = buildNotificationWhere(userId, unreadOnly);
 
+  const countStatement = countNotifications(where);
+  const unreadStatement = countUnreadNotifications(userId);
   const [countRow, unreadRow] = await Promise.all([
-    dbClient.queryOne<{ total: number }>(
-      `SELECT COUNT(*) AS total FROM user_notification n WHERE ${where}`,
-      params,
-    ),
-    dbClient.queryOne<{ total: number }>(
-      `SELECT COUNT(*) AS total FROM user_notification WHERE user_id = ? AND is_read = 0`,
-      [userId],
-    ),
+    dbClient.queryOne<{ total: number }>(countStatement.sql, countStatement.params),
+    dbClient.queryOne<{ total: number }>(unreadStatement.sql, unreadStatement.params),
   ]);
 
-  const rows = await dbClient.query<NotificationRow>(
-    `SELECT n.id, n.type, n.title, n.content, n.is_read AS isRead, n.read_at AS readAt,
-            n.created_at AS createdAt, n.album_id AS albumId, a.title AS albumTitle,
-            a.cover_url AS coverUrl, a.image_count AS imageCount, a.video_count AS videoCount,
-            a.published_at AS publishedAt, au.name AS authorName
-       FROM user_notification n
-       LEFT JOIN album a ON a.id = n.album_id AND a.is_deleted = 0
-       LEFT JOIN author au ON au.id = a.author_id
-      WHERE ${where}
-      ORDER BY n.created_at DESC, n.id DESC
-      LIMIT ? OFFSET ?`,
-    [...params, pageSize, offset],
-  );
+  const listStatement = selectNotifications(where, pageSize, offset);
+  const rows = await dbClient.query<NotificationRow>(listStatement.sql, listStatement.params);
 
   const result = toPageResult(rows.map(mapNotification), Number(countRow?.total ?? 0), page, pageSize);
   return { ...result, unread: Number(unreadRow?.total ?? 0) };
 }
 
 export async function markNotificationRead(userId: number, notificationId: number): Promise<void> {
-  const row = await dbClient.queryOne<{ id: number }>(
-    `SELECT id FROM user_notification WHERE id = ? AND user_id = ? LIMIT 1`,
-    [notificationId, userId],
-  );
+  const ownerStatement = selectNotificationForUser(notificationId, userId);
+  const row = await dbClient.queryOne<{ id: number }>(ownerStatement.sql, ownerStatement.params);
   if (!row) {
     throw new HttpError(404, '通知不存在');
   }
-  await dbClient.execute(
-    `UPDATE user_notification SET is_read = 1, read_at = COALESCE(read_at, NOW())
-      WHERE id = ? AND user_id = ?`,
-    [notificationId, userId],
-  );
+  const statement = markNotificationReadStatement(notificationId, userId);
+  await dbClient.execute(statement.sql, statement.params);
 }
 
 export async function markAllNotificationsRead(userId: number): Promise<void> {
-  await dbClient.execute(
-    `UPDATE user_notification SET is_read = 1, read_at = COALESCE(read_at, NOW())
-      WHERE user_id = ? AND is_read = 0`,
-    [userId],
-  );
+  const statement = markAllNotificationsReadStatement(userId);
+  await dbClient.execute(statement.sql, statement.params);
 }

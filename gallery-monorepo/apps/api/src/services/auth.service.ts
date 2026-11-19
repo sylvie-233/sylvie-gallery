@@ -2,11 +2,23 @@ import { randomInt } from 'node:crypto';
 
 import { compare, hash } from 'bcryptjs';
 
-import type { AuthResult, Role } from '@sylvie/types';
+import type { AuthResult } from '@sylvie/types';
 
 import { env } from '../config/env.js';
 import { dbClient, queryOneOn } from '../db/index.js';
 import type { TransactionConnection } from '../db/index.js';
+import {
+  countRegisteredUserByEmail,
+  countUserByEmailForUpdate,
+  insertRegisteredUser,
+  insertVerifyCode,
+  insertWelcomeNotification,
+  markVerifyCodeUsed,
+  selectLatestVerifyCodeForUpdate,
+  selectLoginUser,
+  type LoginRow,
+  type VerifyCodeRow,
+} from '../sql/auth.sql.js';
 import { HttpError } from '../utils/http.js';
 import { signToken } from '../utils/jwt.js';
 import { moduleLogger } from '../utils/logger.js';
@@ -14,22 +26,6 @@ import { getProfileById } from './user.service.js';
 
 const CODE_TTL_MINUTES = 10;
 const log = moduleLogger('auth');
-
-interface LoginRow {
-  id: number;
-  email: string;
-  passwordHash: string;
-  role: Role;
-  status: number;
-  isDeleted: number;
-}
-
-interface VerifyCodeRow {
-  id: number;
-  code: string;
-  expiredAt: string;
-  usedAt: string | null;
-}
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -43,9 +39,10 @@ export async function sendVerifyCode(
   const email = normalizeEmail(emailInput);
 
   if (scene === 'register') {
+    const existsStatement = countRegisteredUserByEmail(email);
     const exists = await dbClient.queryOne<{ total: number }>(
-      `SELECT COUNT(*) AS total FROM \`user\` WHERE email = ? AND is_deleted = 0`,
-      [email],
+      existsStatement.sql,
+      existsStatement.params,
     );
     if (Number(exists?.total ?? 0) > 0) {
       throw new HttpError(409, '该邮箱已注册，请直接登录');
@@ -53,10 +50,8 @@ export async function sendVerifyCode(
   }
 
   const code = env.VERIFY_CODE_DEMO || String(randomInt(100000, 1000000));
-  await dbClient.execute(
-    `INSERT INTO verify_code (email, scene, code, expired_at) VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL ? MINUTE))`,
-    [email, scene, code, CODE_TTL_MINUTES],
-  );
+  const codeStatement = insertVerifyCode(email, scene, code, CODE_TTL_MINUTES);
+  await dbClient.execute(codeStatement.sql, codeStatement.params);
 
   log.info('验证码已生成', { email, scene, code, ttlMinutes: CODE_TTL_MINUTES });
 
@@ -81,15 +76,11 @@ async function consumeVerifyCode(
     return true;
   }
 
+  const statement = selectLatestVerifyCodeForUpdate(email, scene);
   const row = await queryOneOn<VerifyCodeRow>(
     conn,
-    `SELECT id, code, expired_at AS expiredAt, used_at AS usedAt
-       FROM verify_code
-      WHERE email = ? AND scene = ?
-      ORDER BY id DESC
-      LIMIT 1
-      FOR UPDATE`,
-    [email, scene],
+    statement.sql,
+    statement.params,
   );
 
   if (!row || row.usedAt) {
@@ -102,7 +93,8 @@ async function consumeVerifyCode(
     return false;
   }
 
-  await conn.query(`UPDATE verify_code SET used_at = NOW() WHERE id = ?`, [row.id]);
+  const usedStatement = markVerifyCodeUsed(row.id);
+  await conn.query(usedStatement.sql, usedStatement.params);
   return true;
 }
 
@@ -122,10 +114,11 @@ export async function register(input: {
   const passwordHash = await hash(input.password, 10);
 
   const userId = await dbClient.transaction(async (conn) => {
+    const existsStatement = countUserByEmailForUpdate(email);
     const exists = await queryOneOn<{ total: number }>(
       conn,
-      `SELECT COUNT(*) AS total FROM \`user\` WHERE email = ? FOR UPDATE`,
-      [email],
+      existsStatement.sql,
+      existsStatement.params,
     );
     if (Number(exists?.total ?? 0) > 0) {
       throw new HttpError(409, '该邮箱已注册，请直接登录');
@@ -136,21 +129,16 @@ export async function register(input: {
       throw new HttpError(400, '验证码无效或已过期，请重新获取');
     }
 
-    const [result] = await conn.query(
-      `INSERT INTO \`user\` (email, password_hash, nickname, role, points, email_verified)
-       VALUES (?, ?, ?, 'member', 0, 1)`,
-      [email, passwordHash, input.nickname.trim()],
-    );
+    const insertStatement = insertRegisteredUser(email, passwordHash, input.nickname.trim());
+    const [result] = await conn.query(insertStatement.sql, insertStatement.params);
     const insertedId = (result as { insertId: number }).insertId;
 
-    await conn.query(
-      `INSERT INTO user_notification (user_id, type, title, content) VALUES (?, 'system', ?, ?)`,
-      [
-        insertedId,
-        '欢迎来到希尔薇图集',
-        '注册成功！每日签到可领取解锁积分，积分解锁后即可查看完整图集。',
-      ],
+    const notificationStatement = insertWelcomeNotification(
+      insertedId,
+      '欢迎来到希尔薇图集',
+      '注册成功！每日签到可领取解锁积分，积分解锁后即可查看完整图集。',
     );
+    await conn.query(notificationStatement.sql, notificationStatement.params);
 
     return insertedId;
   });
@@ -160,13 +148,8 @@ export async function register(input: {
 
 export async function login(emailInput: string, password: string): Promise<AuthResult> {
   const email = normalizeEmail(emailInput);
-  const row = await dbClient.queryOne<LoginRow>(
-    `SELECT id, email, password_hash AS passwordHash, role, status, is_deleted AS isDeleted
-       FROM \`user\`
-      WHERE email = ?
-      LIMIT 1`,
-    [email],
-  );
+  const statement = selectLoginUser(email);
+  const row = await dbClient.queryOne<LoginRow>(statement.sql, statement.params);
 
   if (!row || row.isDeleted === 1) {
     throw new HttpError(401, '邮箱或密码错误');

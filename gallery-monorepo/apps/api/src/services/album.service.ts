@@ -15,6 +15,57 @@ import {
 } from '@sylvie/types';
 
 import { dbClient, queryOn, queryOneOn, type TransactionConnection } from '../db/index.js';
+import {
+  albumListFilter,
+  albumListOrder,
+  countAlbumUnlock,
+  countAlbums,
+  countApprovedAlbumComments,
+  countApprovedCommentsByIds,
+  countFavorite,
+  countFavoriteAlbums,
+  countFeedAlbums,
+  countSubscription,
+  decrementAlbumCommentCount,
+  decrementAlbumFavCount,
+  deleteFavorite,
+  incrementAlbumDownloadCount,
+  incrementAlbumFavCount,
+  incrementAlbumView,
+  insertAlbumSearchLog,
+  insertComment,
+  insertDownloadLog,
+  insertFavorite,
+  insertReviewNotification,
+  insertUserViewLog,
+  selectAlbumComments,
+  selectAlbumFavCount,
+  selectAlbumForDownload,
+  selectAlbumImages,
+  selectAlbumsByIds,
+  selectAlbumsPage,
+  selectAlbumTags,
+  selectCommentById,
+  selectCommentForUpdate,
+  selectCommentParent,
+  selectDownloadImageUrls,
+  selectFavoriteAlbumIds,
+  selectFavoriteForUpdate,
+  selectFavoritesForAlbums,
+  selectFeedAlbums,
+  selectOtherWorks,
+  selectPreviewAlbumImages,
+  selectPublishedAlbum,
+  selectPublishedAlbumId,
+  selectPublishedAlbumTitle,
+  selectReplyCommentIds,
+  selectWatermarkConfig,
+  softDeleteCommentsByIds,
+  type AlbumCommentRow,
+  type AlbumImageRow,
+  type AlbumRow,
+  type AlbumTagRow,
+} from '../sql/album.sql.js';
 import type { AuthUser } from '../types/context.js';
 import { HttpError } from '../utils/http.js';
 import { effectiveRole, normalizePage, toBool, toNumber, toPageResult } from '../utils/format.js';
@@ -23,79 +74,7 @@ import { isVipUser } from './user.service.js';
 
 const log = moduleLogger('album');
 
-interface AlbumRow {
-  id: number;
-  title: string;
-  description: string | null;
-  coverUrl: string;
-  imageCount: number;
-  videoCount: number;
-  packageSize: string | number;
-  points: number;
-  viewCount: number;
-  downloadCount: number;
-  favCount: number;
-  commentCount: number;
-  isRecommended: number;
-  status: 'draft' | 'published' | 'offline';
-  publishedAt: string | null;
-  authorId: number;
-  authorName: string;
-  authorInitial: string;
-  authorColor: string;
-  authorAvatarUrl: string | null;
-  authorBio: string | null;
-  authorAlbumCount: number;
-}
-
-interface TagRow {
-  albumId: number;
-  id: number;
-  name: string;
-  useCount: number;
-}
-
-interface ImageRow {
-  id: number;
-  mediaType: 'image' | 'video';
-  url: string;
-  thumbUrl: string | null;
-  watermarkUrl: string | null;
-  width: number | null;
-  height: number | null;
-  duration: number | null;
-  sortOrder: number;
-}
-
-interface CommentRow {
-  id: number;
-  parentId: number | null;
-  replyToUserId: number | null;
-  replyToName: string | null;
-  content: string;
-  status: 'pending' | 'approved' | 'rejected' | 'deleted';
-  createdAt: string;
-  userId: number;
-  nickname: string;
-  avatarType: number;
-  avatarIndex: number;
-  avatarUrl: string | null;
-  role: 'member' | 'vip' | 'admin';
-  vipExpireAt: string | null;
-}
-
-const ALBUM_SELECT = `a.id, a.title, a.description, a.cover_url AS coverUrl, a.image_count AS imageCount,
-  a.video_count AS videoCount, a.package_size AS packageSize, a.points,
-  a.view_count AS viewCount, a.download_count AS downloadCount, a.fav_count AS favCount,
-  a.comment_count AS commentCount, a.is_recommended AS isRecommended, a.status,
-  a.published_at AS publishedAt,
-  au.id AS authorId, au.name AS authorName, au.initial AS authorInitial, au.color AS authorColor,
-  au.avatar_url AS authorAvatarUrl, au.bio AS authorBio, au.album_count AS authorAlbumCount`;
-
-const ALBUM_FROM = `FROM album a JOIN author au ON au.id = a.author_id`;
-const PUBLIC_WHERE = `a.status = 'published' AND a.is_deleted = 0 AND au.status = 1 AND au.is_deleted = 0`;
-
-function mapAlbumCard(row: AlbumRow, tags: TagRow[], favorited: boolean): AlbumCardDto {
+function mapAlbumCard(row: AlbumRow, tags: AlbumTagRow[], favorited: boolean): AlbumCardDto {
   return {
     id: Number(row.id),
     title: row.title,
@@ -125,20 +104,13 @@ function mapAlbumCard(row: AlbumRow, tags: TagRow[], favorited: boolean): AlbumC
   };
 }
 
-async function loadTags(albumIds: number[]): Promise<Map<number, TagRow[]>> {
-  const map = new Map<number, TagRow[]>();
+async function loadTags(albumIds: number[]): Promise<Map<number, AlbumTagRow[]>> {
+  const map = new Map<number, AlbumTagRow[]>();
   if (albumIds.length === 0) {
     return map;
   }
-  const placeholders = albumIds.map(() => '?').join(', ');
-  const rows = await dbClient.query<TagRow>(
-    `SELECT at.album_id AS albumId, t.id, t.name, t.use_count AS useCount
-       FROM album_tag at
-       JOIN tag t ON t.id = at.tag_id
-      WHERE at.album_id IN (${placeholders}) AND t.status = 1 AND t.is_deleted = 0
-      ORDER BY t.use_count DESC, t.id ASC`,
-    albumIds,
-  );
+  const statement = selectAlbumTags(albumIds);
+  const rows = await dbClient.query<AlbumTagRow>(statement.sql, statement.params);
   for (const row of rows) {
     const list = map.get(Number(row.albumId)) ?? [];
     list.push(row);
@@ -151,11 +123,8 @@ async function loadFavorites(userId: number | undefined, albumIds: number[]): Pr
   if (!userId || albumIds.length === 0) {
     return new Set();
   }
-  const placeholders = albumIds.map(() => '?').join(', ');
-  const rows = await dbClient.query<{ albumId: number }>(
-    `SELECT album_id AS albumId FROM favorite WHERE user_id = ? AND album_id IN (${placeholders})`,
-    [userId, ...albumIds],
-  );
+  const statement = selectFavoritesForAlbums(userId, albumIds);
+  const rows = await dbClient.query<{ albumId: number }>(statement.sql, statement.params);
   return new Set(rows.map((row) => Number(row.albumId)));
 }
 
@@ -169,11 +138,8 @@ async function buildAlbumCards(rows: AlbumRow[], userId?: number): Promise<Album
 
 async function logAlbumSearch(keyword: string, resultCount: number, userId?: number): Promise<void> {
   try {
-    await dbClient.execute(
-      `INSERT INTO search_log (scene, keyword, user_id, result_count, search_date)
-       VALUES ('album', ?, ?, ?, CURDATE())`,
-      [keyword, userId ?? null, resultCount],
-    );
+    const statement = insertAlbumSearchLog(keyword, userId, resultCount);
+    await dbClient.execute(statement.sql, statement.params);
   } catch (error) {
     log.error('搜索日志写入失败', error);
   }
@@ -195,50 +161,18 @@ export async function listAlbums(
   const sort: SortType = query.sort === 'hot' || query.sort === 'fav' ? query.sort : 'new';
   const keyword = query.keyword?.trim().slice(0, 64) ?? '';
   const tagName = query.tag?.replace(/^#/, '').trim() ?? '';
-  const conditions = [PUBLIC_WHERE];
-  const params: unknown[] = [];
+  const where = albumListFilter({ authorId: query.authorId, tagName, keyword });
+  const order = albumListOrder(sort);
 
-  if (query.authorId) {
-    conditions.push('a.author_id = ?');
-    params.push(query.authorId);
-  }
-
-  if (tagName) {
-    conditions.push(
-      `EXISTS (SELECT 1 FROM album_tag at JOIN tag t ON t.id = at.tag_id
-                WHERE at.album_id = a.id AND t.name = ? AND t.status = 1 AND t.is_deleted = 0)`,
-    );
-    params.push(tagName);
-  }
-
-  if (keyword) {
-    const like = `%${keyword}%`;
-    conditions.push(
-      `(a.title LIKE ? OR au.name LIKE ? OR au.alias LIKE ?
-        OR EXISTS (SELECT 1 FROM album_tag at2 JOIN tag t2 ON t2.id = at2.tag_id
-                    WHERE at2.album_id = a.id AND t2.name LIKE ? AND t2.status = 1 AND t2.is_deleted = 0))`,
-    );
-    params.push(like, like, like, like);
-  }
-
-  const where = conditions.join(' AND ');
-  const order =
-    sort === 'hot'
-      ? 'a.view_count DESC, a.published_at DESC, a.id DESC'
-      : sort === 'fav'
-        ? 'a.fav_count DESC, a.published_at DESC, a.id DESC'
-        : 'a.published_at DESC, a.id DESC';
-
+  const countStatement = countAlbums(where);
   const countRow = await dbClient.queryOne<{ total: number }>(
-    `SELECT COUNT(*) AS total ${ALBUM_FROM} WHERE ${where}`,
-    params,
+    countStatement.sql,
+    countStatement.params,
   );
   const total = Number(countRow?.total ?? 0);
 
-  const rows = await dbClient.query<AlbumRow>(
-    `SELECT ${ALBUM_SELECT} ${ALBUM_FROM} WHERE ${where} ORDER BY ${order} LIMIT ? OFFSET ?`,
-    [...params, pageSize, offset],
-  );
+  const pageStatement = selectAlbumsPage(where, order, pageSize, offset);
+  const rows = await dbClient.query<AlbumRow>(pageStatement.sql, pageStatement.params);
 
   if (keyword) {
     await logAlbumSearch(keyword, total, userId);
@@ -254,33 +188,16 @@ export async function getFeed(
   userId?: number,
 ): Promise<PageResult<AlbumCardDto>> {
   const normalized = normalizePage(page, pageSize, 24);
-  const prefScore = userId
-    ? `(SELECT COUNT(*) FROM album_tag pt
-         JOIN (SELECT at2.tag_id
-                 FROM user_view_log v
-                 JOIN album_tag at2 ON at2.album_id = v.album_id
-                WHERE v.user_id = ?
-                GROUP BY at2.tag_id
-                ORDER BY MAX(v.id) DESC
-                LIMIT 100) pref ON pref.tag_id = pt.tag_id
-         WHERE pt.album_id = a.id)`
-    : '0';
-  const params: unknown[] = userId ? [userId] : [];
 
+  const countStatement = countFeedAlbums();
   const countRow = await dbClient.queryOne<{ total: number }>(
-    `SELECT COUNT(*) AS total ${ALBUM_FROM} WHERE ${PUBLIC_WHERE}`,
-    [],
+    countStatement.sql,
+    countStatement.params,
   );
   const total = Number(countRow?.total ?? 0);
 
-  const rows = await dbClient.query<AlbumRow>(
-    `SELECT ${ALBUM_SELECT}, ${prefScore} AS prefScore
-       ${ALBUM_FROM}
-      WHERE ${PUBLIC_WHERE}
-      ORDER BY a.is_recommended DESC, prefScore DESC, a.view_count DESC, a.published_at DESC
-      LIMIT ? OFFSET ?`,
-    [...params, normalized.pageSize, normalized.offset],
-  );
+  const pageStatement = selectFeedAlbums(userId, normalized.pageSize, normalized.offset);
+  const rows = await dbClient.query<AlbumRow>(pageStatement.sql, pageStatement.params);
 
   return toPageResult(
     await buildAlbumCards(rows, userId),
@@ -290,7 +207,7 @@ export async function getFeed(
   );
 }
 
-function mapImage(row: ImageRow, useWatermark: boolean): AlbumImageDto {
+function mapImage(row: AlbumImageRow, useWatermark: boolean): AlbumImageDto {
   const url = useWatermark && row.watermarkUrl ? row.watermarkUrl : row.url;
   return {
     id: Number(row.id),
@@ -305,7 +222,7 @@ function mapImage(row: ImageRow, useWatermark: boolean): AlbumImageDto {
   };
 }
 
-function mapCommentUser(row: CommentRow): CommentUserDto {
+function mapCommentUser(row: AlbumCommentRow): CommentUserDto {
   const role: EffectiveRole = effectiveRole(row.role, row.vipExpireAt);
   return {
     id: Number(row.userId),
@@ -321,18 +238,8 @@ async function loadComments(
   albumId: number,
   userId: number | undefined,
 ): Promise<{ comments: CommentDto[]; total: number }> {
-  const rows = await dbClient.query<CommentRow>(
-    `SELECT c.id, c.parent_id AS parentId, c.reply_to_user_id AS replyToUserId,
-            ru.nickname AS replyToName, c.content, c.status, c.created_at AS createdAt,
-            u.id AS userId, u.nickname, u.avatar_type AS avatarType, u.avatar_index AS avatarIndex,
-            u.avatar_url AS avatarUrl, u.role, u.vip_expire_at AS vipExpireAt
-       FROM comment c
-       JOIN \`user\` u ON u.id = c.user_id
-       LEFT JOIN \`user\` ru ON ru.id = c.reply_to_user_id
-      WHERE c.album_id = ? AND c.is_deleted = 0 AND (c.status = 'approved' OR c.user_id = ?)
-      ORDER BY c.created_at ASC, c.id ASC`,
-    [albumId, userId ?? 0],
-  );
+  const statement = selectAlbumComments(albumId, userId);
+  const rows = await dbClient.query<AlbumCommentRow>(statement.sql, statement.params);
 
   const map = new Map<number, CommentDto>();
   for (const row of rows) {
@@ -359,18 +266,18 @@ async function loadComments(
     }
   }
 
+  const countStatement = countApprovedAlbumComments(albumId);
   const totalRow = await dbClient.queryOne<{ total: number }>(
-    `SELECT COUNT(*) AS total FROM comment WHERE album_id = ? AND status = 'approved' AND is_deleted = 0`,
-    [albumId],
+    countStatement.sql,
+    countStatement.params,
   );
 
   return { comments: roots, total: Number(totalRow?.total ?? 0) };
 }
 
 async function getWatermarkOn(): Promise<boolean> {
-  const row = await dbClient.queryOne<{ value: string }>(
-    `SELECT config_value AS value FROM sys_config WHERE config_key = 'image.watermark_on' LIMIT 1`,
-  );
+  const statement = selectWatermarkConfig();
+  const row = await dbClient.queryOne<{ value: string }>(statement.sql, statement.params);
   return row?.value !== '0';
 }
 
@@ -380,10 +287,8 @@ export async function getAlbumDetail(
   user: AuthUser | undefined,
   ip?: string,
 ): Promise<AlbumDetailDto> {
-  const album = await dbClient.queryOne<AlbumRow>(
-    `SELECT ${ALBUM_SELECT} ${ALBUM_FROM} WHERE a.id = ? AND ${PUBLIC_WHERE} LIMIT 1`,
-    [albumId],
-  );
+  const albumStatement = selectPublishedAlbum(albumId);
+  const album = await dbClient.queryOne<AlbumRow>(albumStatement.sql, albumStatement.params);
   if (!album) {
     throw new HttpError(404, '图集不存在或已下架');
   }
@@ -391,10 +296,11 @@ export async function getAlbumDetail(
   const userId = user?.id;
   const vip = isVipUser(user);
 
-  const unlockedRow = userId
+  const unlockedStatement = userId ? countAlbumUnlock(userId, albumId) : null;
+  const unlockedRow = unlockedStatement
     ? await dbClient.queryOne<{ total: number }>(
-        `SELECT COUNT(*) AS total FROM album_unlock WHERE user_id = ? AND album_id = ?`,
-        [userId, albumId],
+        unlockedStatement.sql,
+        unlockedStatement.params,
       )
     : null;
   const unlocked = Number(unlockedRow?.total ?? 0) > 0;
@@ -403,49 +309,37 @@ export async function getAlbumDetail(
   const [watermarkOn, favoriteRow, subscriptionRow] = await Promise.all([
     getWatermarkOn(),
     userId
-      ? dbClient.queryOne<{ total: number }>(
-          `SELECT COUNT(*) AS total FROM favorite WHERE user_id = ? AND album_id = ?`,
-          [userId, albumId],
-        )
+      ? (() => {
+          const statement = countFavorite(userId, albumId);
+          return dbClient.queryOne<{ total: number }>(statement.sql, statement.params);
+        })()
       : Promise.resolve(null),
     userId
-      ? dbClient.queryOne<{ total: number }>(
-          `SELECT COUNT(*) AS total FROM subscription WHERE user_id = ? AND author_id = ?`,
-          [userId, album.authorId],
-        )
+      ? (() => {
+          const statement = countSubscription(userId, Number(album.authorId));
+          return dbClient.queryOne<{ total: number }>(statement.sql, statement.params);
+        })()
       : Promise.resolve(null),
   ]);
 
   const images = canViewAll
-    ? await dbClient.query<ImageRow>(
-        `SELECT id, media_type AS mediaType, url, thumb_url AS thumbUrl, watermark_url AS watermarkUrl,
-                width, height, duration, sort_order AS sortOrder
-           FROM album_image
-          WHERE album_id = ? AND is_deleted = 0
-          ORDER BY (media_type = 'video') DESC, sort_order ASC, id ASC`,
-        [albumId],
-      )
-    : await dbClient.query<ImageRow>(
-        `SELECT id, media_type AS mediaType, url, thumb_url AS thumbUrl, watermark_url AS watermarkUrl,
-                width, height, duration, sort_order AS sortOrder
-           FROM album_image
-          WHERE album_id = ? AND is_deleted = 0 AND media_type = 'image'
-          ORDER BY sort_order ASC, id ASC
-          LIMIT ?`,
-        [albumId, FREE_PREVIEW_COUNT],
-      );
+    ? await (() => {
+        const statement = selectAlbumImages(albumId);
+        return dbClient.query<AlbumImageRow>(statement.sql, statement.params);
+      })()
+    : await (() => {
+        const statement = selectPreviewAlbumImages(albumId, FREE_PREVIEW_COUNT);
+        return dbClient.query<AlbumImageRow>(statement.sql, statement.params);
+      })();
 
   const useWatermark = !canViewAll && watermarkOn;
 
   const [tagMap, otherRows, commentData] = await Promise.all([
     loadTags([albumId]),
-    dbClient.query<AlbumRow>(
-      `SELECT ${ALBUM_SELECT} ${ALBUM_FROM}
-        WHERE a.author_id = ? AND a.id <> ? AND ${PUBLIC_WHERE}
-        ORDER BY a.published_at DESC, a.id DESC
-        LIMIT 5`,
-      [album.authorId, albumId],
-    ),
+    (() => {
+      const statement = selectOtherWorks(Number(album.authorId), albumId);
+      return dbClient.query<AlbumRow>(statement.sql, statement.params);
+    })(),
     loadComments(albumId, userId),
   ]);
 
@@ -454,11 +348,10 @@ export async function getAlbumDetail(
 
   // 浏览量与明细；失败不阻断详情
   try {
-    await dbClient.execute(`UPDATE album SET view_count = view_count + 1 WHERE id = ?`, [albumId]);
-    await dbClient.execute(
-      `INSERT INTO user_view_log (user_id, album_id, view_date, ip) VALUES (?, ?, CURDATE(), ?)`,
-      [userId ?? null, albumId, ip ?? null],
-    );
+    const viewStatement = incrementAlbumView(albumId);
+    await dbClient.execute(viewStatement.sql, viewStatement.params);
+    const viewLogStatement = insertUserViewLog(userId, albumId, ip);
+    await dbClient.execute(viewLogStatement.sql, viewLogStatement.params);
   } catch (error) {
     log.error('浏览记录写入失败', error);
   }
@@ -508,39 +401,43 @@ export async function toggleFavorite(
   albumId: number,
   userId: number,
 ): Promise<{ favorited: boolean; favCount: number }> {
+  const albumStatement = selectPublishedAlbumId(albumId);
   const album = await dbClient.queryOne<{ id: number }>(
-    `SELECT id FROM album WHERE id = ? AND status = 'published' AND is_deleted = 0 LIMIT 1`,
-    [albumId],
+    albumStatement.sql,
+    albumStatement.params,
   );
   if (!album) {
     throw new HttpError(404, '图集不存在或已下架');
   }
 
   return dbClient.transaction(async (conn) => {
+    const existingStatement = selectFavoriteForUpdate(userId, albumId);
     const existing = await queryOneOn<{ id: number }>(
       conn,
-      `SELECT id FROM favorite WHERE user_id = ? AND album_id = ? FOR UPDATE`,
-      [userId, albumId],
+      existingStatement.sql,
+      existingStatement.params,
     );
 
     let favorited: boolean;
     if (existing) {
-      await conn.query(`DELETE FROM favorite WHERE id = ?`, [existing.id]);
-      await conn.query(
-        `UPDATE album SET fav_count = GREATEST(CAST(fav_count AS SIGNED) - 1, 0) WHERE id = ?`,
-        [albumId],
-      );
+      const deleteStatement = deleteFavorite(Number(existing.id));
+      await conn.query(deleteStatement.sql, deleteStatement.params);
+      const decrementStatement = decrementAlbumFavCount(albumId);
+      await conn.query(decrementStatement.sql, decrementStatement.params);
       favorited = false;
     } else {
-      await conn.query(`INSERT INTO favorite (user_id, album_id) VALUES (?, ?)`, [userId, albumId]);
-      await conn.query(`UPDATE album SET fav_count = fav_count + 1 WHERE id = ?`, [albumId]);
+      const insertStatement = insertFavorite(userId, albumId);
+      await conn.query(insertStatement.sql, insertStatement.params);
+      const incrementStatement = incrementAlbumFavCount(albumId);
+      await conn.query(incrementStatement.sql, incrementStatement.params);
       favorited = true;
     }
 
+    const countStatement = selectAlbumFavCount(albumId);
     const row = await queryOneOn<{ favCount: number }>(
       conn,
-      `SELECT fav_count AS favCount FROM album WHERE id = ? LIMIT 1`,
-      [albumId],
+      countStatement.sql,
+      countStatement.params,
     );
     return { favorited, favCount: Number(row?.favCount ?? 0) };
   });
@@ -552,48 +449,47 @@ export async function createComment(
   userId: number,
   input: { content: string; parentId?: number | null; replyToUserId?: number | null },
 ): Promise<CommentDto> {
+  const albumStatement = selectPublishedAlbumTitle(albumId);
   const album = await dbClient.queryOne<{ id: number; title: string }>(
-    `SELECT id, title FROM album WHERE id = ? AND status = 'published' AND is_deleted = 0 LIMIT 1`,
-    [albumId],
+    albumStatement.sql,
+    albumStatement.params,
   );
   if (!album) {
     throw new HttpError(404, '图集不存在或已下架');
   }
 
   if (input.parentId) {
+    const parentStatement = selectCommentParent(input.parentId);
     const parent = await dbClient.queryOne<{ id: number; albumId: number; userId: number }>(
-      `SELECT id, album_id AS albumId, user_id AS userId
-         FROM comment WHERE id = ? AND is_deleted = 0 LIMIT 1`,
-      [input.parentId],
+      parentStatement.sql,
+      parentStatement.params,
     );
     if (!parent || Number(parent.albumId) !== albumId) {
       throw new HttpError(400, '回复目标不存在');
     }
   }
 
-  const [result] = await dbClient.pool.query(
-    `INSERT INTO comment (album_id, user_id, parent_id, reply_to_user_id, content, status)
-     VALUES (?, ?, ?, ?, ?, 'pending')`,
-    [albumId, userId, input.parentId ?? null, input.replyToUserId ?? null, input.content],
-  );
+  const insertStatement = insertComment({
+    albumId,
+    userId,
+    parentId: input.parentId ?? null,
+    replyToUserId: input.replyToUserId ?? null,
+    content: input.content,
+  });
+  const [result] = await dbClient.pool.query(insertStatement.sql, insertStatement.params);
   const commentId = (result as { insertId: number }).insertId;
 
-  await dbClient.execute(
-    `INSERT INTO user_notification (user_id, type, title, content, album_id)
-     VALUES (?, 'review', '你的评论已提交审核', ?, ?)`,
-    [userId, `在《${album.title}》下的评论等待管理员审核`, albumId],
+  const notificationStatement = insertReviewNotification(
+    userId,
+    `在《${album.title}》下的评论等待管理员审核`,
+    albumId,
   );
+  await dbClient.execute(notificationStatement.sql, notificationStatement.params);
 
-  const row = await dbClient.queryOne<CommentRow>(
-    `SELECT c.id, c.parent_id AS parentId, c.reply_to_user_id AS replyToUserId,
-            ru.nickname AS replyToName, c.content, c.status, c.created_at AS createdAt,
-            u.id AS userId, u.nickname, u.avatar_type AS avatarType, u.avatar_index AS avatarIndex,
-            u.avatar_url AS avatarUrl, u.role, u.vip_expire_at AS vipExpireAt
-       FROM comment c
-       JOIN \`user\` u ON u.id = c.user_id
-       LEFT JOIN \`user\` ru ON ru.id = c.reply_to_user_id
-      WHERE c.id = ? LIMIT 1`,
-    [commentId],
+  const rowStatement = selectCommentById(commentId);
+  const row = await dbClient.queryOne<AlbumCommentRow>(
+    rowStatement.sql,
+    rowStatement.params,
   );
 
   if (!row) {
@@ -617,18 +513,14 @@ export async function createComment(
 /** 删除本人评论（连同其下回复），同步 comment_count。 */
 export async function deleteComment(commentId: number, userId: number): Promise<void> {
   await dbClient.transaction(async (conn) => {
+    const commentStatement = selectCommentForUpdate(commentId);
     const comment = await queryOneOn<{
       id: number;
       userId: number;
       albumId: number;
       status: string;
       isDeleted: number;
-    }>(
-      conn,
-      `SELECT id, user_id AS userId, album_id AS albumId, status, is_deleted AS isDeleted
-         FROM comment WHERE id = ? FOR UPDATE`,
-      [commentId],
-    );
+    }>(conn, commentStatement.sql, commentStatement.params);
     if (!comment || comment.isDeleted === 1) {
       throw new HttpError(404, '评论不存在');
     }
@@ -638,32 +530,25 @@ export async function deleteComment(commentId: number, userId: number): Promise<
 
     const replies = await queryOnIds(conn, commentId);
     const ids = [commentId, ...replies];
-    const placeholders = ids.map(() => '?').join(', ');
+    const approvedStatement = countApprovedCommentsByIds(ids);
     const approvedRow = await queryOneOn<{ total: number }>(
       conn,
-      `SELECT COUNT(*) AS total FROM comment WHERE id IN (${placeholders}) AND status = 'approved'`,
-      ids,
+      approvedStatement.sql,
+      approvedStatement.params,
     );
-    await conn.query(
-      `UPDATE comment SET status = 'deleted', is_deleted = 1 WHERE id IN (${placeholders})`,
-      ids,
-    );
+    const deleteStatement = softDeleteCommentsByIds(ids);
+    await conn.query(deleteStatement.sql, deleteStatement.params);
     const approved = Number(approvedRow?.total ?? 0);
     if (approved > 0) {
-      await conn.query(
-        `UPDATE album SET comment_count = GREATEST(CAST(comment_count AS SIGNED) - ?, 0) WHERE id = ?`,
-        [approved, comment.albumId],
-      );
+      const decrementStatement = decrementAlbumCommentCount(Number(comment.albumId), approved);
+      await conn.query(decrementStatement.sql, decrementStatement.params);
     }
   });
 }
 
 async function queryOnIds(conn: TransactionConnection, parentId: number): Promise<number[]> {
-  const rows = await queryOn<{ id: number }>(
-    conn,
-    `SELECT id FROM comment WHERE parent_id = ? AND is_deleted = 0`,
-    [parentId],
-  );
+  const statement = selectReplyCommentIds(parentId);
+  const rows = await queryOn<{ id: number }>(conn, statement.sql, statement.params);
   return rows.map((row) => Number(row.id));
 }
 
@@ -677,11 +562,8 @@ export async function getAlbumCardsByIds(
   if (unique.length === 0) {
     return result;
   }
-  const placeholders = unique.map(() => '?').join(', ');
-  const rows = await dbClient.query<AlbumRow>(
-    `SELECT ${ALBUM_SELECT} ${ALBUM_FROM} WHERE a.id IN (${placeholders}) AND ${PUBLIC_WHERE}`,
-    unique,
-  );
+  const statement = selectAlbumsByIds(unique);
+  const rows = await dbClient.query<AlbumRow>(statement.sql, statement.params);
   const cards = await buildAlbumCards(rows, userId);
   for (const card of cards) {
     result.set(card.id, card);
@@ -704,25 +586,21 @@ export async function listFavoriteAlbums(
   pageSize = 12,
 ): Promise<PageResult<AlbumCardDto>> {
   const normalized = normalizePage(page, pageSize, 12);
-  const where = `f.user_id = ? AND ${PUBLIC_WHERE}`;
+  const countStatement = countFavoriteAlbums(userId);
   const countRow = await dbClient.queryOne<{ total: number }>(
-    `SELECT COUNT(*) AS total FROM favorite f
-       JOIN album a ON a.id = f.album_id
-       JOIN author au ON au.id = a.author_id
-      WHERE ${where}`,
-    [userId],
+    countStatement.sql,
+    countStatement.params,
   );
   const total = Number(countRow?.total ?? 0);
 
+  const pageStatement = selectFavoriteAlbumIds(
+    userId,
+    normalized.pageSize,
+    normalized.offset,
+  );
   const rows = await dbClient.query<{ albumId: number }>(
-    `SELECT f.album_id AS albumId
-       FROM favorite f
-       JOIN album a ON a.id = f.album_id
-       JOIN author au ON au.id = a.author_id
-      WHERE ${where}
-      ORDER BY f.created_at DESC, f.id DESC
-      LIMIT ? OFFSET ?`,
-    [userId, normalized.pageSize, normalized.offset],
+    pageStatement.sql,
+    pageStatement.params,
   );
 
   const cards = await getAlbumCardsByIds(
@@ -745,35 +623,31 @@ export async function createAlbumZip(
   albumId: number,
   user: AuthUser,
 ): Promise<{ stream: Readable; filename: string }> {
+  const albumStatement = selectAlbumForDownload(albumId);
   const album = await dbClient.queryOne<{
     id: number;
     title: string;
     authorName: string;
-  }>(
-    `SELECT a.id, a.title, au.name AS authorName
-       FROM album a JOIN author au ON au.id = a.author_id
-      WHERE a.id = ? AND ${PUBLIC_WHERE} LIMIT 1`,
-    [albumId],
-  );
+  }>(albumStatement.sql, albumStatement.params);
   if (!album) {
     throw new HttpError(404, '图集不存在或已下架');
   }
 
   if (!isVipUser(user)) {
+    const unlockedStatement = countAlbumUnlock(user.id, albumId);
     const unlocked = await dbClient.queryOne<{ total: number }>(
-      `SELECT COUNT(*) AS total FROM album_unlock WHERE user_id = ? AND album_id = ?`,
-      [user.id, albumId],
+      unlockedStatement.sql,
+      unlockedStatement.params,
     );
     if (Number(unlocked?.total ?? 0) === 0) {
       throw new HttpError(403, '请先使用积分解锁或开通付费会员后下载');
     }
   }
 
+  const imagesStatement = selectDownloadImageUrls(albumId);
   const images = await dbClient.query<{ url: string }>(
-    `SELECT url FROM album_image
-      WHERE album_id = ? AND media_type = 'image' AND is_deleted = 0
-      ORDER BY sort_order ASC, id ASC`,
-    [albumId],
+    imagesStatement.sql,
+    imagesStatement.params,
   );
   if (images.length === 0) {
     throw new HttpError(404, '该图集暂无可下载的图片');
@@ -805,13 +679,10 @@ export async function createAlbumZip(
   })();
 
   try {
-    await dbClient.execute(`UPDATE album SET download_count = download_count + 1 WHERE id = ?`, [
-      albumId,
-    ]);
-    await dbClient.execute(
-      `INSERT INTO download_log (user_id, album_id, download_date) VALUES (?, ?, CURDATE())`,
-      [user.id, albumId],
-    );
+    const downloadStatement = incrementAlbumDownloadCount(albumId);
+    await dbClient.execute(downloadStatement.sql, downloadStatement.params);
+    const downloadLogStatement = insertDownloadLog(user.id, albumId);
+    await dbClient.execute(downloadLogStatement.sql, downloadLogStatement.params);
   } catch (error) {
     log.error('下载记录写入失败', error);
   }

@@ -1,27 +1,22 @@
 import {
   ANNOUNCEMENT_TYPE_LABELS,
   type AnnouncementDto,
-  type AnnouncementType,
   type PageResult,
 } from '@sylvie/types';
 
 import { dbClient } from '../db/index.js';
+import {
+  announcementListFilter,
+  countAnnouncements,
+  insertAnnouncementSearchLog,
+  selectAnnouncementsPage,
+  selectHomeAnnouncements,
+  type AnnouncementRow,
+} from '../sql/announcement.sql.js';
 import { normalizePage, toBool, toPageResult } from '../utils/format.js';
 import { moduleLogger } from '../utils/logger.js';
 
 const log = moduleLogger('announcement');
-
-interface AnnouncementRow {
-  id: number;
-  type: AnnouncementType;
-  title: string;
-  summary: string | null;
-  content: string | null;
-  isTop: number;
-  publishedAt: string;
-}
-
-const ANNOUNCEMENT_COLUMNS = `id, type, title, summary, content, is_top AS isTop, published_at AS publishedAt`;
 
 function mapAnnouncement(row: AnnouncementRow): AnnouncementDto {
   return {
@@ -38,11 +33,8 @@ function mapAnnouncement(row: AnnouncementRow): AnnouncementDto {
 
 async function logSearch(keyword: string, resultCount: number, userId?: number): Promise<void> {
   try {
-    await dbClient.execute(
-      `INSERT INTO search_log (scene, keyword, user_id, result_count, search_date)
-       VALUES ('announcement', ?, ?, ?, CURDATE())`,
-      [keyword, userId ?? null, resultCount],
-    );
+    const statement = insertAnnouncementSearchLog(keyword, userId, resultCount);
+    await dbClient.execute(statement.sql, statement.params);
   } catch (error) {
     log.error('搜索日志写入失败', error);
   }
@@ -54,37 +46,22 @@ export async function listAnnouncements(
 ): Promise<PageResult<AnnouncementDto>> {
   const { page, pageSize, offset } = normalizePage(query.page, query.pageSize, 8);
   const keyword = query.keyword?.trim() ?? '';
-  const conditions = ['status = 1', 'is_deleted = 0'];
-  const params: unknown[] = [];
+  const matchedTypeLabels = Object.entries(ANNOUNCEMENT_TYPE_LABELS)
+    .filter(([, label]) => label.includes(keyword))
+    .map(([type]) => type);
+  const where = announcementListFilter(keyword, matchedTypeLabels);
 
-  if (keyword) {
-    const labels = Object.entries(ANNOUNCEMENT_TYPE_LABELS)
-      .filter(([, label]) => label.includes(keyword))
-      .map(([type]) => type);
-    const like = `%${keyword}%`;
-    const ors = ['title LIKE ?', 'summary LIKE ?', 'content LIKE ?'];
-    params.push(like, like, like);
-    if (labels.length > 0) {
-      ors.push(`type IN (${labels.map(() => '?').join(', ')})`);
-      params.push(...labels);
-    }
-    conditions.push(`(${ors.join(' OR ')})`);
-  }
-
-  const where = conditions.join(' AND ');
+  const countStatement = countAnnouncements(where);
   const countRow = await dbClient.queryOne<{ total: number }>(
-    `SELECT COUNT(*) AS total FROM announcement WHERE ${where}`,
-    params,
+    countStatement.sql,
+    countStatement.params,
   );
   const total = Number(countRow?.total ?? 0);
 
+  const pageStatement = selectAnnouncementsPage(where, pageSize, offset);
   const rows = await dbClient.query<AnnouncementRow>(
-    `SELECT ${ANNOUNCEMENT_COLUMNS}
-       FROM announcement
-      WHERE ${where}
-      ORDER BY is_top DESC, published_at DESC, id DESC
-      LIMIT ? OFFSET ?`,
-    [...params, pageSize, offset],
+    pageStatement.sql,
+    pageStatement.params,
   );
 
   if (keyword) {
@@ -96,13 +73,7 @@ export async function listAnnouncements(
 
 /** 首页公告：最新 4 条，置顶优先。 */
 export async function listHomeAnnouncements(limit = 4): Promise<AnnouncementDto[]> {
-  const rows = await dbClient.query<AnnouncementRow>(
-    `SELECT ${ANNOUNCEMENT_COLUMNS}
-       FROM announcement
-      WHERE status = 1 AND is_deleted = 0
-      ORDER BY is_top DESC, published_at DESC, id DESC
-      LIMIT ?`,
-    [limit],
-  );
+  const statement = selectHomeAnnouncements(limit);
+  const rows = await dbClient.query<AnnouncementRow>(statement.sql, statement.params);
   return rows.map(mapAnnouncement);
 }

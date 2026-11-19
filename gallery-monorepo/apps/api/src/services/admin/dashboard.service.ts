@@ -8,26 +8,26 @@ import type {
 
 import { dbClient } from '../../db/index.js';
 import { toBool, toNumber } from '../../utils/format.js';
-
-interface RecentAlbumRow {
-  id: number;
-  title: string;
-  coverUrl: string;
-  authorId: number;
-  authorName: string;
-  authorInitial: string;
-  authorColor: string;
-  authorAvatarUrl: string | null;
-  imageCount: number;
-  videoCount: number;
-  points: number;
-  viewCount: number;
-  favCount: number;
-  isRecommended: number;
-  status: 'draft' | 'published' | 'offline';
-  publishedAt: string | null;
-  createdAt: string;
-}
+import {
+  selectDailyRevenueTrend,
+  selectDashboardHotKeywords,
+  selectDashboardRecentAlbums,
+  selectMonthlyRevenueTrend,
+  selectSiteStatistics,
+  selectTodayNewUsers,
+  selectTodayOrderCount,
+  selectTodayPageViews,
+  selectTodayUnlocks,
+  selectTodayVipRevenue,
+  type CountRow,
+  type HotKeywordRow,
+  type PageViewRow,
+  type RecentAlbumRow,
+  type SiteStatisticsRow,
+  type TodayRevenueRow,
+  type TodayUnlockRow,
+  type TrendBucketRow,
+} from '../../sql/admin/dashboard.sql.js';
 
 function pad(value: number): string {
   return String(value).padStart(2, '0');
@@ -60,6 +60,15 @@ function mapRecentAlbum(row: RecentAlbumRow): AdminAlbumRow {
 }
 
 export async function getAdminDashboard(): Promise<AdminDashboard> {
+  const todayStatement = selectTodayVipRevenue();
+  const unlockStatement = selectTodayUnlocks();
+  const newUserStatement = selectTodayNewUsers();
+  const pvStatement = selectTodayPageViews();
+  const siteStatement = selectSiteStatistics();
+  const todayOrderStatement = selectTodayOrderCount();
+  const recentStatement = selectDashboardRecentAlbums();
+  const hotStatement = selectDashboardHotKeywords();
+
   const [
     todayRow,
     unlockRow,
@@ -70,74 +79,14 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
     recentRows,
     hotRows,
   ] = await Promise.all([
-    dbClient.queryOne<{ revenue: string | number; cnt: number }>(
-      `SELECT COALESCE(SUM(amount_cents), 0) AS revenue, COUNT(*) AS cnt
-         FROM pay_order
-        WHERE status = 'paid' AND biz_type = 'vip' AND amount_cents > 0 AND DATE(paid_at) = CURDATE()`,
-    ),
-    dbClient.queryOne<{ cnt: number; points: string | number }>(
-      `SELECT COUNT(*) AS cnt, COALESCE(SUM(points_cost), 0) AS points
-         FROM album_unlock WHERE DATE(created_at) = CURDATE()`,
-    ),
-    dbClient.queryOne<{ cnt: number }>(
-      `SELECT COUNT(*) AS cnt FROM \`user\`
-        WHERE is_deleted = 0 AND role IN ('member','vip') AND DATE(created_at) = CURDATE()`,
-    ),
-    dbClient.queryOne<{ pv: number; uv: number }>(
-      `SELECT COUNT(*) AS pv,
-              COUNT(DISTINCT COALESCE(CAST(user_id AS CHAR), visitor_id, ip)) AS uv
-         FROM user_view_log WHERE view_date = CURDATE()`,
-    ),
-    dbClient.queryOne<{
-      albumTotal: number;
-      publishedAlbums: number;
-      draftAlbums: number;
-      offlineAlbums: number;
-      userTotal: number;
-      monthNewUsers: number;
-      vipTotal: number;
-      monthNewVip: number;
-      pendingComments: number;
-    }>(
-      `SELECT
-         (SELECT COUNT(*) FROM album WHERE is_deleted = 0) AS albumTotal,
-         (SELECT COUNT(*) FROM album WHERE is_deleted = 0 AND status = 'published') AS publishedAlbums,
-         (SELECT COUNT(*) FROM album WHERE is_deleted = 0 AND status = 'draft') AS draftAlbums,
-         (SELECT COUNT(*) FROM album WHERE is_deleted = 0 AND status = 'offline') AS offlineAlbums,
-         (SELECT COUNT(*) FROM \`user\` WHERE is_deleted = 0 AND role <> 'admin') AS userTotal,
-         (SELECT COUNT(*) FROM \`user\`
-           WHERE is_deleted = 0 AND role <> 'admin'
-             AND DATE_FORMAT(created_at, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')) AS monthNewUsers,
-         (SELECT COUNT(*) FROM \`user\`
-           WHERE is_deleted = 0 AND role = 'vip' AND vip_expire_at > NOW()) AS vipTotal,
-         (SELECT COUNT(DISTINCT user_id) FROM pay_order
-           WHERE biz_type = 'vip' AND status = 'paid' AND amount_cents > 0
-             AND DATE_FORMAT(paid_at, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')) AS monthNewVip,
-         (SELECT COUNT(*) FROM comment WHERE status = 'pending' AND is_deleted = 0) AS pendingComments`,
-    ),
-    dbClient.queryOne<{ cnt: number }>(
-      `SELECT COUNT(*) AS cnt FROM pay_order WHERE DATE(created_at) = CURDATE()`,
-    ),
-    dbClient.query<RecentAlbumRow>(
-      `SELECT a.id, a.title, a.cover_url AS coverUrl, a.author_id AS authorId,
-              au.name AS authorName, au.initial AS authorInitial, au.color AS authorColor,
-              au.avatar_url AS authorAvatarUrl, a.image_count AS imageCount,
-              a.video_count AS videoCount, a.points, a.view_count AS viewCount,
-              a.fav_count AS favCount, a.is_recommended AS isRecommended, a.status,
-              a.published_at AS publishedAt, a.created_at AS createdAt
-         FROM album a JOIN author au ON au.id = a.author_id
-        WHERE a.is_deleted = 0
-        ORDER BY a.created_at DESC, a.id DESC
-        LIMIT 6`,
-    ),
-    dbClient.query<{ keyword: string; cnt: number }>(
-      `SELECT keyword, COUNT(*) AS cnt
-         FROM search_log
-        WHERE search_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-        GROUP BY keyword
-        ORDER BY cnt DESC, keyword ASC
-        LIMIT 5`,
-    ),
+    dbClient.queryOne<TodayRevenueRow>(todayStatement.sql, todayStatement.params),
+    dbClient.queryOne<TodayUnlockRow>(unlockStatement.sql, unlockStatement.params),
+    dbClient.queryOne<CountRow>(newUserStatement.sql, newUserStatement.params),
+    dbClient.queryOne<PageViewRow>(pvStatement.sql, pvStatement.params),
+    dbClient.queryOne<SiteStatisticsRow>(siteStatement.sql, siteStatement.params),
+    dbClient.queryOne<CountRow>(todayOrderStatement.sql, todayOrderStatement.params),
+    dbClient.query<RecentAlbumRow>(recentStatement.sql, recentStatement.params),
+    dbClient.query<HotKeywordRow>(hotStatement.sql, hotStatement.params),
   ]);
 
   const pendingComments = Number(siteRow?.pendingComments ?? 0);
@@ -187,13 +136,8 @@ export async function getAdminTrend(mode: TrendMode): Promise<AdminTrend> {
         label: `${date.getFullYear()}-${pad(date.getMonth() + 1)}`,
       });
     }
-    const rows = await dbClient.query<{ bucket: string; value: string | number }>(
-      `SELECT DATE_FORMAT(paid_at, '%Y-%m') AS bucket, SUM(amount_cents) AS value
-         FROM pay_order
-        WHERE status = 'paid' AND biz_type = 'vip' AND amount_cents > 0
-          AND paid_at >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 5 MONTH), '%Y-%m-01')
-        GROUP BY bucket`,
-    );
+    const statement = selectMonthlyRevenueTrend();
+    const rows = await dbClient.query<TrendBucketRow>(statement.sql, statement.params);
     const map = new Map(rows.map((row) => [row.bucket, toNumber(row.value)]));
     const points: TrendPoint[] = months.map((month) => ({
       label: month.label,
@@ -213,15 +157,8 @@ export async function getAdminTrend(mode: TrendMode): Promise<AdminTrend> {
       label: `${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
     });
   }
-  const rows = await dbClient.query<{ bucket: string; value: string | number }>(
-    `SELECT DATE(paid_at) AS bucket, SUM(amount_cents) AS value
-       FROM pay_order
-      WHERE status = 'paid' AND biz_type = 'vip' AND amount_cents > 0
-        AND paid_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
-        AND paid_at < DATE_ADD(CURDATE(), INTERVAL 1 DAY)
-      GROUP BY bucket`,
-    [days - 1],
-  );
+  const statement = selectDailyRevenueTrend(days - 1);
+  const rows = await dbClient.query<TrendBucketRow>(statement.sql, statement.params);
   const map = new Map(
     rows.map((row) => [String(row.bucket), toNumber(row.value)]),
   );
