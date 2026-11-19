@@ -18,6 +18,7 @@
     "@hono/node-server": "^1.13.7",
     "@scalar/hono-api-reference": "^0.12.22",
     "@sylvie/db": "workspace:*",
+    "@sylvie/logger": "workspace:*",
     "@sylvie/types": "workspace:*",
     "@sylvie/utils": "workspace:*",
     "archiver": "^7.0.1",

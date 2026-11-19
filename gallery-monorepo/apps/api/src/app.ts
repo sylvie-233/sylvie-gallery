@@ -2,20 +2,21 @@ import { Scalar } from '@scalar/hono-api-reference';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
-import { logger } from 'hono/logger';
 
 import { corsOrigins } from './config/env.js';
 import { dbClient } from './db/index.js';
 import { errorHandler } from './middleware/error.js';
+import { requestLogger } from './middleware/request-logger.js';
 import { openapiSpec } from './openapi/spec.js';
 import apiRoutes from './routes/index.js';
 import { storageHealthy } from './services/storage.service.js';
 import type { AppEnv } from './types/context.js';
 import { failure, success } from './utils/http.js';
+import { logger } from './utils/logger.js';
 
 export const app = new Hono<AppEnv>();
 
-app.use('*', logger());
+app.use('*', requestLogger);
 app.use(
   '*',
   cors({
@@ -56,7 +57,7 @@ app.get('/health', async (c) => {
       storage: storage ? 'up' : 'down',
     });
   } catch (error) {
-    console.error('[api:health] 数据库连接异常', error);
+    (c.get('logger') ?? logger).error('健康检查失败：数据库连接异常', error);
     return failure(c, 503, '数据库连接不可用');
   }
 });

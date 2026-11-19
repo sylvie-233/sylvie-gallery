@@ -1,5 +1,6 @@
 import type { Context } from 'hono';
 
+import type { Logger } from '@sylvie/logger';
 import type { Role } from '@sylvie/types';
 
 /** 当前请求的登录用户（由鉴权中间件注入）。 */
@@ -15,6 +16,8 @@ export interface AuthUser {
 export interface AppEnv {
   Variables: {
     currentUser?: AuthUser;
+    /** 请求级子日志，由 requestLogger 中间件注入。 */
+    logger?: Logger;
   };
 }
 

@@ -18,7 +18,10 @@ import { dbClient, queryOn, queryOneOn, type TransactionConnection } from '../db
 import type { AuthUser } from '../types/context.js';
 import { HttpError } from '../utils/http.js';
 import { effectiveRole, normalizePage, toBool, toNumber, toPageResult } from '../utils/format.js';
+import { moduleLogger } from '../utils/logger.js';
 import { isVipUser } from './user.service.js';
+
+const log = moduleLogger('album');
 
 interface AlbumRow {
   id: number;
@@ -172,7 +175,7 @@ async function logAlbumSearch(keyword: string, resultCount: number, userId?: num
       [keyword, userId ?? null, resultCount],
     );
   } catch (error) {
-    console.error('[api:search-log] 图集搜索日志写入失败', error);
+    log.error('搜索日志写入失败', error);
   }
 }
 
@@ -457,7 +460,7 @@ export async function getAlbumDetail(
       [userId ?? null, albumId, ip ?? null],
     );
   } catch (error) {
-    console.error('[api:view-log] 浏览记录写入失败', error);
+    log.error('浏览记录写入失败', error);
   }
 
   const tags = (tagMap.get(albumId) ?? []).map((tag) => ({
@@ -778,10 +781,10 @@ export async function createAlbumZip(
 
   const archive = archiver('zip', { zlib: { level: 5 } });
   archive.on('warning', (error) => {
-    console.warn('[api:download] 压缩告警', error);
+    log.warn('压缩告警', error);
   });
   archive.on('error', (error) => {
-    console.error('[api:download] 压缩失败', error);
+    log.error('压缩失败', error);
   });
 
   void (async () => {
@@ -795,7 +798,7 @@ export async function createAlbumZip(
         const name = `${String(index + 1).padStart(3, '0')}.${extension}`;
         archive.append(Readable.fromWeb(response.body as never), { name });
       } catch (error) {
-        console.warn(`[api:download] 第 ${index + 1} 张图片下载失败`, error);
+        log.warn('图片下载失败', error, { index: index + 1 });
       }
     }
     await archive.finalize();
@@ -810,7 +813,7 @@ export async function createAlbumZip(
       [user.id, albumId],
     );
   } catch (error) {
-    console.error('[api:download-log] 下载记录写入失败', error);
+    log.error('下载记录写入失败', error);
   }
 
   return {

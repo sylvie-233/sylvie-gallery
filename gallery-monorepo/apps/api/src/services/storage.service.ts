@@ -8,6 +8,9 @@ import {
 } from '@aws-sdk/client-s3';
 
 import { env } from '../config/env.js';
+import { moduleLogger } from '../utils/logger.js';
+
+const log = moduleLogger('storage');
 
 const s3 = new S3Client({
   endpoint: env.S3_ENDPOINT,
@@ -27,7 +30,7 @@ export async function ensureBucket(): Promise<void> {
   } catch {
     try {
       await s3.send(new CreateBucketCommand({ Bucket: env.S3_BUCKET }));
-      console.log(`[api] 已创建对象存储桶：${env.S3_BUCKET}`);
+      log.info('已创建对象存储桶', { bucket: env.S3_BUCKET });
     } catch (error) {
       const code = (error as { name?: string }).name;
       if (code !== 'BucketAlreadyOwnedByYou' && code !== 'BucketAlreadyExists') {

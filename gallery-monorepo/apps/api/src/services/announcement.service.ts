@@ -7,6 +7,9 @@ import {
 
 import { dbClient } from '../db/index.js';
 import { normalizePage, toBool, toPageResult } from '../utils/format.js';
+import { moduleLogger } from '../utils/logger.js';
+
+const log = moduleLogger('announcement');
 
 interface AnnouncementRow {
   id: number;
@@ -41,7 +44,7 @@ async function logSearch(keyword: string, resultCount: number, userId?: number):
       [keyword, userId ?? null, resultCount],
     );
   } catch (error) {
-    console.error('[api:search-log] 公告搜索日志写入失败', error);
+    log.error('搜索日志写入失败', error);
   }
 }
 

@@ -4,6 +4,7 @@ import app from './app.js';
 import { env } from './config/env.js';
 import { dbClient } from './db/index.js';
 import { ensureBucket } from './services/storage.service.js';
+import { logger } from './utils/logger.js';
 
 async function bootstrap(): Promise<void> {
   // 启动前确认数据库与对象存储可用，避免「服务可访问但所有接口报错」
@@ -17,8 +18,12 @@ async function bootstrap(): Promise<void> {
       hostname: env.HOST,
     },
     (info) => {
-      console.log(`[api] 服务已启动：http://${info.address}:${info.port}`);
-      console.log('[api] 接口前缀：/api，健康检查：/health');
+      logger.info('服务已启动', {
+        url: `http://${info.address}:${info.port}`,
+        apiPrefix: '/api',
+        docs: '/api/docs',
+        health: '/health',
+      });
     },
   );
 
@@ -28,15 +33,16 @@ async function bootstrap(): Promise<void> {
       return;
     }
     closing = true;
-    console.log(`[api] 收到 ${signal}，正在关闭服务...`);
+    logger.info('收到关闭信号，正在关闭服务', { signal });
 
     server.close(() => {
       void dbClient
         .close()
+        .then(() => logger.flush())
         .then(() => process.exit(0))
         .catch((error: unknown) => {
-          console.error('[api] 关闭数据库连接失败', error);
-          process.exit(1);
+          logger.error('关闭数据库连接失败', error);
+          void logger.flush().finally(() => process.exit(1));
         });
     });
 
@@ -48,6 +54,6 @@ async function bootstrap(): Promise<void> {
 }
 
 bootstrap().catch((error: unknown) => {
-  console.error('[api] 启动失败：', error);
-  process.exit(1);
+  logger.error('服务启动失败', error);
+  void logger.flush().finally(() => process.exit(1));
 });

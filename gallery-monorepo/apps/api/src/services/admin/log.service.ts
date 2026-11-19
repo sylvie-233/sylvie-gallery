@@ -1,4 +1,7 @@
 import { dbClient } from '../../db/index.js';
+import { moduleLogger } from '../../utils/logger.js';
+
+const log = moduleLogger('admin-log');
 
 /** 写入管理操作日志；日志失败不阻断主业务。 */
 export async function logAdminOp(
@@ -22,6 +25,6 @@ export async function logAdminOp(
       [adminId, action, targetType, targetId, detailText, ip ?? null],
     );
   } catch (error) {
-    console.error('[api:admin-log] 操作日志写入失败', error);
+    log.error('操作日志写入失败', error);
   }
 }

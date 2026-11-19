@@ -3,7 +3,9 @@ import { HTTPException } from 'hono/http-exception';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { ZodError } from 'zod';
 
+import type { AppEnv } from '../types/context.js';
 import { HttpError, failure } from '../utils/http.js';
+import { logger } from '../utils/logger.js';
 import { formatZodError } from '../utils/validate.js';
 
 interface ErrorWithCode {
@@ -11,7 +13,7 @@ interface ErrorWithCode {
 }
 
 /** 全局错误处理：统一响应结构，不向客户端泄露 SQL / 堆栈。 */
-export function errorHandler(error: Error, c: Context): Response {
+export function errorHandler(error: Error, c: Context<AppEnv>): Response {
   let status: ContentfulStatusCode = 500;
   let message = '服务器内部错误';
 
@@ -39,7 +41,7 @@ export function errorHandler(error: Error, c: Context): Response {
   }
 
   if (status >= 500) {
-    console.error('[api:error]', error);
+    (c.get('logger') ?? logger).error('未处理异常', error, { status });
   }
 
   return failure(c, status, message);

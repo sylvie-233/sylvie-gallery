@@ -36,6 +36,9 @@ const envSchema = z.object({
 
   CORS_ORIGIN: z.string().default('http://localhost:3001,http://localhost:8080'),
 
+  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).default('info'),
+  LOG_PRETTY: z.enum(['true', 'false']).optional(),
+
   S3_ENDPOINT: z.string().default('http://127.0.0.1:9000'),
   S3_REGION: z.string().default('us-east-1'),
   S3_ACCESS_KEY: z.string().default('rustfsadmin'),

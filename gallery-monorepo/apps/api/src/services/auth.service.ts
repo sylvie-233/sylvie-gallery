@@ -9,9 +9,11 @@ import { dbClient, queryOneOn } from '../db/index.js';
 import type { TransactionConnection } from '../db/index.js';
 import { HttpError } from '../utils/http.js';
 import { signToken } from '../utils/jwt.js';
+import { moduleLogger } from '../utils/logger.js';
 import { getProfileById } from './user.service.js';
 
 const CODE_TTL_MINUTES = 10;
+const log = moduleLogger('auth');
 
 interface LoginRow {
   id: number;
@@ -56,7 +58,7 @@ export async function sendVerifyCode(
     [email, scene, code, CODE_TTL_MINUTES],
   );
 
-  console.log(`[api:verify-code] ${email} (${scene}) 验证码：${code}，${CODE_TTL_MINUTES} 分钟内有效`);
+  log.info('验证码已生成', { email, scene, code, ttlMinutes: CODE_TTL_MINUTES });
 
   const result: { sent: boolean; expiresIn: number; demoCode?: string } = {
     sent: true,
