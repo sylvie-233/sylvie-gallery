@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "希尔薇图集共享数据库层（MySQL 连接与参数化查询）",
+  "description": "希尔薇图集共享数据库层（Drizzle schema + MySQL 连接）",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -20,6 +20,7 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
+    "drizzle-orm": "^0.45.4",
     "mysql2": "^3.24.6"
   },
   "devDependencies": {

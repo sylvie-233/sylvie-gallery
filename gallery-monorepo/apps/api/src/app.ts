@@ -1,3 +1,4 @@
+import { Scalar } from '@scalar/hono-api-reference';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
@@ -6,6 +7,7 @@ import { logger } from 'hono/logger';
 import { corsOrigins } from './config/env.js';
 import { dbClient } from './db/index.js';
 import { errorHandler } from './middleware/error.js';
+import { openapiSpec } from './openapi/spec.js';
 import apiRoutes from './routes/index.js';
 import { storageHealthy } from './services/storage.service.js';
 import type { AppEnv } from './types/context.js';
@@ -63,7 +65,19 @@ app.get('/', (c) =>
   success(c, {
     name: '希尔薇图集 API',
     version: 'v1',
-    docs: '接口前缀 /api，健康检查 /health',
+    docs: 'API 文档 /api/docs，OpenAPI JSON /api/openapi.json，健康检查 /health',
+  }),
+);
+
+/** OpenAPI JSON 与 Scalar API 文档。需在 API 路由之前注册。 */
+app.get('/api/openapi.json', (c) => c.json(openapiSpec));
+app.get(
+  '/api/docs',
+  Scalar({
+    url: '/api/openapi.json',
+    pageTitle: '希尔薇图集 API 文档',
+    persistAuth: true,
+    authentication: { preferredSecurityScheme: 'BearerAuth' },
   }),
 );
 

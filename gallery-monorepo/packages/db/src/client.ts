@@ -1,4 +1,7 @@
+import { drizzle, type MySql2Database } from 'drizzle-orm/mysql2';
 import mysql, { type Pool, type PoolConnection, type ResultSetHeader } from 'mysql2/promise';
+
+import * as schema from './schema/index.js';
 
 /** 数据库连接参数：由调用方从环境变量读取后传入。 */
 export interface DatabaseOptions {
@@ -15,12 +18,14 @@ export type TransactionConnection = PoolConnection;
 
 /**
  * 共享数据库客户端：
+ * - `db`：Drizzle 查询构建器（schema 见 `./schema`）；
  * - `query` / `queryOne` / `execute`：参数化 SQL；
  * - `transaction`：在同一连接上开启事务；
  * - `ping`：健康检查。
  */
 export class DatabaseClient {
   readonly pool: Pool;
+  readonly db: MySql2Database<typeof schema>;
 
   constructor(options: DatabaseOptions) {
     this.pool = mysql.createPool({
@@ -36,6 +41,7 @@ export class DatabaseClient {
       dateStrings: true,
       charset: 'utf8mb4',
     });
+    this.db = drizzle(this.pool, { schema, mode: 'default' });
   }
 
   async query<T = Record<string, unknown>>(
