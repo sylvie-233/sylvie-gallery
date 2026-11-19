@@ -125,6 +125,8 @@ sylvie-gallery/
 - [数据库设计](docs/美女写真网站-v1数据库设计.sql)：25 张表、设计约定与种子数据
 - [前台交互原型](docs/美女写真网站-v1原型设计.html)：单文件 HTML，浏览器直接打开
 - [管理后台原型](docs/美女写真网站-v1管理后台原型.html)：单文件 HTML，登录层与前台独立
+- [支付宝沙箱集成流程文档](docs/支付宝沙箱集成流程文档.md)：沙箱配置、支付链路、本地联调与排错
+- [API 可观测性集成方案参考](docs/api模块可观测性集成方案参考文档.md)：OpenTelemetry + Alloy + Prometheus + Loki + Tempo + Grafana 参考方案
 - [scripts/docker-compose.yml](scripts/docker-compose.yml)：五端容器编排
 
 ## License
