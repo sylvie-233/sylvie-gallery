@@ -37,9 +37,11 @@ const query = await alipay.query('SV202611190001');
 // 退款（失败会抛错，调用方不要继续本地退款）
 const refund = await alipay.refund({
   orderNo: 'SV202611190001',
+  // 支付宝流水号（支付通知中的 trade_no）；有则优先使用
+  tradeNo: '2026111922001400000001',
   amountCents: 1900,
   reason: '用户申请退款',
-  outRequestNo: 'SV202611190001', // 可省略，默认用 orderNo
+  outRequestNo: 'SV202611190001', // 退款幂等号，可省略，默认用 orderNo
 });
 ```
 
@@ -49,7 +51,7 @@ const refund = await alipay.refund({
 |---|---|
 | `createPagePayment` | 电脑网站支付 `alipay.trade.page.pay`，返回收银台 URL |
 | `query` | `alipay.trade.query`，返回统一状态与实付金额（分） |
-| `refund` | `alipay.trade.refund`；默认 `out_request_no=orderNo`，重复请求幂等 |
+| `refund` | `alipay.trade.refund`；`tradeNo` 优先、缺失时用 `out_trade_no`；默认 `out_request_no=orderNo`，重复请求幂等 |
 | `verifyNotify` | 校验异步通知签名，并检查 `app_id` |
 | `parseNotify` | 验签后解析为统一 `PaymentNotification` |
 

@@ -51,7 +51,10 @@ export interface PaymentQueryResult {
 
 /** 退款参数。 */
 export interface RefundPaymentInput {
+  /** 商户订单号（我们的 order_no），tradeNo 缺失时使用。 */
   orderNo: string;
+  /** 支付宝交易流水号；优先使用，缺失时回退到 orderNo。 */
+  tradeNo?: string;
   /** 退款金额（分）；当前业务只做全额退款。 */
   amountCents: number;
   reason?: string;

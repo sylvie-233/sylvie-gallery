@@ -136,6 +136,8 @@ export async function refundAdminOrder(
     try {
       await refundAlipayPayment({
         orderNo: preview.orderNo,
+        // 优先使用支付宝流水号；缺失时由支付包回退到商户订单号。
+        tradeNo: preview.tradeNo ?? undefined,
         amountCents: Number(preview.amountCents),
         reason: refundReason,
         // 同一订单重复退款请求使用相同幂等号，支付宝不会重复退款。

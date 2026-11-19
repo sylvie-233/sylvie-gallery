@@ -268,7 +268,8 @@ POST /api/orders/{orderNo}/pay → fulfillVipOrder(orderNo, MOCK...)
 1. 预读并校验：必须是 `biz_type='vip'` 且 `status='paid'` 的会员订单；
 2. **真实支付模式**（`ALIPAY_MOCK=false` 且 `pay_type='alipay'` 且金额 > 0）：
    - 先调用支付宝 `alipay.trade.refund`；
-   - `out_request_no = order_no`，同一订单重复请求不会重复退款；
+   - 交易定位：优先使用 `trade_no`（支付通知写入的支付宝流水号），缺失时回退到 `out_trade_no`（我们的订单号）——支付宝要求两者二选一；
+   - `out_request_no` 是退款幂等号（不是支付宝流水号），固定为 `order_no`，同一订单重复请求不会重复退款；
    - 退款失败返回 502，**本地订单与会员权益保持不变**，修复后可安全重试；
 3. 支付宝退款成功后才进入本地事务：
    - `pay_order.status = refunded`，写入 `refund_at` / `refund_reason`；

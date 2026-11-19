@@ -123,8 +123,11 @@ export class AlipayProvider implements PaymentProvider {
   /**
    * 发起退款（alipay.trade.refund）。
    *
-   * `out_request_no` 默认与订单号一致：同一退款请求重复调用时，
-   * 支付宝返回同一结果而不会重复退款，便于数据库异常后安全重试。
+   * 支付宝要求 `out_trade_no`（商户订单号）与 `trade_no`（支付宝流水号）二选一：
+   * 有流水号时优先使用流水号，否则使用商户订单号。
+   *
+   * `out_request_no` 是退款请求幂等号（非支付宝流水号），默认与订单号一致：
+   * 同一退款请求重复调用时支付宝返回同一结果，不会重复退款。
    */
   async refund(input: RefundPaymentInput): Promise<RefundResult> {
     const outRequestNo = input.outRequestNo ?? input.orderNo;
@@ -132,7 +135,9 @@ export class AlipayProvider implements PaymentProvider {
     try {
       result = await this.sdk.exec('alipay.trade.refund', {
         bizContent: {
-          out_trade_no: input.orderNo,
+          ...(input.tradeNo
+            ? { trade_no: input.tradeNo }
+            : { out_trade_no: input.orderNo }),
           refund_amount: centsToYuan(input.amountCents),
           out_request_no: outRequestNo,
           ...(input.reason ? { refund_reason: input.reason } : {}),
