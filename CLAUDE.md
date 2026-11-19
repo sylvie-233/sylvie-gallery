@@ -28,7 +28,7 @@
 | `scripts/init/02-demo-data.sql` | 演示数据（37 套图集 / 1140 条媒体 / 公告 / 评论 / 收藏 / 订单），由 `scripts/generate-demo-data.mjs` 生成。 |
 | `gallery-monorepo/apps/web` | Next.js 15 App Router 前台，Tailwind CSS v4 + SWR；通过 rewrites 代理 `/api`。 |
 | `gallery-monorepo/apps/admin` | React + Vite + React Router 管理后台，Tailwind CSS v4 + SWR；全局客户端状态（登录会话、Toast、Confirm）用 Zustand；开发端口 3002。 |
-| `gallery-monorepo/apps/api` | Hono API：JWT、Agent 令牌、MySQL 参数化查询、RustFS 对象存储、Sharp 图片处理、ZIP 下载、MCP。分层：`routes/` 用 `@hono/zod-openapi` 的 `createRoute` 声明接口 → `controllers/` 处理请求 → `services/` 编排业务 → `sql/` 构建参数化 SQL。`/api/docs` 为 Scalar 文档页，`/api/openapi.json` 由路由声明自动生成；`/api/mcp` 为 MCP Streamable HTTP 端点（见 `apps/api/MCP.md`）。 |
+| `gallery-monorepo/apps/api` | Hono API：JWT、Agent 令牌、MySQL 参数化查询、RustFS 对象存储、Sharp 图片处理、ZIP 下载、MCP。分层：`routes/` 用 `@hono/zod-openapi` 的 `createRoute` 声明接口 → `controllers/` 处理请求 → `services/` 编排业务 → `sql/` 构建参数化 SQL。`/api/docs` 为 Scalar 文档页，`/api/openapi.json` 由路由声明自动生成；`/api/mcp` 为 MCP Streamable HTTP 端点（见 `apps/api/MCP.md`）；可观测性接入与查看方式见 `apps/api/OBSERVABILITY.md`。 |
 | `gallery-monorepo/packages/types` | API 响应、DTO、枚举常量；Web 与 API 共用。 |
 | `gallery-monorepo/packages/db` | Drizzle schema（25 张表，`src/schema/`）、mysql2 连接池、事务与参数化查询封装。 |
 | `gallery-monorepo/packages/ui` | 共享 UI：`@sylvie/ui`（分页计算、浮层滚动锁 / 键盘导航等无样式工具）、`@sylvie/ui/web`（前台视觉组件）、`@sylvie/ui/admin`（后台视觉组件）。样式不同但用途相同的组件分命名空间维护。 |

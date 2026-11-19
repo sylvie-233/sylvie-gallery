@@ -86,7 +86,7 @@ pwsh ./manage.ps1 obs
 
 数据流：API（OTel SDK）→ Alloy（OTLP）→ Prometheus（指标）/ Tempo（链路）；pino JSON 日志 → 容器 stdout → Alloy → Loki。三者通过 `trace_id` 在 Grafana 中联动。Grafana 已自动配置数据源与「希尔薇图集 · API 可观测性」看板；告警规则可按需在看板/Alerting 中创建。
 
-包实现与配置项见 [`packages/observability/README.md`](../gallery-monorepo/packages/observability/README.md)。
+API 侧的开启步骤、Grafana 查看方式与排障见 [`apps/api/OBSERVABILITY.md`](../gallery-monorepo/apps/api/OBSERVABILITY.md)；包实现与配置项见 [`packages/observability/README.md`](../gallery-monorepo/packages/observability/README.md)。
 
 > `scripts/.env` 中新增 `ALLOY_*` / `PROMETHEUS_*` / `LOKI_*` / `TEMPO_*` / `GRAFANA_*` 端口与管理密码变量，按需修改。
 
