@@ -75,6 +75,7 @@ import type { AuthUser } from '../types/context.js';
 import { HttpError } from '../utils/http.js';
 import { effectiveRole, normalizePage, toBool, toNumber, toPageResult } from '../utils/format.js';
 import { moduleLogger } from '../utils/logger.js';
+import { getObject } from './storage.service.js';
 import { isVipUser } from './user.service.js';
 
 const log = moduleLogger('album');
@@ -713,6 +714,30 @@ export async function createAlbumZip(
     throw new HttpError(404, '该图集暂无可下载的图片');
   }
 
+  /**
+   * 打开图片源：
+   * - 本项目上传的图片存为相对地址 `/api/files/<key>`，直接读对象存储，
+   *   避免 Node `fetch` 无法解析相对 URL（此前会静默跳过，导致空压缩包）；
+   * - 外链（如演示图集使用的 picsum）保持 HTTP 拉取。
+   */
+  const openImageSource = async (url: string): Promise<Readable | null> => {
+    if (url.startsWith('/api/files/')) {
+      const object = await getObject(url.slice('/api/files/'.length));
+      if (!object) {
+        return null;
+      }
+      return object.body instanceof Uint8Array
+        ? Readable.from(object.body)
+        : Readable.fromWeb(object.body as never);
+    }
+
+    const response = await fetch(url);
+    if (!response.ok || !response.body) {
+      return null;
+    }
+    return Readable.fromWeb(response.body as never);
+  };
+
   const archive = archiver('zip', { zlib: { level: 5 } });
   archive.on('warning', (error) => {
     log.warn('压缩告警', error);
@@ -722,19 +747,30 @@ export async function createAlbumZip(
   });
 
   void (async () => {
+    let appended = 0;
     for (const [index, image] of images.entries()) {
       try {
-        const response = await fetch(image.url);
-        if (!response.ok || !response.body) {
+        const body = await openImageSource(image.url);
+        if (!body) {
+          log.warn('图片源不存在，已跳过', { index: index + 1, url: image.url });
           continue;
         }
-        const extension = /\.(png|jpe?g|webp)$/i.exec(image.url)?.[1]?.toLowerCase() ?? 'jpg';
+        const extension = /\.(png|jpe?g|webp)(?:\?|$)/i.exec(image.url)?.[1]?.toLowerCase() ?? 'jpg';
         const name = `${String(index + 1).padStart(3, '0')}.${extension}`;
-        archive.append(Readable.fromWeb(response.body as never), { name });
+        archive.append(body, { name });
+        appended += 1;
       } catch (error) {
-        log.warn('图片下载失败', error, { index: index + 1 });
+        log.warn('图片下载失败', error, { index: index + 1, url: image.url });
       }
     }
+
+    if (appended === 0) {
+      // 全部图片都不可读时中止，避免给用户返回一个空压缩包。
+      log.error('图集没有可打包的图片', { albumId });
+      archive.abort();
+      return;
+    }
+
     await archive.finalize();
   })();
 
