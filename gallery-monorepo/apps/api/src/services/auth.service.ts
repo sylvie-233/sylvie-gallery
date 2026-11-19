@@ -22,7 +22,7 @@ import {
 import { HttpError } from '../utils/http.js';
 import { signToken } from '../utils/jwt.js';
 import { moduleLogger } from '../utils/logger.js';
-import { sendVerifyCodeMail } from './mailer.service.js';
+import { sendVerifyCodeMail } from './notify.service.js';
 import { getProfileById } from './user.service.js';
 
 const CODE_TTL_MINUTES = 10;

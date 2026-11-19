@@ -19,6 +19,7 @@ COPY packages/cache/package.json packages/cache/package.json
 COPY packages/db/package.json packages/db/package.json
 COPY packages/job/package.json packages/job/package.json
 COPY packages/logger/package.json packages/logger/package.json
+COPY packages/notify/package.json packages/notify/package.json
 COPY packages/storage/package.json packages/storage/package.json
 COPY packages/eslint-config/package.json packages/eslint-config/package.json
 COPY packages/tsconfig/package.json packages/tsconfig/package.json

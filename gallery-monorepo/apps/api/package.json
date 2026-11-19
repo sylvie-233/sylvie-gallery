@@ -25,6 +25,7 @@
     "@sylvie/db": "workspace:*",
     "@sylvie/job": "workspace:*",
     "@sylvie/logger": "workspace:*",
+    "@sylvie/notify": "workspace:*",
     "@sylvie/storage": "workspace:*",
     "@sylvie/types": "workspace:*",
     "@sylvie/utils": "workspace:*",
@@ -32,7 +33,6 @@
     "bcryptjs": "^3.0.2",
     "dotenv": "^18.0.9",
     "hono": "^4.6.16",
-    "nodemailer": "^10.6.0",
     "sharp": "^0.34.0",
     "zod": "^4.6.7"
   },
@@ -41,7 +41,6 @@
     "@sylvie/tsconfig": "workspace:*",
     "@types/archiver": "^6.0.3",
     "@types/node": "^22.10.5",
-    "@types/nodemailer": "^8.0.2",
     "eslint": "^9.18.0",
     "rimraf": "^6.0.1",
     "tsup": "^8.3.5",
