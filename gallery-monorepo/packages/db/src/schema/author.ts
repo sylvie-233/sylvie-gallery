@@ -1,3 +1,7 @@
+/**
+ * 作者域表结构：作者资料（含收录数冗余）与用户订阅关系。
+ * 对应 SQL 设计文件中的 author / subscription。
+ */
 import { sql } from 'drizzle-orm';
 import {
   bigint,

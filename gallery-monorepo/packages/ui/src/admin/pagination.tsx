@@ -1,3 +1,10 @@
+/**
+ * 后台分页条。
+ *
+ * 页码算法来自 common 的 `buildPageItems`，与前台分页一致；外观则是
+ * 后台紧凑风格，依赖 `.pager` 全局类与其 `.on` 选中态。总页数 ≤ 1 时
+ * 不渲染。注意本组件只返回单行页码按钮，外边距由列表容器负责。
+ */
 import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -9,7 +16,15 @@ interface PaginationProps {
   onChange: (page: number) => void;
 }
 
-/** 后台分页条：紧凑页码按钮，样式由后台 `.pager` 决定。 */
+/**
+ * 后台分页条：紧凑页码按钮，样式由后台 `.pager` 决定。
+ *
+ * 页码序列用 `useMemo` 缓存；组件受控，翻页只通过 `onChange` 通知调用方。
+ *
+ * @param page 当前页（从 1 开始）
+ * @param totalPages 总页数
+ * @param onChange 页码变化回调
+ */
 export function Pagination({ page, totalPages, onChange }: PaginationProps) {
   const pages = useMemo(() => buildPageItems(page, totalPages), [page, totalPages]);
 

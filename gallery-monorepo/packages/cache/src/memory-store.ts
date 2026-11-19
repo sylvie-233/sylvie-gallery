@@ -1,3 +1,10 @@
+/**
+ * 进程内缓存实现（MemoryStore）。
+ *
+ * 使用 Map 保存字符串键值，支持 TTL 惰性过期与定时清理；
+ * 适合单实例部署与本地开发，不跨进程共享，重启即丢失。
+ * 计数依赖 Node 单线程执行模型的原子性，无需额外锁。
+ */
 import type { CacheStore } from './types.js';
 
 interface MemoryEntry {
@@ -6,6 +13,7 @@ interface MemoryEntry {
   expiresAt: number | null;
 }
 
+/** 内存后端配置。 */
 export interface MemoryStoreOptions {
   /** 最大条目数，超出后按插入顺序淘汰。默认 10000。 */
   maxEntries?: number;
@@ -13,7 +21,12 @@ export interface MemoryStoreOptions {
   cleanupIntervalMs?: number;
 }
 
-/** 进程内缓存：适合单实例部署与本地开发，不跨进程共享。 */
+/**
+ * 进程内缓存：适合单实例部署与本地开发，不跨进程共享。
+ *
+ * 过期采用「读取时惰性删除 + 定时扫描」双策略，不会触发主动淘汰通知。
+ * 定时器调用 `unref`，不会阻止进程退出；`close` 时清除定时器与全部条目。
+ */
 export class MemoryStore implements CacheStore {
   private readonly entries = new Map<string, MemoryEntry>();
   private readonly maxEntries: number;
@@ -56,6 +69,11 @@ export class MemoryStore implements CacheStore {
     return (await this.get(key)) !== null;
   }
 
+  /**
+   * 固定窗口自增：键不存在或已过期时以 1 新建并设置 TTL；
+   * 已存在时计数 +1，且不重置原有过期时间（保持窗口固定）。
+   * Node 单线程下「读 + 写」之间不会被打断，计数天然原子。
+   */
   async increment(key: string, ttlSeconds: number): Promise<{ count: number; ttl: number }> {
     const now = Date.now();
     const entry = this.entries.get(key);
@@ -77,6 +95,7 @@ export class MemoryStore implements CacheStore {
     return { count, ttl: Math.max(1, Math.ceil((expiresAt - now) / 1000)) };
   }
 
+  /** 遍历 Map 删除匹配前缀的键，返回删除数量（仅适合条目量可控的场景）。 */
   async deleteByPrefix(prefix: string): Promise<number> {
     let removed = 0;
     for (const key of this.entries.keys()) {
@@ -97,6 +116,7 @@ export class MemoryStore implements CacheStore {
     this.entries.clear();
   }
 
+  /** 定期清理已过期条目（后台定时器调用）。 */
   private sweep(): void {
     const now = Date.now();
     for (const [key, entry] of this.entries) {
@@ -106,6 +126,7 @@ export class MemoryStore implements CacheStore {
     }
   }
 
+  /** 超出条目上限时按插入顺序淘汰最旧的键（FIFO，不区分是否热点）。 */
   private evictOverflow(): void {
     while (this.entries.size > this.maxEntries) {
       const oldest = this.entries.keys().next().value;

@@ -1,3 +1,12 @@
+/**
+ * 支付宝实现：电脑网站支付 `alipay.trade.page.pay`。
+ *
+ * 设计要点：
+ * - 沙箱与生产共用同一套签名逻辑，仅切换 `gateway` 与密钥；
+ * - 对外金额统一为「分」，仅在调用支付宝前后做元 / 分转换；
+ * - 密钥 PEM 由调用方负责准备与格式修复，本包不做格式转换；
+ * - 查询与异步通知的签名校验失败时不会抛出，而是返回 `unknown` / `null`。
+ */
 import { AlipaySdk } from 'alipay-sdk';
 
 import type {
@@ -12,12 +21,18 @@ import type {
   RefundResult,
 } from './types.js';
 
-/** 分转元：1900 → "19.00"。 */
+/**
+ * 分转元：1900 → "19.00"。
+ * 负数按 0 处理，避免把非法金额传给支付宝。
+ */
 function centsToYuan(cents: number): string {
   return (Math.max(0, Math.round(cents)) / 100).toFixed(2);
 }
 
-/** 元转分："19.00" → 1900。 */
+/**
+ * 元转分："19.00" → 1900。
+ * 空值与非法数字返回 null，由调用方按「金额未知」处理。
+ */
 function yuanToCents(value: string | number | undefined | null): number | null {
   if (value === undefined || value === null || value === '') {
     return null;
@@ -29,7 +44,11 @@ function yuanToCents(value: string | number | undefined | null): number | null {
   return Math.round(amount * 100);
 }
 
-/** 支付宝交易状态映射。 */
+/**
+ * 支付宝交易状态映射为统一状态：
+ * `TRADE_SUCCESS` / `TRADE_FINISHED` → `paid`，
+ * `WAIT_BUYER_PAY` → `pending`，`TRADE_CLOSED` → `closed`，其余 → `unknown`。
+ */
 function mapTradeStatus(status: string | undefined): PaymentStatus {
   if (status === 'TRADE_SUCCESS' || status === 'TRADE_FINISHED') {
     return 'paid';
@@ -52,6 +71,10 @@ export class AlipayProvider implements PaymentProvider {
   private readonly sdk: AlipaySdk;
   private readonly options: AlipayOptions;
 
+  /**
+   * @param options 应用 AppID、私钥、支付宝公钥及网关等配置。
+   * @throws appId / privateKey / alipayPublicKey 任一缺失时抛错。
+   */
   constructor(options: AlipayOptions) {
     if (!options.appId || !options.privateKey || !options.alipayPublicKey) {
       throw new Error('支付宝配置不完整：需要 appId、privateKey 与 alipayPublicKey');
@@ -68,7 +91,11 @@ export class AlipayProvider implements PaymentProvider {
     });
   }
 
-  /** 生成支付宝收银台地址（GET 跳转）。 */
+  /**
+   * 生成支付宝收银台地址（GET 跳转）。
+   * @param input 订单号、金额（分）、标题与支付超时时间（默认 30 分钟）。
+   * @returns 前端可直接跳转的 URL。
+   */
   createPagePayment(input: CreatePagePaymentInput): CreatePaymentResult {
     const payUrl = this.sdk.pageExec('alipay.trade.page.pay', {
       method: 'GET',
@@ -87,7 +114,11 @@ export class AlipayProvider implements PaymentProvider {
     return { provider: 'alipay', payUrl };
   }
 
-  /** 主动查询交易；用于支付回跳后的状态兜底。 */
+  /**
+   * 主动查询交易；用于支付回跳后的状态兜底。
+   * 支付宝返回非成功码或网络异常时返回 `status: 'unknown'`，不抛错。
+   * @param orderNo 商户订单号。
+   */
   async query(orderNo: string): Promise<PaymentQueryResult> {
     try {
       const result = await this.sdk.exec('alipay.trade.query', {
@@ -162,7 +193,12 @@ export class AlipayProvider implements PaymentProvider {
     };
   }
 
-  /** 校验异步通知签名，并确认通知属于当前应用。 */
+  /**
+   * 校验异步通知签名，并确认通知属于当前应用。
+   *
+   * 先做两项快速校验：`sign` 必须存在、`app_id`（如有）必须与本应用一致，
+   * 再交给 SDK 验签；任何异常都视为验签失败并返回 `false`。
+   */
   verifyNotify(params: Record<string, string>): boolean {
     if (!params.sign) {
       return false;
@@ -177,7 +213,10 @@ export class AlipayProvider implements PaymentProvider {
     }
   }
 
-  /** 校验并解析异步通知；签名无效返回 null。 */
+  /**
+   * 校验并解析异步通知；签名无效或 `app_id` 不匹配返回 null。
+   * 注意：本方法只负责验签与字段解析，金额校验与幂等履约由调用方负责。
+   */
   parseNotify(params: Record<string, string>): PaymentNotification | null {
     if (!this.verifyNotify(params)) {
       return null;
@@ -193,7 +232,10 @@ export class AlipayProvider implements PaymentProvider {
   }
 }
 
-/** 创建支付宝支付实例。 */
+/**
+ * 创建支付宝支付实例的快捷函数。
+ * @param options 同 `AlipayProvider` 构造参数。
+ */
 export function createAlipayProvider(options: AlipayOptions): AlipayProvider {
   return new AlipayProvider(options);
 }

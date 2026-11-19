@@ -1,3 +1,7 @@
+/**
+ * 内容域表结构：公告、评论/回复、友情链接。
+ * 对应 SQL 设计文件中的 announcement / comment / friend_link。
+ */
 import { sql } from 'drizzle-orm';
 import {
   bigint,

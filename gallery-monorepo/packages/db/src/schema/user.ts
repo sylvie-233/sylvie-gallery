@@ -1,3 +1,7 @@
+/**
+ * 用户域表结构：账号与角色、每日签到、站内通知、邮箱验证码。
+ * 对应 SQL 设计文件中的 user / user_checkin / user_notification / verify_code。
+ */
 import { sql } from 'drizzle-orm';
 import {
   bigint,

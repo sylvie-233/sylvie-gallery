@@ -1,3 +1,7 @@
+/**
+ * 图集域表结构：图集主表、图片/视频媒体、标签关联、积分解锁与收藏。
+ * 对应 SQL 设计文件中的 album / album_image / album_tag / album_unlock / favorite。
+ */
 import { sql } from 'drizzle-orm';
 import {
   bigint,

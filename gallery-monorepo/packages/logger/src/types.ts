@@ -1,3 +1,7 @@
+/**
+ * 日志公共类型：级别、结构化字段、创建配置与统一 Logger 接口。
+ * 业务层只依赖 `Logger`，不直接依赖 pino。
+ */
 import type { Logger as PinoLogger, LoggerOptions as PinoLoggerOptions } from 'pino';
 
 /** 可用的日志级别。 */

@@ -1,10 +1,26 @@
-/** 页码项：数字或省略号。 */
+/**
+ * 分页序列计算：与样式无关的纯函数。
+ *
+ * Web 与 Admin 的分页组件外观、间距和交互密度不同，但页码算法共用本文件，
+ * 以保证两端的省略号位置与首尾页规则一致。
+ */
+
+/** 页码项：具体页码数字，或占位省略号。 */
 export type PageItem = number | '...';
 
 /**
- * 生成页码序列：总数 ≤ 7 时全量展示，否则保留首尾页与当前页相邻两页。
+ * 生成分页页码序列。
  *
- * 只负责计算，不涉及任何样式；Web 与 Admin 各自用自己的分页外观渲染。
+ * 规则：
+ * - `totalPages ≤ 7` 时返回全部页码；
+ * - 否则固定保留首页与末页，并展示当前页前后各一页；
+ * - 当前页距首/末页较远时插入 `'...'`。
+ *
+ * 入参会被向下取整并夹取到合法范围（`page ≥ 1`，`totalPages ≥ 0`），
+ * 调用方无需自行清洗。函数只负责计算，不涉及样式，也不产生副作用。
+ *
+ * @param page 当前页（从 1 开始）
+ * @param totalPages 总页数
  */
 export function buildPageItems(page: number, totalPages: number): PageItem[] {
   const total = Math.max(0, Math.floor(totalPages));

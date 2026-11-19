@@ -1,3 +1,7 @@
+/**
+ * 交易域表结构：会员套餐与支付订单（含退款留痕）。
+ * 对应 SQL 设计文件中的 membership_plan / pay_order。
+ */
 import { sql } from 'drizzle-orm';
 import {
   bigint,

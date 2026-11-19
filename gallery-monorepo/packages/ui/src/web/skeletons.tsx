@@ -1,8 +1,24 @@
+/**
+ * 前台各类加载骨架屏。
+ *
+ * 骨架尺寸刻意与真实组件对齐（卡片圆角、图片比例、信息行高度），避免数据
+ * 到达后布局跳动。全部依赖前台主题的 `skeleton` / `panel` / `wrap` /
+ * `masonry` 全局类；`.masonry` 只在前台全局样式中定义，后台无对应类。
+ * 这些组件是纯展示的无状态节点，可被 Server Component 直接渲染。
+ */
 import { cn } from '@sylvie/utils';
 
 const MASONRY_RATIOS = ['3 / 4', '4 / 5', '2 / 3', '5 / 7', '3 / 4', '4 / 5'];
 
-/** 图集卡片骨架：与真实卡片保持同样的圆角、图片比例与信息行高度。 */
+/**
+ * 图集卡片骨架：与真实卡片保持同样的圆角、图片比例与信息行高度。
+ *
+ * `masonry` 模式下发丝流水的图片比例按 `index` 在固定比例表中循环，
+ * 让骨架的错落感与真实瀑布流接近；普通网格固定为 3:4。
+ *
+ * @param masonry 是否匹配瀑布流卡片，默认 `false`
+ * @param index 卡片序号，用于选取瀑布流比例
+ */
 export function AlbumCardSkeleton({
   masonry = false,
   index = 0,
@@ -30,6 +46,13 @@ export function AlbumCardSkeleton({
   );
 }
 
+/**
+ * 图集网格骨架：普通网格或瀑布流容器的占位。
+ *
+ * @param count 骨架卡片数量，默认 10
+ * @param masonry 使用 `.masonry` 容器并渲染瀑布流卡片，默认 `false`
+ * @param className 追加到容器的类名，可覆盖默认栅格列数
+ */
 export function AlbumGridSkeleton({
   count = 10,
   masonry = false,
@@ -55,7 +78,11 @@ export function AlbumGridSkeleton({
   );
 }
 
-/** 作者卡骨架：方形封面 + 图集数徽章 + 名称条。 */
+/**
+ * 作者卡骨架：方形封面 + 图集数徽章 + 名称条。
+ *
+ * 固定无参数，尺寸与作者卡组件保持一致，供网格批量复用。
+ */
 export function AuthorCardSkeleton() {
   return (
     <div>
@@ -68,6 +95,12 @@ export function AuthorCardSkeleton() {
   );
 }
 
+/**
+ * 作者网格骨架：2/3/4/5/7 列的响应式栅格占位。
+ *
+ * @param count 骨架数量，默认 7
+ * @param className 追加到容器的类名
+ */
 export function AuthorGridSkeleton({
   count = 7,
   className,
@@ -89,6 +122,10 @@ export function AuthorGridSkeleton({
   );
 }
 
+/**
+ * 标签云骨架：宽度参差的胶囊占位，模拟不同长度标签的换行效果。
+ * 无参数，固定 16 个占位项。
+ */
 export function TagCloudSkeleton() {
   const widths = [62, 78, 54, 90, 68, 84, 58, 72, 96, 66, 80, 56, 88, 70, 60, 82];
   return (
@@ -100,6 +137,11 @@ export function TagCloudSkeleton() {
   );
 }
 
+/**
+ * 公告列表骨架：每行包含徽章、时间、标题与摘要占位。
+ *
+ * @param count 行数，默认 5
+ */
 export function NoticeListSkeleton({ count = 5 }: { count?: number }) {
   return (
     <div className="panel overflow-hidden">
@@ -118,6 +160,11 @@ export function NoticeListSkeleton({ count = 5 }: { count?: number }) {
   );
 }
 
+/**
+ * 站内通知列表骨架：左侧图标 + 标题/徽章/时间 + 摘要的卡片占位。
+ *
+ * @param count 卡片数量，默认 5
+ */
 export function NotificationListSkeleton({ count = 5 }: { count?: number }) {
   return (
     <div className="space-y-2.5">
@@ -141,6 +188,10 @@ export function NotificationListSkeleton({ count = 5 }: { count?: number }) {
   );
 }
 
+/**
+ * 购买记录页骨架：顶部三张统计卡 + 下方订单列表占位。
+ * 无参数，数量按页面固定结构写死。
+ */
 export function PurchaseSkeleton() {
   return (
     <div className="space-y-4">
@@ -169,6 +220,10 @@ export function PurchaseSkeleton() {
   );
 }
 
+/**
+ * 作者详情页骨架：横幅 + 标题行 + 5 张图集卡片占位。
+ * 无参数，复用了 `AlbumGridSkeleton`。
+ */
 export function AuthorDetailSkeleton() {
   return (
     <div className="wrap">
@@ -182,7 +237,10 @@ export function AuthorDetailSkeleton() {
   );
 }
 
-/** 图集详情骨架：信息卡 + 媒体区 + 右侧信息栏。 */
+/**
+ * 图集详情骨架：信息卡 + 媒体区 + 右侧信息栏。
+ * 无参数，媒体区按 3:4 占位两张，右侧固定三块信息卡。
+ */
 export function DetailSkeleton() {
   return (
     <div className="wrap pb-24 lg:pb-14">
@@ -223,7 +281,10 @@ export function DetailSkeleton() {
   );
 }
 
-/** 首页骨架：最近更新 + 个人写真 + 公告。 */
+/**
+ * 首页骨架：最近更新 + 个人写真 + 公告。
+ * 无参数，内部复用图集/作者/公告骨架组合出整页占位。
+ */
 export function HomeSkeleton() {
   return (
     <div className="wrap">

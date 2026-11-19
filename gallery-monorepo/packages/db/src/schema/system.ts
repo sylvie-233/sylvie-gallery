@@ -1,3 +1,7 @@
+/**
+ * 系统域表结构：站点配置、字典类型/字典项、管理后台操作日志。
+ * 对应 SQL 设计文件中的 sys_config / sys_dict_type / sys_dict_data / admin_op_log。
+ */
 import { sql } from 'drizzle-orm';
 import {
   bigint,

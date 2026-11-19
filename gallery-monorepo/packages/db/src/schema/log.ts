@@ -1,3 +1,7 @@
+/**
+ * 行为日志域表结构：浏览、下载、搜索记录，用于统计与风控。
+ * 对应 SQL 设计文件中的 user_view_log / download_log / search_log。
+ */
 import { sql } from 'drizzle-orm';
 import {
   bigint,

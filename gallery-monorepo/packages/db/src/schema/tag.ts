@@ -1,3 +1,7 @@
+/**
+ * 标签域表结构：标签及收录套数冗余计数。
+ * 对应 SQL 设计文件中的 tag。
+ */
 import { sql } from 'drizzle-orm';
 import {
   bigint,

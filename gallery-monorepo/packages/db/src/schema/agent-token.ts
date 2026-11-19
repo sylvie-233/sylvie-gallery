@@ -1,3 +1,7 @@
+/**
+ * Agent 接入域表结构：供 MCP / Agent 工具访问 API 的令牌（仅存哈希）。
+ * 对应 SQL 设计文件中的 agent_token。
+ */
 import { sql } from 'drizzle-orm';
 import {
   bigint,

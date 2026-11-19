@@ -1,3 +1,10 @@
+/**
+ * 前台分页条。
+ *
+ * 页码序列来自 common 的 `buildPageItems`，与后台分页共享算法；
+ * 外观则是前台专属：胶囊按钮、`border-line` / `bg-panel` / `bg-brand`
+ * token 与居中布局。后台对应组件使用 `.pager` 全局类，不可混用。
+ */
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { cn } from '@sylvie/utils';
@@ -11,7 +18,17 @@ interface PaginationProps {
   className?: string;
 }
 
-/** 前台分页：胶囊按钮 + 品牌色当前页。 */
+/**
+ * 前台分页：胶囊按钮 + 品牌色当前页。
+ *
+ * 总页数 ≤ 1 时不渲染任何内容；上一页/下一页在边界处禁用。
+ * 组件受控：自身不保存页码，翻页时回调 `onChange`。
+ *
+ * @param page 当前页（从 1 开始）
+ * @param totalPages 总页数
+ * @param onChange 页码变化回调，由调用方负责更新状态与请求数据
+ * @param className 追加到根节点的类名
+ */
 export function Pagination({ page, totalPages, onChange, className }: PaginationProps) {
   if (totalPages <= 1) {
     return null;
