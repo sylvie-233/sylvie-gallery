@@ -13,6 +13,7 @@
 - **水印预览**：未解锁时只返回前 3 张带水印预览，解锁后及付费会员一律返回原图；全局开关 `image.watermark_on` 只控制未解锁预览。
 - **互动与下载**：收藏、作者订阅、评论审核；解锁后可在线查看全部图片并打包 ZIP 下载。
 - **独立管理后台**：数据看板、图集编辑 / 发布 / 推荐 / 下架、标签与作者、评论审核、公告、支付流水与退款、用户管理、操作日志与 CSV 导出。
+- **Agent / MCP 接入**：后台可生成只读 / 读写 Agent 令牌，WorkBuddy 等工具通过 `/api/mcp` 直接查询与操作图集、评论、订单等数据，令牌支持有效期与吊销。
 - **一键部署**：Docker Compose 编排 MySQL 8、RustFS、API、Web、Admin，首次启动自动建表并写入演示数据。
 
 ## 页面预览
@@ -24,6 +25,12 @@
 | 管理后台 · 数据看板 | 管理后台 · 图集管理 |
 | --- | --- |
 | ![数据看板](docs/screenshots/admin-dashboard.png) | ![图集管理](docs/screenshots/admin-albums.png) |
+
+### Agent 接入
+
+WorkBuddy 通过后台生成的 Agent 令牌连接 MCP 端点 `/api/mcp`，可直接查询与操作项目数据：
+
+![WorkBuddy 连接 MCP](docs/screenshots/workbuddy连接mcp.png)
 
 ### 移动端
 
