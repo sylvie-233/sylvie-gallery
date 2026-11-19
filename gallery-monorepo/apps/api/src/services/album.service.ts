@@ -804,7 +804,11 @@ export async function createAlbumZip(
     }
 
     await archive.finalize();
-  })();
+  })().catch((error) => {
+    // finalize / 流写入失败：记录并销毁流，让客户端下载失败而不是拿到损坏的 zip。
+    log.error('压缩包生成失败', error, { albumId });
+    archive.destroy(error instanceof Error ? error : new Error(String(error)));
+  });
 
   try {
     const downloadStatement = incrementAlbumDownloadCount(albumId);
