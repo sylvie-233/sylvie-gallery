@@ -2,6 +2,7 @@ import { createRoute } from '@hono/zod-openapi';
 
 import * as albumController from '../controllers/album.controller.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
+import { commentLimit, downloadLimit, unlockLimit } from '../middleware/rate-limit.js';
 import {
   AlbumDetailSchema,
   AlbumPageResultSchema,
@@ -51,7 +52,7 @@ const commentRoute = createRoute({
   tags: ['图集'],
   summary: '发表评论',
   description: '先审后发，审核通过后展示。',
-  middleware: [authenticate],
+  middleware: [authenticate, commentLimit],
   request: { params: idParamsSchema, body: jsonBody(commentSchema) },
   responses: {
     201: successResponse(CommentSchema, '评论已提交，审核通过后展示'),
@@ -74,7 +75,7 @@ const unlockRoute = createRoute({
   path: '/{id}/unlock',
   tags: ['图集'],
   summary: '消耗解锁积分永久解锁图集',
-  middleware: [authenticate],
+  middleware: [authenticate, unlockLimit],
   request: { params: idParamsSchema },
   responses: { 200: successResponse(UnlockResultSchema, '解锁结果'), ...errorResponses },
 });
@@ -85,7 +86,7 @@ const downloadRoute = createRoute({
   tags: ['图集'],
   summary: '打包下载原图 ZIP',
   description: '需已解锁或付费会员；下载不扣积分。',
-  middleware: [authenticate],
+  middleware: [authenticate, downloadLimit],
   request: { params: idParamsSchema },
   responses: { 200: binaryResponse('application/zip', 'ZIP 文件流'), ...errorResponses },
 });

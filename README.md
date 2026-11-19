@@ -14,7 +14,8 @@
 - **互动与下载**：收藏、作者订阅、评论审核；解锁后可在线查看全部图片并打包 ZIP 下载。
 - **独立管理后台**：数据看板、图集编辑 / 发布 / 推荐 / 下架、标签与作者、评论审核、公告、支付流水与退款、用户管理、操作日志与 CSV 导出。
 - **Agent / MCP 接入**：后台可生成只读 / 读写 Agent 令牌，WorkBuddy 等工具通过 `/api/mcp` 直接查询与操作图集、评论、订单等数据，令牌支持有效期与吊销。
-- **一键部署**：Docker Compose 编排 MySQL 8、RustFS、API、Web、Admin，首次启动自动建表并写入演示数据。
+- **缓存与限流**：Redis 7.4 承载站点数据缓存与接口限流（登录、验证码、评论、下载等），多实例共享计数；本地可切换为进程内存。
+- **一键部署**：Docker Compose 编排 MySQL 8、Redis 7.4、RustFS、API、Web、Admin，首次启动自动建表并写入演示数据。
 
 ## 页面预览
 
@@ -42,7 +43,7 @@ WorkBuddy 通过后台生成的 Agent 令牌连接 MCP 端点 `/api/mcp`，可�
 
 - **前台**：Next.js 15（App Router）、React 19、Tailwind CSS v4、SWR
 - **管理后台**：React 19、Vite、React Router、Tailwind CSS v4、SWR + Zustand（独立登录，仅面向桌面端）
-- **后端**：Node.js、Hono、Zod、MySQL 8（mysql2 参数化查询）、RustFS（S3 兼容）
+- **后端**：Node.js、Hono、Zod、MySQL 8（mysql2 参数化查询）、Redis 7.4（缓存与限流）、RustFS（S3 兼容）
 - **图片与下载**：Sharp 生成缩略图与水印，archiver 打包 ZIP
 - **共享包**：`@sylvie/types`、`@sylvie/db`、`@sylvie/utils`、`@sylvie/ui`（Web / Admin 两套视觉组件）、`@sylvie/logger`、`@sylvie/storage`
 - **工程**：pnpm workspace + Turborepo、ESLint、Docker Compose
@@ -50,7 +51,7 @@ WorkBuddy 通过后台生成的 Agent 令牌连接 MCP 端点 `/api/mcp`，可�
 ## 快速开始
 
 ```powershell
-# 一键构建并启动 MySQL + RustFS + API + Web + Admin，等待健康检查
+# 一键构建并启动 MySQL + Redis + RustFS + API + Web + Admin，等待健康检查
 pwsh ./manage.ps1 up
 ```
 
@@ -60,6 +61,7 @@ pwsh ./manage.ps1 up
 - 管理后台：<http://localhost:8081>
 - API：<http://localhost:3000>（健康检查 `/health`）
 - RustFS 控制台：<http://localhost:9001>
+- Redis：`localhost:6379`
 
 演示账号密码均为 `123456`：
 
@@ -71,10 +73,10 @@ pwsh ./manage.ps1 up
 
 开发验证码固定为 `123456`。
 
-本地开发（仅用容器跑 MySQL + RustFS，三端热更新）：
+本地开发（仅用容器跑 MySQL + Redis + RustFS，三端热更新）：
 
 ```bash
-docker compose -f scripts/docker-compose.yml up -d mysql rustfs
+docker compose -f scripts/docker-compose.yml up -d mysql redis rustfs
 
 cd gallery-monorepo
 pnpm install
@@ -101,7 +103,7 @@ pwsh ./manage.ps1 reset                         # 删除数据卷后重建（清
 sylvie-gallery/
 ├── gallery-monorepo/
 │   ├── apps/
-│   │   ├── api/          # Hono API：JWT、MySQL、RustFS、Sharp、ZIP 下载
+│   │   ├── api/          # Hono API：JWT、MySQL、Redis、RustFS、Sharp、ZIP 下载
 │   │   ├── web/          # Next.js 前台
 │   │   └── admin/        # React + Vite 管理后台
 │   └── packages/         # types、db、utils、eslint-config、tsconfig

@@ -21,6 +21,7 @@
     "@hono/zod-openapi": "^1.6.3",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@scalar/hono-api-reference": "^0.12.22",
+    "@sylvie/cache": "workspace:*",
     "@sylvie/db": "workspace:*",
     "@sylvie/logger": "workspace:*",
     "@sylvie/storage": "workspace:*",

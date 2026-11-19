@@ -1,3 +1,4 @@
+import { invalidateCache } from '../../cache/index.js';
 import {
   deleteAdminComment,
   getAdminComments,
@@ -21,6 +22,7 @@ export async function review(
 ): Promise<Response> {
   const operator = adminOperator(c);
   const result = await reviewAdminComment(operator.adminId, id, input.status, operator.ip);
+  await invalidateCache('albums', 'site');
   return success(c, result, input.status === 'approved' ? '评论已通过' : '评论已拒绝');
 }
 
@@ -28,5 +30,6 @@ export async function review(
 export async function remove(c: AppContext, id: number): Promise<Response> {
   const operator = adminOperator(c);
   await deleteAdminComment(operator.adminId, id, operator.ip);
+  await invalidateCache('albums', 'site');
   return success(c, null, '评论已删除');
 }

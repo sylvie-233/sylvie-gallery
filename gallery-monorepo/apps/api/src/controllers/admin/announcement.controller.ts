@@ -1,3 +1,4 @@
+import { invalidateCache } from '../../cache/index.js';
 import {
   createAdminAnnouncement,
   deleteAdminAnnouncement,
@@ -18,12 +19,9 @@ export async function list(c: AppContext, query: AnnouncementListInput): Promise
 /** POST /api/admin/announcements */
 export async function create(c: AppContext, input: AnnouncementSaveInput): Promise<Response> {
   const operator = adminOperator(c);
-  return success(
-    c,
-    await createAdminAnnouncement(operator.adminId, input, operator.ip),
-    '公告已发布',
-    201,
-  );
+  const result = await createAdminAnnouncement(operator.adminId, input, operator.ip);
+  await invalidateCache('announcements', 'site');
+  return success(c, result, '公告已发布', 201);
 }
 
 /** PUT /api/admin/announcements/:id */
@@ -33,17 +31,16 @@ export async function update(
   input: AnnouncementSaveInput,
 ): Promise<Response> {
   const operator = adminOperator(c);
-  return success(
-    c,
-    await updateAdminAnnouncement(operator.adminId, id, input, operator.ip),
-    '公告已更新',
-  );
+  const result = await updateAdminAnnouncement(operator.adminId, id, input, operator.ip);
+  await invalidateCache('announcements', 'site');
+  return success(c, result, '公告已更新');
 }
 
 /** POST /api/admin/announcements/:id/toggle */
 export async function toggle(c: AppContext, id: number): Promise<Response> {
   const operator = adminOperator(c);
   const result = await toggleAdminAnnouncement(operator.adminId, id, operator.ip);
+  await invalidateCache('announcements', 'site');
   return success(c, result, result.status === 1 ? '公告已发布' : '公告已下线');
 }
 
@@ -51,5 +48,6 @@ export async function toggle(c: AppContext, id: number): Promise<Response> {
 export async function remove(c: AppContext, id: number): Promise<Response> {
   const operator = adminOperator(c);
   await deleteAdminAnnouncement(operator.adminId, id, operator.ip);
+  await invalidateCache('announcements', 'site');
   return success(c, null, '公告已删除');
 }

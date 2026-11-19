@@ -8,10 +8,11 @@
 |---|---|---|
 | Web | `apps/web` | Next.js 15（App Router）+ React 19 + Tailwind CSS v4 + SWR |
 | Admin | `apps/admin` | React 19 + Vite + React Router + Tailwind CSS v4 + SWR + Zustand |
-| API | `apps/api` | Hono + MySQL 8 + RustFS（S3 兼容）+ Sharp |
+| API | `apps/api` | Hono + MySQL 8 + Redis 7.4 + RustFS（S3 兼容）+ Sharp |
 | 共享类型 | `packages/types` | API DTO、管理端 DTO、枚举常量 |
 | 共享工具 | `packages/utils` | 日期 / 计数 / 价格 / 文本格式化 |
 | 共享 UI | `packages/ui` | 无样式工具 + Web / Admin 两套视觉组件 |
+| 共享缓存 | `packages/cache` | 内存 / Redis 双后端、防击穿、固定窗口限流 |
 | 共享日志 | `packages/logger` | pino 封装、脱敏、子日志 |
 | 共享存储 | `packages/storage` | S3 / RustFS 对象存储封装 |
 | 数据库客户端 | `packages/db` | Drizzle schema、mysql2 连接池与参数化查询 |
@@ -22,17 +23,17 @@
 在仓库根目录执行（PowerShell 7+）：
 
 ```powershell
-pwsh ./manage.ps1 up          # 构建并启动 MySQL / RustFS / API / Web / Admin
+pwsh ./manage.ps1 up          # 构建并启动 MySQL / Redis / RustFS / API / Web / Admin
 pwsh ./manage.ps1 status      # 查看状态与访问地址
 pwsh ./manage.ps1 dev         # 只容器跑基础服务，本机热更新三端
 pwsh ./manage.ps1 reset -Force
 ```
 
-容器化地址：前台 http://localhost:8080、后台 http://localhost:8081、API http://localhost:3000、RustFS 控制台 http://localhost:9001。详见 `scripts/README.md`。
+容器化地址：前台 http://localhost:8080、后台 http://localhost:8081、API http://localhost:3000、RustFS 控制台 http://localhost:9001、Redis localhost:6379。详见 `scripts/README.md`。
 
 ## 本地开发（热更新）
 
-### 1. 启动 MySQL 与 RustFS
+### 1. 启动 MySQL、Redis 与 RustFS
 
 ```bash
 # 仓库根目录

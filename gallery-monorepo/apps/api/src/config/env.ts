@@ -42,6 +42,16 @@ const envSchema = z.object({
   MCP_ENABLED: z.enum(['true', 'false']).default('true'),
   MCP_ALLOW_WRITE: z.enum(['true', 'false']).default('false'),
 
+  CACHE_DRIVER: z.enum(['memory', 'redis']).default('memory'),
+  CACHE_PREFIX: z.string().default('sylvie'),
+  CACHE_DEFAULT_TTL: z.coerce.number().int().positive().default(60),
+  REDIS_URL: z.string().default(''),
+  REDIS_HOST: z.string().default('127.0.0.1'),
+  REDIS_PORT: z.coerce.number().int().positive().default(6379),
+  REDIS_PASSWORD: z.string().default(''),
+  REDIS_DB: z.coerce.number().int().min(0).default(0),
+  RATE_LIMIT_ENABLED: z.enum(['true', 'false']).default('true'),
+
   S3_ENDPOINT: z.string().default('http://127.0.0.1:9000'),
   S3_REGION: z.string().default('us-east-1'),
   S3_ACCESS_KEY: z.string().default('rustfsadmin'),

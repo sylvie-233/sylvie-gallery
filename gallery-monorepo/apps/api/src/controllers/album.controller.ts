@@ -10,6 +10,7 @@ import {
   listFavoriteAlbums,
   toggleFavorite,
 } from '../services/album.service.js';
+import { cacheKey, cached } from '../cache/index.js';
 import { unlockAlbum } from '../services/order.service.js';
 import type { AppContext } from '../types/context.js';
 import { success } from '../utils/http.js';
@@ -21,9 +22,28 @@ import type {
 } from '../validators/albums.js';
 import { clientIp, currentUser, requireUser } from './helpers.js';
 
-/** GET /api/albums */
+/**
+ * GET /api/albums
+ * 仅缓存游客的常规列表：登录用户带收藏状态，搜索词长尾且实时性要求高。
+ */
 export async function list(c: AppContext, query: AlbumListInput): Promise<Response> {
-  return success(c, await listAlbums(query, currentUser(c)?.id));
+  const user = currentUser(c);
+  const loader = () => listAlbums(query, user?.id);
+
+  if (user || query.keyword) {
+    return success(c, await loader());
+  }
+
+  const key = cacheKey(
+    'albums',
+    'list',
+    query.page ?? 1,
+    query.pageSize ?? 24,
+    query.sort ?? 'new',
+    query.tag ?? 'all',
+    query.authorId ?? 'all',
+  );
+  return success(c, await cached(key, 30, loader));
 }
 
 /** GET /api/albums/:id */

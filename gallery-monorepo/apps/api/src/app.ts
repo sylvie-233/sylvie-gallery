@@ -3,9 +3,11 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 
+import { cache } from './cache/index.js';
 import { corsOrigins } from './config/env.js';
 import { dbClient } from './db/index.js';
 import { errorHandler } from './middleware/error.js';
+import { globalRateLimit } from './middleware/rate-limit.js';
 import { requestLogger } from './middleware/request-logger.js';
 import apiRoutes from './routes/index.js';
 import { storageHealthy } from './services/storage.service.js';
@@ -26,6 +28,10 @@ app.use(
     maxAge: 86400,
   }),
 );
+
+// 全局限流放在解析请求体之前，尽早拒绝异常流量。
+app.use('/api/*', globalRateLimit);
+
 const normalBodyLimit = bodyLimit({
   maxSize: 24 * 1024 * 1024,
   onError: (c) => failure(c, 413, '请求体过大'),
@@ -45,15 +51,16 @@ app.use('*', async (c, next) => {
 });
 app.use('/api/admin/upload', uploadBodyLimit);
 
-/** 健康检查：探测数据库与对象存储，供容器编排使用。 */
+/** 健康检查：探测数据库、对象存储与缓存，供容器编排使用。 */
 app.get('/health', async (c) => {
   try {
     await dbClient.ping();
-    const storage = await storageHealthy();
+    const [storage, cacheReady] = await Promise.all([storageHealthy(), cache.ping()]);
     return success(c, {
-      status: storage ? 'ok' : 'degraded',
+      status: storage && cacheReady ? 'ok' : 'degraded',
       db: 'up',
       storage: storage ? 'up' : 'down',
+      cache: cacheReady ? 'up' : 'down',
     });
   } catch (error) {
     (c.get('logger') ?? logger).error('健康检查失败：数据库连接异常', error);

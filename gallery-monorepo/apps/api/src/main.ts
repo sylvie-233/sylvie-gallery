@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server';
 
 import app from './app.js';
+import { cache } from './cache/index.js';
 import { env } from './config/env.js';
 import { dbClient } from './db/index.js';
 import { ensureBucket } from './services/storage.service.js';
@@ -36,8 +37,7 @@ async function bootstrap(): Promise<void> {
     logger.info('收到关闭信号，正在关闭服务', { signal });
 
     server.close(() => {
-      void dbClient
-        .close()
+      void Promise.all([dbClient.close(), cache.close()])
         .then(() => logger.flush())
         .then(() => process.exit(0))
         .catch((error: unknown) => {

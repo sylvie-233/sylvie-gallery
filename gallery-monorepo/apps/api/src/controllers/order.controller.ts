@@ -1,12 +1,13 @@
+import { cacheKey, cached } from '../cache/index.js';
 import { createVipOrder, getPurchases, listPlans, payOrder } from '../services/order.service.js';
 import type { AppContext } from '../types/context.js';
 import { success } from '../utils/http.js';
 import type { CreateVipInput, PurchasesQueryInput } from '../validators/misc.js';
 import { requireUser } from './helpers.js';
 
-/** GET /api/orders/plans */
+/** GET /api/orders/plans：套餐极少变动，缓存 5 分钟。 */
 export async function plans(c: AppContext): Promise<Response> {
-  return success(c, await listPlans());
+  return success(c, await cached(cacheKey('orders', 'plans'), 300, listPlans));
 }
 
 /** POST /api/orders/vip */

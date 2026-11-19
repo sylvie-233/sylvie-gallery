@@ -22,7 +22,7 @@
 
 | 路径 | 职责 |
 |---|---|
-| `scripts/docker-compose.yml` | MySQL 8 + RustFS + API + Web + Admin 编排；首次启动执行建表与演示数据。 |
+| `scripts/docker-compose.yml` | MySQL 8 + Redis 7.4 + RustFS + API + Web + Admin 编排；首次启动执行建表与演示数据。 |
 | `manage.ps1` | 根目录运维脚本：up/down/restart/reset/build/logs/cli/status/init/pull/dev。 |
 | `scripts/init/02-demo-data.sql` | 演示数据（37 套图集 / 1140 条媒体 / 公告 / 评论 / 收藏 / 订单），由 `scripts/generate-demo-data.mjs` 生成。 |
 | `gallery-monorepo/apps/web` | Next.js 15 App Router 前台，Tailwind CSS v4 + SWR；通过 rewrites 代理 `/api`。 |
@@ -32,6 +32,7 @@
 | `gallery-monorepo/packages/db` | Drizzle schema（25 张表，`src/schema/`）、mysql2 连接池、事务与参数化查询封装。 |
 | `gallery-monorepo/packages/ui` | 共享 UI：`@sylvie/ui`（分页计算、浮层滚动锁 / 键盘导航等无样式工具）、`@sylvie/ui/web`（前台视觉组件）、`@sylvie/ui/admin`（后台视觉组件）。样式不同但用途相同的组件分命名空间维护。 |
 | `gallery-monorepo/packages/logger` | 基于 pino 的共享日志层：统一接口、敏感字段脱敏、开发彩色输出、`child` / `scope` 子日志。 |
+| `gallery-monorepo/packages/cache` | 共享缓存层：内存 / Redis 双后端、`remember` 防击穿、固定窗口限流计数、前缀失效。 |
 | `gallery-monorepo/packages/storage` | S3 / RustFS 共享对象存储层：建桶、健康检查、上传/读取/探测/删除，配置与 URL 规则由调用方注入。 |
 | `gallery-monorepo/packages/utils` | 日期、计数、价格、文本格式化等纯函数。 |
 
@@ -43,8 +44,8 @@
 # 容器化一键启动（含三端）：前台 8080、后台 8081、API 3000
 pwsh ./manage.ps1 up
 
-# 或本地热更新：仅容器跑 MySQL + RustFS，再启动三个 pnpm 服务
-docker compose -f scripts/docker-compose.yml up -d mysql rustfs
+# 或本地热更新：仅容器跑 MySQL + RustFS（可选 Redis），再启动三个 pnpm 服务
+docker compose -f scripts/docker-compose.yml up -d mysql rustfs redis
 cd gallery-monorepo
 pnpm install
 cp apps/api/.env.example apps/api/.env
@@ -84,6 +85,7 @@ MySQL 8 / InnoDB / `utf8mb4_unicode_ci`；主键统一 `BIGINT UNSIGNED AUTO_INC
 - 对象存储统一使用 `@sylvie/storage`：API 侧实例在 `apps/api/src/services/storage.service.ts`，配置从 env 注入；不要再直接使用 `@aws-sdk/client-s3`。图片压缩/水印等业务处理仍留在 API。
 - 可复用组件放 `@sylvie/ui`：无样式逻辑放根入口，前台视觉组件放 `@sylvie/ui/web`，后台放 `@sylvie/ui/admin`；依赖应用状态（auth、SWR、路由、后台日期工具）的组件留在应用内。两个应用都需在 CSS 中用 `@source` 声明对应子目录，Tailwind 才会生成组件类名。
 - Agent / MCP 接入使用独立 `agent_token`，不要复用登录 JWT：令牌分 `read` / `write` scope、可设有效期并支持吊销，明文只在创建时返回一次。MCP 端点 `/api/mcp` 由 `authenticateMcp + requireAdmin` 保护，写工具需同时满足 `MCP_ALLOW_WRITE=true` 与令牌 `scope=write`。
+- 缓存与限流统一使用 `@sylvie/cache`：API 实例在 `apps/api/src/cache/index.ts`，缓存键用 `cacheKey('域', ...)` 分段；只缓存访客可复用数据（登录用户带收藏 / 订阅状态，除 `site:bootstrap` 外不缓存），管理端写操作后调用 `invalidateCache('域', ...)`。限流规则集中在 `apps/api/src/middleware/rate-limit.ts`，登录、验证码、注册、评论、解锁、下载等敏感接口必须限流；缓存不可用时按放行降级。
 - 原型仅作视觉与交互参考，实际页面以 Web/Admin 实现为准；三者视觉语言一致：深色背景、玫红 `#ff2d55`、渐变「希」字 Logo。
 
 ## Git 工作流

@@ -1,8 +1,9 @@
+import { cacheKey, cached } from '../cache/index.js';
 import { listTags } from '../services/tag.service.js';
 import type { AppContext } from '../types/context.js';
 import { success } from '../utils/http.js';
 
-/** GET /api/tags */
+/** GET /api/tags：标签云，2 分钟内复用。 */
 export async function list(c: AppContext): Promise<Response> {
-  return success(c, await listTags());
+  return success(c, await cached(cacheKey('tags', 'list'), 120, listTags));
 }

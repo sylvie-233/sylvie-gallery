@@ -47,6 +47,33 @@ services:
       retries: 20
       start_period: 30s
 
+  redis:
+    # Redis：API 缓存与限流，支持多实例共享计数
+    image: redis:7.4
+    container_name: sylvie-redis
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - 'yes'
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - allkeys-lru
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
   rustfs:
     # RustFS：S3 兼容对象存储，保存头像与图集原图
     image: rustfs/rustfs:latest
@@ -103,11 +130,18 @@ services:
       S3_FORCE_PATH_STYLE: 'true'
       VERIFY_CODE_DEMO: ${VERIFY_CODE_DEMO:-123456}
       ALIPAY_MOCK: ${ALIPAY_MOCK:-true}
+      CACHE_DRIVER: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CACHE_PREFIX: ${CACHE_PREFIX:-sylvie}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
       TZ: Asia/Shanghai
     ports:
       - '${API_PORT:-3000}:3000'
     depends_on:
       mysql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       rustfs:
         condition: service_healthy
@@ -185,5 +219,7 @@ services:
 volumes:
   mysql_data:
     name: sylvie_mysql_data
+  redis_data:
+    name: sylvie_redis_data
   rustfs_data:
     name: sylvie_rustfs_data

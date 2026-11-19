@@ -1,3 +1,4 @@
+import { invalidateCache } from '../../cache/index.js';
 import {
   deleteAdminAlbum,
   getAdminAlbumDetail,
@@ -25,25 +26,25 @@ export async function detail(c: AppContext, id: number): Promise<Response> {
   return success(c, await getAdminAlbumDetail(id));
 }
 
+/** 图集写操作会影响前台列表、标签收录数、作者统计与首页数据。 */
+async function invalidateAlbumCaches(): Promise<void> {
+  await invalidateCache('albums', 'tags', 'authors', 'site');
+}
+
 /** POST /api/admin/albums */
 export async function create(c: AppContext, input: AlbumSaveInput): Promise<Response> {
   const operator = adminOperator(c);
-  return success(
-    c,
-    await saveAdminAlbum(operator.adminId, input, null, operator.ip),
-    '图集已保存',
-    201,
-  );
+  const result = await saveAdminAlbum(operator.adminId, input, null, operator.ip);
+  await invalidateAlbumCaches();
+  return success(c, result, '图集已保存', 201);
 }
 
 /** PUT /api/admin/albums/:id */
 export async function update(c: AppContext, id: number, input: AlbumSaveInput): Promise<Response> {
   const operator = adminOperator(c);
-  return success(
-    c,
-    await saveAdminAlbum(operator.adminId, input, id, operator.ip),
-    '图集已更新',
-  );
+  const result = await saveAdminAlbum(operator.adminId, input, id, operator.ip);
+  await invalidateAlbumCaches();
+  return success(c, result, '图集已更新');
 }
 
 /** POST /api/admin/albums/:id/status */
@@ -54,6 +55,7 @@ export async function updateStatus(
 ): Promise<Response> {
   const operator = adminOperator(c);
   const result = await updateAdminAlbumStatus(operator.adminId, id, input.status, operator.ip);
+  await invalidateAlbumCaches();
   return success(c, result, input.status === 'published' ? '图集已发布' : '图集已下架');
 }
 
@@ -61,6 +63,7 @@ export async function updateStatus(
 export async function toggleRecommend(c: AppContext, id: number): Promise<Response> {
   const operator = adminOperator(c);
   const result = await toggleAdminAlbumRecommend(operator.adminId, id, operator.ip);
+  await invalidateCache('albums', 'site');
   return success(c, result, result.isRecommended ? '已加入推荐池' : '已移出推荐池');
 }
 
@@ -68,5 +71,6 @@ export async function toggleRecommend(c: AppContext, id: number): Promise<Respon
 export async function remove(c: AppContext, id: number): Promise<Response> {
   const operator = adminOperator(c);
   await deleteAdminAlbum(operator.adminId, id, operator.ip);
+  await invalidateAlbumCaches();
   return success(c, null, '图集已删除');
 }

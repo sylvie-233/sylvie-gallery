@@ -1,8 +1,9 @@
-# 本地 / 单机编排（MySQL + RustFS + API + Web + Admin）
+# 本地 / 单机编排（MySQL + Redis + RustFS + API + Web + Admin）
 
 | 服务 | 容器 | 默认端口 | 说明 |
 |---|---|---|---|
 | MySQL 8.0 | `sylvie-mysql` | `3306` | 用户 `sylvie` / `123456`，库 `sylvie_gallery` |
+| Redis 7.4 | `sylvie-redis` | `6379` | API 缓存与限流；AOF 持久化，最大内存 256MB（allkeys-lru） |
 | RustFS | `sylvie-rustfs` | `9000` | S3 兼容对象存储，桶 `sylvie` 由 API 启动时自动创建 |
 | RustFS 控制台 | — | `9001` | 浏览器打开 http://localhost:9001 |
 | API | `sylvie-api` | `3000` → 容器 3000 | Hono，健康检查 `/health` |
@@ -16,6 +17,7 @@
 ```powershell
 pwsh ./manage.ps1 up                  # 构建并启动全部服务
 pwsh ./manage.ps1 up -Target mysql    # 只启动 MySQL
+pwsh ./manage.ps1 up -Target redis    # 只启动 Redis
 pwsh ./manage.ps1 up -Target admin    # 只启动 Admin（自动带起依赖）
 pwsh ./manage.ps1 status              # 状态与访问地址
 pwsh ./manage.ps1 logs -Target api -Follow
@@ -23,7 +25,7 @@ pwsh ./manage.ps1 build -Target api   # 只重建 API 镜像
 pwsh ./manage.ps1 cli                 # 进入 MySQL 客户端
 pwsh ./manage.ps1 init                # 删除业务库并重跑建表 + 演示数据
 pwsh ./manage.ps1 reset -Force        # 清空数据卷并重建全部服务
-pwsh ./manage.ps1 dev                 # 仅容器跑 MySQL/RustFS，本机 pnpm dev 热更新
+pwsh ./manage.ps1 dev                 # 仅容器跑 MySQL/Redis/RustFS，本机 pnpm dev 热更新
 ```
 
 > 应用镜像使用 `node:24-alpine`（API / Web / Admin 构建）与 `nginx:1.29`（Admin 运行）。
@@ -46,7 +48,7 @@ docker compose -f scripts/docker-compose.yml up -d mysql rustfs
 # 停止（保留数据）
 docker compose -f scripts/docker-compose.yml down
 
-# 重置（清空 MySQL 与 RustFS 数据，下次启动重新初始化）
+# 重置（清空 MySQL、Redis 与 RustFS 数据，下次启动重新初始化）
 docker compose -f scripts/docker-compose.yml down -v
 ```
 
@@ -75,7 +77,7 @@ node scripts/generate-demo-data.mjs
 
 ## 环境变量
 
-`scripts/.env.example` 包含 MySQL、RustFS、JWT、CORS、Web/Admin 端口与构建地址。生产部署前至少替换：
+`scripts/.env.example` 包含 MySQL、Redis、RustFS、JWT、CORS、Web/Admin 端口与构建地址。生产部署前至少替换：
 
 - `MYSQL_ROOT_PASSWORD` / `MYSQL_PASSWORD`
 - `JWT_SECRET`（≥ 32 位随机字符串）

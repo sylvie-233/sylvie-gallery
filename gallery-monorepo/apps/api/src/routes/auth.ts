@@ -1,6 +1,13 @@
 import { createRoute } from '@hono/zod-openapi';
 
 import { authenticate } from '../middleware/auth.js';
+import {
+  loginAccountLimit,
+  loginIpLimit,
+  registerIpLimit,
+  sendCodeEmailLimit,
+  sendCodeIpLimit,
+} from '../middleware/rate-limit.js';
 import * as authController from '../controllers/auth.controller.js';
 import { errorResponses, jsonBody, successResponse } from '../openapi/models/common.js';
 import {
@@ -28,6 +35,7 @@ const sendCodeRoute = createRoute({
   summary: '发送邮箱验证码',
   description: '注册或找回密码时发送 6 位验证码；开发环境返回固定验证码。',
   security: [],
+  middleware: [sendCodeIpLimit, sendCodeEmailLimit],
   request: { body: jsonBody(sendCodeSchema) },
   responses: { 200: successResponse(SendCodeResultSchema, '验证码已发送'), ...errorResponses },
 });
@@ -38,6 +46,7 @@ const registerRoute = createRoute({
   tags: ['认证'],
   summary: '注册会员账号',
   security: [],
+  middleware: [registerIpLimit],
   request: { body: jsonBody(registerSchema) },
   responses: { 201: successResponse(AuthResultSchema, '注册成功'), ...errorResponses },
 });
@@ -48,6 +57,7 @@ const loginRoute = createRoute({
   tags: ['认证'],
   summary: '登录并签发 JWT',
   security: [],
+  middleware: [loginIpLimit, loginAccountLimit],
   request: { body: jsonBody(loginSchema) },
   responses: { 200: successResponse(AuthResultSchema, '登录成功'), ...errorResponses },
 });

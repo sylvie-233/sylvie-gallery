@@ -2,6 +2,7 @@ import { createRoute } from '@hono/zod-openapi';
 
 import * as adminAuthController from '../../controllers/admin/auth.controller.js';
 import { authenticate, requireAdmin } from '../../middleware/auth.js';
+import { adminLoginAccountLimit, adminLoginIpLimit } from '../../middleware/rate-limit.js';
 import { errorResponses, jsonBody, successResponse } from '../../openapi/models/common.js';
 import { AuthResultSchema, UserProfileSchema } from '../../openapi/models/user.js';
 import { createApiRouter, routeHandler } from '../../openapi/router.js';
@@ -16,6 +17,7 @@ const loginRoute = createRoute({
   summary: '管理后台登录',
   description: '仅 admin 角色可登录；演示账号可输入简写 admin。',
   security: [],
+  middleware: [adminLoginIpLimit, adminLoginAccountLimit],
   request: { body: jsonBody(adminLoginSchema) },
   responses: { 200: successResponse(AuthResultSchema, '登录成功'), ...errorResponses },
 });
