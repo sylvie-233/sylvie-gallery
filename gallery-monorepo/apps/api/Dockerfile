@@ -21,6 +21,7 @@ COPY packages/job/package.json packages/job/package.json
 COPY packages/logger/package.json packages/logger/package.json
 COPY packages/mq/package.json packages/mq/package.json
 COPY packages/notify/package.json packages/notify/package.json
+COPY packages/observability/package.json packages/observability/package.json
 COPY packages/payment/package.json packages/payment/package.json
 COPY packages/storage/package.json packages/storage/package.json
 COPY packages/eslint-config/package.json packages/eslint-config/package.json

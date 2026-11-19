@@ -22,6 +22,11 @@ export interface LoggerOptions {
   base?: LogFields;
   /** 追加的脱敏字段路径（pino redact 语法），会与内置规则合并。 */
   redact?: string[];
+  /**
+   * 每条日志动态追加的字段，如可观测性层注入的 `trace_id` / `span_id`。
+   * 每次写日志时调用，适合读取异步上下文。
+   */
+  mixin?: () => LogFields;
   /** 逃生舱：直接覆盖 pino 原生配置，用于特殊场景。 */
   pinoOptions?: PinoLoggerOptions;
 }

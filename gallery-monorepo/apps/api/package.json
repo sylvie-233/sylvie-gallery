@@ -27,6 +27,7 @@
     "@sylvie/logger": "workspace:*",
     "@sylvie/mq": "workspace:*",
     "@sylvie/notify": "workspace:*",
+    "@sylvie/observability": "workspace:*",
     "@sylvie/payment": "workspace:*",
     "@sylvie/storage": "workspace:*",
     "@sylvie/types": "workspace:*",

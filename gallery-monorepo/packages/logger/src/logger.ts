@@ -103,6 +103,7 @@ export function createLogger(options: LoggerOptions): Logger {
     pretty = process.env.NODE_ENV !== 'production',
     base,
     redact,
+    mixin,
     pinoOptions,
   } = options;
 
@@ -123,6 +124,7 @@ export function createLogger(options: LoggerOptions): Logger {
       paths: [...DEFAULT_REDACT_PATHS, ...(redact ?? [])],
       censor: '[REDACTED]',
     },
+    ...(mixin ? { mixin } : {}),
     ...(pretty
       ? {
           transport: {

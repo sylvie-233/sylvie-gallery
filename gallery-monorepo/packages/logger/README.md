@@ -101,6 +101,7 @@ const log = createNoopLogger();
 | `pretty` | 是否彩色输出；默认非 `production` 开启。 |
 | `base` | 每条日志固定携带的字段。 |
 | `redact` | 追加脱敏路径（pino redact 语法），与内置密码/令牌规则合并。 |
+| `mixin` | 每次写日志时动态追加字段，如可观测性层注入的 `trace_id` / `span_id`。 |
 | `pinoOptions` | 逃生舱：覆盖 pino 原生配置。 |
 
 `LoggerOptions` 的完整类型定义见 `src/types.ts`。`level` 可选值为 `trace` / `debug` / `info` / `warn` / `error` / `fatal` / `silent`。
