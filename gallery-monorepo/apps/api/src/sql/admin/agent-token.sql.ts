@@ -114,3 +114,11 @@ export function touchAgentToken(id: number): SqlStatement {
     params: [id],
   };
 }
+
+/** 删除已吊销的令牌。 */
+export function deleteAgentToken(id: number): SqlStatement {
+  return {
+    sql: `DELETE FROM agent_token WHERE id = ? AND status = 0`,
+    params: [id],
+  };
+}

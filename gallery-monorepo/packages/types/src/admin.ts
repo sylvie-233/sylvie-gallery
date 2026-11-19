@@ -378,6 +378,7 @@ export const ADMIN_ACTION_LABELS: Record<string, string> = {
   'pay.export': '导出支付流水',
   'agent_token.create': '创建 Agent 令牌',
   'agent_token.revoke': '吊销 Agent 令牌',
+  'agent_token.delete': '删除 Agent 令牌',
 };
 
 /** 日志动作分组（后台筛选下拉）。 */

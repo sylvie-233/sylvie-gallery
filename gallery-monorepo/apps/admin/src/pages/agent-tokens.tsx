@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import useSWR from 'swr';
-import { Copy, KeyRound, Plus, ShieldOff } from 'lucide-react';
+import { Copy, KeyRound, Plus, ShieldOff, Trash2 } from 'lucide-react';
 
 import type { AdminAgentTokenCreateResult, AdminAgentTokenRow } from '@sylvie/types';
 
@@ -116,6 +116,22 @@ export function AgentTokensPage() {
     }
   };
 
+  const remove = async (item: AdminAgentTokenRow) => {
+    const ok = await confirm({
+      title: `删除「${item.name}」？`,
+      text: '仅已吊销令牌可删除；删除后记录从列表移除，管理日志仍保留操作留痕。',
+      okText: '删除令牌',
+    });
+    if (!ok) return;
+    try {
+      await adminFetch(`/agent-tokens/${item.id}`, { method: 'DELETE' });
+      toast('令牌已删除', 'success');
+      await mutate();
+    } catch (requestError) {
+      toast(requestError instanceof Error ? requestError.message : '删除失败', 'error');
+    }
+  };
+
   const copyToken = async () => {
     if (!created) return;
     try {
@@ -197,7 +213,14 @@ export function AgentTokensPage() {
                           吊销
                         </button>
                       ) : (
-                        <span className="text-[11.5px] text-t3">已失效</span>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11.5px] text-t3 transition hover:bg-white/5 hover:text-[#ff8194]"
+                          onClick={() => remove(item)}
+                        >
+                          <Trash2 size={11} />
+                          删除
+                        </button>
                       )}
                     </td>
                   </tr>

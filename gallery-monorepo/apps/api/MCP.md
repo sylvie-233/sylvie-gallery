@@ -123,4 +123,5 @@ curl -X POST http://localhost:3000/api/mcp \
 - 生产环境使用 HTTPS，并把令牌放在 Secret 管理器 / 客户端安全配置中；
 - agent 只需要查询时创建 **只读** 令牌；
 - 为不同 agent 创建独立令牌，便于分别吊销与追溯；
+- 已吊销令牌可在后台删除以清理列表；管理日志仍保留 `create / revoke / delete` 留痕；
 - 定期查看「Agent 令牌」的最近使用时间，吊销长期未使用或异常的令牌。

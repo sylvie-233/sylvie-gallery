@@ -9,6 +9,7 @@ import {
   errorResponses,
   idParamsSchema,
   jsonBody,
+  nullSchema,
   successResponse,
 } from '../../openapi/models/common.js';
 import { createApiRouter, routeHandler } from '../../openapi/router.js';
@@ -54,6 +55,19 @@ const revokeRoute = createRoute({
   },
 });
 
+const deleteRoute = createRoute({
+  method: 'delete',
+  path: '/{id}',
+  tags: ['后台 · 令牌'],
+  summary: '删除已吊销的 Agent 令牌',
+  description: '仅允许删除已吊销令牌；有效令牌需先吊销，操作会写入管理日志。',
+  request: { params: idParamsSchema },
+  responses: {
+    200: successResponse(nullSchema, '令牌已删除'),
+    ...errorResponses,
+  },
+});
+
 router.openapi(listRoute, routeHandler(listRoute, (c) => agentTokenController.list(c)));
 router.openapi(
   createRouteDef,
@@ -62,6 +76,10 @@ router.openapi(
 router.openapi(
   revokeRoute,
   routeHandler(revokeRoute, (c) => agentTokenController.revoke(c, c.req.valid('param').id)),
+);
+router.openapi(
+  deleteRoute,
+  routeHandler(deleteRoute, (c) => agentTokenController.remove(c, c.req.valid('param').id)),
 );
 
 export default router;

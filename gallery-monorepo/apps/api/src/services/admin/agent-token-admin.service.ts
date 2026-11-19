@@ -8,6 +8,7 @@ import type {
 
 import { dbClient } from '../../db/index.js';
 import {
+  deleteAgentToken as deleteTokenStatement,
   insertAgentToken,
   revokeAgentToken as revokeTokenStatement,
   selectAgentTokenByHash,
@@ -120,6 +121,34 @@ export async function revokeAgentToken(
   );
 
   return toDto(updated);
+}
+
+/** 删除已吊销的令牌；有效令牌必须先吊销。 */
+export async function deleteAgentToken(
+  adminId: number,
+  tokenId: number,
+  ip?: string | null,
+): Promise<void> {
+  const select = selectAgentTokenById(tokenId);
+  const existing = await dbClient.queryOne<AgentTokenRow>(select.sql, select.params);
+  if (!existing) {
+    throw new HttpError(404, '令牌不存在');
+  }
+  if (Number(existing.status) === 1) {
+    throw new HttpError(409, '请先吊销该令牌，再执行删除');
+  }
+
+  const statement = deleteTokenStatement(tokenId);
+  await dbClient.execute(statement.sql, statement.params);
+
+  await logAdminOp(
+    adminId,
+    'agent_token.delete',
+    'agent_token',
+    tokenId,
+    { name: existing.name, tokenPrefix: existing.tokenPrefix },
+    ip,
+  );
 }
 
 /** 校验 Agent 令牌，返回令牌与创建管理员身份。 */

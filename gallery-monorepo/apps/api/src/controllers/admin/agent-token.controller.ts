@@ -1,5 +1,6 @@
 import {
   createAgentToken,
+  deleteAgentToken,
   listAgentTokens,
   revokeAgentToken,
 } from '../../services/admin/agent-token-admin.service.js';
@@ -32,4 +33,11 @@ export async function revoke(c: AppContext, id: number): Promise<Response> {
     await revokeAgentToken(operator.adminId, id, operator.ip),
     '令牌已吊销',
   );
+}
+
+/** DELETE /api/admin/agent-tokens/:id */
+export async function remove(c: AppContext, id: number): Promise<Response> {
+  const operator = adminOperator(c);
+  await deleteAgentToken(operator.adminId, id, operator.ip);
+  return success(c, null, '令牌已删除');
 }
