@@ -34,6 +34,8 @@ import { useBootstrap } from '@/lib/hooks';
 import { useToast } from '@/lib/toast';
 
 interface ReplyTarget {
+  /** 被点击「回复」的那条评论 ID，用于只在它下面渲染输入框。 */
+  targetId: number;
   rootId: number;
   parentId: number;
   replyToUserId: number;
@@ -93,7 +95,7 @@ function CommentBlock({
   onCancelReply: () => void;
   onDelete: (comment: CommentDto) => void;
 }) {
-  const showEditor = replyTarget?.rootId === rootId;
+  const showEditor = replyTarget?.targetId === comment.id;
 
   return (
     <div className={isReply ? 'flex gap-2.5' : 'flex gap-3'}>
@@ -151,6 +153,7 @@ function CommentBlock({
               className="inline-flex items-center gap-1 transition hover:text-brand2"
               onClick={() =>
                 onReply({
+                  targetId: comment.id,
                   rootId,
                   parentId: comment.id,
                   replyToUserId: comment.user.id,
@@ -169,6 +172,7 @@ function CommentBlock({
               className="inline-flex items-center gap-1 transition hover:text-brand2"
               onClick={() =>
                 onReply({
+                  targetId: comment.id,
                   rootId,
                   parentId: rootId,
                   replyToUserId: comment.user.id,
