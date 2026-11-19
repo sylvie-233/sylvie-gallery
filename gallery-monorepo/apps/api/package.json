@@ -23,6 +23,7 @@
     "@scalar/hono-api-reference": "^0.12.22",
     "@sylvie/cache": "workspace:*",
     "@sylvie/db": "workspace:*",
+    "@sylvie/job": "workspace:*",
     "@sylvie/logger": "workspace:*",
     "@sylvie/storage": "workspace:*",
     "@sylvie/types": "workspace:*",

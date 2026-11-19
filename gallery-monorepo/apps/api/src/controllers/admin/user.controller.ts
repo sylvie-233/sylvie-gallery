@@ -1,3 +1,4 @@
+import { scheduleVipExpiryNotice } from '../../jobs/index.js';
 import {
   adjustAdminUserPoints,
   getAdminUsers,
@@ -32,11 +33,9 @@ export async function adjustPoints(
 /** POST /api/admin/users/:id/grant-vip */
 export async function grantVip(c: AppContext, id: number): Promise<Response> {
   const operator = adminOperator(c);
-  return success(
-    c,
-    await grantAdminUserVip(operator.adminId, id, operator.ip),
-    '已赠送 30 天付费会员',
-  );
+  const result = await grantAdminUserVip(operator.adminId, id, operator.ip);
+  await scheduleVipExpiryNotice(id);
+  return success(c, result, '已赠送 30 天付费会员');
 }
 
 /** POST /api/admin/users/:id/reset-password */

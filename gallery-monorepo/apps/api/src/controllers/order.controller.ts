@@ -1,4 +1,5 @@
 import { cacheKey, cached } from '../cache/index.js';
+import { scheduleVipExpiryNotice } from '../jobs/index.js';
 import { createVipOrder, getPurchases, listPlans, payOrder } from '../services/order.service.js';
 import type { AppContext } from '../types/context.js';
 import { success } from '../utils/http.js';
@@ -21,7 +22,11 @@ export async function createVip(c: AppContext, input: CreateVipInput): Promise<R
 
 /** POST /api/orders/:orderNo/pay */
 export async function pay(c: AppContext, orderNo: string): Promise<Response> {
-  return success(c, await payOrder(orderNo, requireUser(c).id), '支付成功');
+  const user = requireUser(c);
+  const order = await payOrder(orderNo, user.id);
+  // 支付成功后按最新到期时间登记到期通知，续费会覆盖旧任务。
+  await scheduleVipExpiryNotice(user.id);
+  return success(c, order, '支付成功');
 }
 
 /** GET /api/orders/mine */

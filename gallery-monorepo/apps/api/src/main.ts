@@ -4,6 +4,7 @@ import app from './app.js';
 import { cache } from './cache/index.js';
 import { env } from './config/env.js';
 import { dbClient } from './db/index.js';
+import { startJobs, stopJobs } from './jobs/index.js';
 import { ensureBucket } from './services/storage.service.js';
 import { logger } from './utils/logger.js';
 
@@ -11,6 +12,7 @@ async function bootstrap(): Promise<void> {
   // 启动前确认数据库与对象存储可用，避免「服务可访问但所有接口报错」
   await dbClient.ping();
   await ensureBucket();
+  await startJobs();
 
   const server = serve(
     {
@@ -37,7 +39,7 @@ async function bootstrap(): Promise<void> {
     logger.info('收到关闭信号，正在关闭服务', { signal });
 
     server.close(() => {
-      void Promise.all([dbClient.close(), cache.close()])
+      void Promise.all([stopJobs(), dbClient.close(), cache.close()])
         .then(() => logger.flush())
         .then(() => process.exit(0))
         .catch((error: unknown) => {

@@ -13,6 +13,7 @@
 | 共享工具 | `packages/utils` | 日期 / 计数 / 价格 / 文本格式化 |
 | 共享 UI | `packages/ui` | 无样式工具 + Web / Admin 两套视觉组件 |
 | 共享缓存 | `packages/cache` | 内存 / Redis 双后端、防击穿、固定窗口限流 |
+| 共享任务 | `packages/job` | BullMQ 定时任务 / 延时任务封装 |
 | 共享日志 | `packages/logger` | pino 封装、脱敏、子日志 |
 | 共享存储 | `packages/storage` | S3 / RustFS 对象存储封装 |
 | 数据库客户端 | `packages/db` | Drizzle schema、mysql2 连接池与参数化查询 |

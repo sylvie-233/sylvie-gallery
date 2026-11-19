@@ -15,6 +15,7 @@
 - **独立管理后台**：数据看板、图集编辑 / 发布 / 推荐 / 下架、标签与作者、评论审核、公告、支付流水与退款、用户管理、操作日志与 CSV 导出。
 - **Agent / MCP 接入**：后台可生成只读 / 读写 Agent 令牌，WorkBuddy 等工具通过 `/api/mcp` 直接查询与操作图集、评论、订单等数据，令牌支持有效期与吊销。
 - **缓存与限流**：Redis 7.4 承载站点数据缓存与接口限流（登录、验证码、评论、下载等），多实例共享计数；本地可切换为进程内存。
+- **定时 / 延时任务**：BullMQ 负责付费会员到期扫描与降级、到期通知延时任务，服务重启不丢任务。
 - **一键部署**：Docker Compose 编排 MySQL 8、Redis 7.4、RustFS、API、Web、Admin，首次启动自动建表并写入演示数据。
 
 ## 页面预览
@@ -43,7 +44,7 @@ WorkBuddy 通过后台生成的 Agent 令牌连接 MCP 端点 `/api/mcp`，可�
 
 - **前台**：Next.js 15（App Router）、React 19、Tailwind CSS v4、SWR
 - **管理后台**：React 19、Vite、React Router、Tailwind CSS v4、SWR + Zustand（独立登录，仅面向桌面端）
-- **后端**：Node.js、Hono、Zod、MySQL 8（mysql2 参数化查询）、Redis 7.4（缓存与限流）、RustFS（S3 兼容）
+- **后端**：Node.js、Hono、Zod、MySQL 8（mysql2 参数化查询）、Redis 7.4（缓存 / 限流 / BullMQ 任务）、RustFS（S3 兼容）
 - **图片与下载**：Sharp 生成缩略图与水印，archiver 打包 ZIP
 - **共享包**：`@sylvie/types`、`@sylvie/db`、`@sylvie/utils`、`@sylvie/ui`（Web / Admin 两套视觉组件）、`@sylvie/logger`、`@sylvie/storage`
 - **工程**：pnpm workspace + Turborepo、ESLint、Docker Compose

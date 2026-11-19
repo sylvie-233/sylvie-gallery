@@ -1,3 +1,4 @@
+import { cancelVipExpiryNotice } from '../../jobs/index.js';
 import {
   exportAdminOrders,
   getAdminOrders,
@@ -34,9 +35,8 @@ export async function refund(
   input: RefundInput,
 ): Promise<Response> {
   const operator = adminOperator(c);
-  return success(
-    c,
-    await refundAdminOrder(operator.adminId, id, input.reason, operator.ip),
-    '订单已退款，会员权益已收回',
-  );
+  const result = await refundAdminOrder(operator.adminId, id, input.reason, operator.ip);
+  // 退款已收回权益，移除尚未触发的到期通知。
+  await cancelVipExpiryNotice(result.user.id);
+  return success(c, result, '订单已退款，会员权益已收回');
 }

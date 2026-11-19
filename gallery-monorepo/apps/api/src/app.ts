@@ -6,6 +6,7 @@ import { cors } from 'hono/cors';
 import { cache } from './cache/index.js';
 import { corsOrigins } from './config/env.js';
 import { dbClient } from './db/index.js';
+import { jobsEnabled, jobsHealthy } from './jobs/index.js';
 import { errorHandler } from './middleware/error.js';
 import { globalRateLimit } from './middleware/rate-limit.js';
 import { requestLogger } from './middleware/request-logger.js';
@@ -55,12 +56,17 @@ app.use('/api/admin/upload', uploadBodyLimit);
 app.get('/health', async (c) => {
   try {
     await dbClient.ping();
-    const [storage, cacheReady] = await Promise.all([storageHealthy(), cache.ping()]);
+    const [storage, cacheReady, jobReady] = await Promise.all([
+      storageHealthy(),
+      cache.ping(),
+      jobsHealthy(),
+    ]);
     return success(c, {
-      status: storage && cacheReady ? 'ok' : 'degraded',
+      status: storage && cacheReady && jobReady ? 'ok' : 'degraded',
       db: 'up',
       storage: storage ? 'up' : 'down',
       cache: cacheReady ? 'up' : 'down',
+      jobs: jobsEnabled ? (jobReady ? 'up' : 'down') : 'disabled',
     });
   } catch (error) {
     (c.get('logger') ?? logger).error('健康检查失败：数据库连接异常', error);

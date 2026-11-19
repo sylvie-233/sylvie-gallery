@@ -33,6 +33,7 @@
 | `gallery-monorepo/packages/ui` | 共享 UI：`@sylvie/ui`（分页计算、浮层滚动锁 / 键盘导航等无样式工具）、`@sylvie/ui/web`（前台视觉组件）、`@sylvie/ui/admin`（后台视觉组件）。样式不同但用途相同的组件分命名空间维护。 |
 | `gallery-monorepo/packages/logger` | 基于 pino 的共享日志层：统一接口、敏感字段脱敏、开发彩色输出、`child` / `scope` 子日志。 |
 | `gallery-monorepo/packages/cache` | 共享缓存层：内存 / Redis 双后端、`remember` 防击穿、固定窗口限流计数、前缀失效。 |
+| `gallery-monorepo/packages/job` | 基于 BullMQ 的共享任务调度层：cron / 固定间隔定时任务、可替换的延时任务、Worker 管理。 |
 | `gallery-monorepo/packages/storage` | S3 / RustFS 共享对象存储层：建桶、健康检查、上传/读取/探测/删除，配置与 URL 规则由调用方注入。 |
 | `gallery-monorepo/packages/utils` | 日期、计数、价格、文本格式化等纯函数。 |
 
@@ -86,6 +87,7 @@ MySQL 8 / InnoDB / `utf8mb4_unicode_ci`；主键统一 `BIGINT UNSIGNED AUTO_INC
 - 可复用组件放 `@sylvie/ui`：无样式逻辑放根入口，前台视觉组件放 `@sylvie/ui/web`，后台放 `@sylvie/ui/admin`；依赖应用状态（auth、SWR、路由、后台日期工具）的组件留在应用内。两个应用都需在 CSS 中用 `@source` 声明对应子目录，Tailwind 才会生成组件类名。
 - Agent / MCP 接入使用独立 `agent_token`，不要复用登录 JWT：令牌分 `read` / `write` scope、可设有效期并支持吊销，明文只在创建时返回一次。MCP 端点 `/api/mcp` 由 `authenticateMcp + requireAdmin` 保护，写工具需同时满足 `MCP_ALLOW_WRITE=true` 与令牌 `scope=write`。
 - 缓存与限流统一使用 `@sylvie/cache`：API 实例在 `apps/api/src/cache/index.ts`，缓存键用 `cacheKey('域', ...)` 分段；只缓存访客可复用数据（登录用户带收藏 / 订阅状态，除 `site:bootstrap` 外不缓存），管理端写操作后调用 `invalidateCache('域', ...)`。限流规则集中在 `apps/api/src/middleware/rate-limit.ts`，登录、验证码、注册、评论、解锁、下载等敏感接口必须限流；缓存不可用时按放行降级。
+- 定时 / 延时任务统一使用 `@sylvie/job`，API 侧入口在 `apps/api/src/jobs/index.ts`（`JOB_ENABLED=true` 时启动 Worker）：会员到期由「每 10 分钟扫描降级 + 支付时登记的延时到期通知」共同处理；新增任务需在 `ApiJobs` 中声明数据、注册 handler，并保证幂等。BullMQ 自定义 jobId 不能包含冒号。
 - 原型仅作视觉与交互参考，实际页面以 Web/Admin 实现为准；三者视觉语言一致：深色背景、玫红 `#ff2d55`、渐变「希」字 Logo。
 
 ## Git 工作流

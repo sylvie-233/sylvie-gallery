@@ -52,6 +52,10 @@ const envSchema = z.object({
   REDIS_DB: z.coerce.number().int().min(0).default(0),
   RATE_LIMIT_ENABLED: z.enum(['true', 'false']).default('true'),
 
+  JOB_ENABLED: z.enum(['true', 'false']).default('false'),
+  JOB_CONCURRENCY: z.coerce.number().int().positive().default(2),
+  JOB_VIP_SWEEP_CRON: z.string().default('*/10 * * * *'),
+
   S3_ENDPOINT: z.string().default('http://127.0.0.1:9000'),
   S3_REGION: z.string().default('us-east-1'),
   S3_ACCESS_KEY: z.string().default('rustfsadmin'),
