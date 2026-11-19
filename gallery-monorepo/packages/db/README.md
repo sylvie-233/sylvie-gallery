@@ -258,3 +258,4 @@ console.log(result.affectedRows);
 - **事务连接**：事务回调内不要使用 `dbClient.query` / `dbClient.execute`，它们不持有事务连接。
 - **连接释放**：`transaction` 内部已保证 `release()`；直接使用 `pool.getConnection()` 时需自行释放。
 - **schema 仅作类型映射**：业务查询仍以 `apps/api/src/sql/*.sql.ts` 为主，不要在 schema 中堆积业务逻辑。
+- **mysql2 类型补丁**：`src/mysql2-augment.ts` 为 `Pool` / `PoolConnection` 补回 `query` 方法。mysql2 3.x 通过声明合并（mixin）提供该方法，TypeScript 6 不再继承这类实例成员，而 VSCode 内置 TS 已是 6.x；补丁同时兼容仓库锁定的 TS 5.9。该文件只含类型，编译后为空模块，删除后 TS 6 环境会重新报 `Property 'query' does not exist on type 'Pool'`。
