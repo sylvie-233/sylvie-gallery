@@ -22,8 +22,9 @@
 
 | 路径 | 职责 |
 |---|---|
-| `scripts/docker-compose.yml` | MySQL 8 + Redis 7.4 + RabbitMQ 4.4 + Mailpit + RustFS + API + Web + Admin 编排；Mailpit 捕获开发环境邮件，首次启动执行建表与演示数据。 |
-| `manage.ps1` | 根目录运维脚本：up/down/restart/reset/build/logs/cli/status/init/pull/dev。 |
+| `scripts/docker-compose.yml` | MySQL 8 + Redis 7.4 + RabbitMQ 4.4 + Mailpit + RustFS + API + Web + Admin 编排；Mailpit 捕获开发环境邮件，首次启动执行建表与演示数据。`observability` profile 额外提供 Alloy + Prometheus + Loki + Tempo + Grafana。 |
+| `scripts/observability/` | 可观测性栈配置：Alloy 采集、Prometheus / Loki / Tempo 存储配置、Grafana 数据源与看板 provisioning。 |
+| `manage.ps1` | 根目录运维脚本：up/down/restart/reset/build/logs/cli/status/init/pull/dev/obs。 |
 | `scripts/init/02-demo-data.sql` | 演示数据（37 套图集 / 1140 条媒体 / 公告 / 评论 / 收藏 / 订单），由 `scripts/generate-demo-data.mjs` 生成。 |
 | `gallery-monorepo/apps/web` | Next.js 15 App Router 前台，Tailwind CSS v4 + SWR；通过 rewrites 代理 `/api`。 |
 | `gallery-monorepo/apps/admin` | React + Vite + React Router 管理后台，Tailwind CSS v4 + SWR；全局客户端状态（登录会话、Toast、Confirm）用 Zustand；开发端口 3002。 |
@@ -31,7 +32,8 @@
 | `gallery-monorepo/packages/types` | API 响应、DTO、枚举常量；Web 与 API 共用。 |
 | `gallery-monorepo/packages/db` | Drizzle schema（25 张表，`src/schema/`）、mysql2 连接池、事务与参数化查询封装。 |
 | `gallery-monorepo/packages/ui` | 共享 UI：`@sylvie/ui`（分页计算、浮层滚动锁 / 键盘导航等无样式工具）、`@sylvie/ui/web`（前台视觉组件）、`@sylvie/ui/admin`（后台视觉组件）。样式不同但用途相同的组件分命名空间维护。 |
-| `gallery-monorepo/packages/logger` | 基于 pino 的共享日志层：统一接口、敏感字段脱敏、开发彩色输出、`child` / `scope` 子日志。 |
+| `gallery-monorepo/packages/logger` | 基于 pino 的共享日志层：统一接口、敏感字段脱敏、开发彩色输出、`child` / `scope` 子日志，`mixin` 支持注入 `trace_id` / `span_id`。 |
+| `gallery-monorepo/packages/observability` | 共享可观测性层：OpenTelemetry SDK（trace / metrics）、Hono 中间件、`withSpan` / MCP 工具埋点、trace 上下文与 pino 日志字段；关闭时零开销、可插拔。 |
 | `gallery-monorepo/packages/cache` | 共享缓存层：内存 / Redis 双后端、`remember` 防击穿、固定窗口限流计数、前缀失效。 |
 | `gallery-monorepo/packages/job` | 基于 BullMQ 的共享任务调度层：cron / 固定间隔定时任务、可替换的延时任务、Worker 管理。 |
 | `gallery-monorepo/packages/notify` | 共享通知层：邮件（nodemailer / Mailpit）与短信通道，短信实现由调用方注入。 |
@@ -64,6 +66,8 @@ API 启动后可访问 `http://localhost:3000/api/docs` 查看接口文档，Ope
 
 开发环境邮件统一投递到 Mailpit：网页端 `http://localhost:8025`，SMTP `localhost:1025`。注册 / 找回密码的验证码会真实发信，可在 Mailpit 中查看。
 
+可观测性栈默认不启动，按需开启：`pwsh ./manage.ps1 obs` 或 `docker compose -f scripts/docker-compose.yml --profile observability up -d`，Grafana 位于 `http://localhost:3030`（`admin / 123456`）。随后在 `scripts/.env` 或 `apps/api/.env` 设置 `OBSERVABILITY_ENABLED=true` 并重启 API；容器内端点用 `http://alloy:4318`，本机 `pnpm dev` 用 `http://127.0.0.1:4318`。数据流为 API → Alloy → Prometheus / Tempo，pino 日志 → Alloy → Loki，Grafana 通过 `trace_id` 联动。
+
 ## 跨文档业务规则
 
 - **角色**：`guest`（游客，不落库）/ `member`（注册会员）/ `vip`（付费会员）/ `admin`（管理员）。仅 `admin` 可发布图集，注册会员与付费会员均无上传 / 发布权限。
@@ -88,6 +92,7 @@ MySQL 8 / InnoDB / `utf8mb4_unicode_ci`；主键统一 `BIGINT UNSIGNED AUTO_INC
 - API 数据库访问使用参数化 SQL，语句统一放在 `apps/api/src/sql/*.sql.ts` 并以 `{ sql, params }` 返回；列表计数与冗余字段需事务内同步。Drizzle schema 仅作为表结构的类型化映射（`db.db` 查询构建器），服务层仍以参数化 SQL 为主。
 - OpenAPI 文档由 `createRoute` 的路由声明自动生成（`@hono/zod-openapi`），不要再手写 spec 文件。新增接口时在 `routes/` 声明请求与响应模型（`validators/` 放请求 schema，`openapi/models/` 放响应模型），handler 放 `controllers/`。
 - 日志统一使用 `@sylvie/logger`：API 侧从 `apps/api/src/utils/logger.ts` 取实例，按模块用 `moduleLogger('模块名')` 派生；不要直接使用 `console.*`（`config/env.ts` 在日志初始化前的校验失败除外）。
+- 可观测性统一使用 `@sylvie/observability`：实例在 `apps/api/src/observability/index.ts`，配置由 env 注入（包内不读环境变量）。`main.ts` 必须在加载 mysql2 / node:http / ioredis 等模块**之前**顶层 `await startObservability()`，否则自动埋点失效；Hono 中间件注册在最外层，日志通过 `mixin` 写入 `trace_id` / `span_id`，MCP 工具通过 `instrumentMcpServer` 统一包装。HTTP 中间件复用 `instrumentation-http` 的入站 span，不要将 `ignoreIncomingRequestHook` 全局设为忽略（会触发 tracing suppression）。新增业务指标用 `observability.counter` / `histogram`，禁止高基数属性。
 - 对象存储统一使用 `@sylvie/storage`：API 侧实例在 `apps/api/src/services/storage.service.ts`，配置从 env 注入；不要再直接使用 `@aws-sdk/client-s3`。图片压缩/水印等业务处理仍留在 API。
 - 可复用组件放 `@sylvie/ui`：无样式逻辑放根入口，前台视觉组件放 `@sylvie/ui/web`，后台放 `@sylvie/ui/admin`；依赖应用状态（auth、SWR、路由、后台日期工具）的组件留在应用内。两个应用都需在 CSS 中用 `@source` 声明对应子目录，Tailwind 才会生成组件类名。
 - Agent / MCP 接入使用独立 `agent_token`，不要复用登录 JWT：令牌分 `read` / `write` scope、可设有效期并支持吊销，明文只在创建时返回一次。MCP 端点 `/api/mcp` 由 `authenticateMcp + requireAdmin` 保护，写工具需同时满足 `MCP_ALLOW_WRITE=true` 与令牌 `scope=write`。
