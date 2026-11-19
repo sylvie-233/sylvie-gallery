@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import useSWR from 'swr';
-import { Download, RotateCcw } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Download, Loader2, RotateCcw } from 'lucide-react';
 
 import type { AdminOrderPage, AdminOrderRow } from '@sylvie/types';
 import { formatCount } from '@sylvie/utils';
@@ -9,6 +9,7 @@ import {
   Badge,
   Empty,
   LoadingRows,
+  Modal,
   PageError,
   PageHead,
   Pagination,
@@ -18,11 +19,14 @@ import {
 } from '@/components/ui';
 import { adminDownload, adminFetch } from '@/lib/api';
 import { useAdminAuth } from '@/lib/auth';
-import { useConfirm } from '@/lib/confirm';
 import { formatDateTime, formatYuan, rangeQuery, type TimeRange } from '@/lib/date';
 import { useToast } from '@/lib/toast';
 
 type PaymentView = 'all' | 'vip' | 'unlock' | 'created' | 'refunded';
+
+/** 退款原因预设。 */
+const REFUND_REASONS = ['用户申请退款', '重复购买', '服务问题', '其他'] as const;
+type RefundReason = (typeof REFUND_REASONS)[number];
 
 const VIEW_ITEMS: Array<{ value: PaymentView; label: string }> = [
   { value: 'all', label: '全部' },
@@ -49,7 +53,6 @@ function viewQuery(view: PaymentView): { biz: string; status: string } {
 
 export function PaymentsPage() {
   const { token, revalidateAll } = useAdminAuth();
-  const { confirm } = useConfirm();
   const { toast } = useToast();
 
   const [view, setView] = useState<PaymentView>('all');
@@ -58,6 +61,14 @@ export function PaymentsPage() {
   const [page, setPage] = useState(1);
   const [range, setRange] = useState<TimeRange>({ quick: 'all', from: '', to: '' });
   const [exporting, setExporting] = useState(false);
+
+  // 退款弹窗：目标订单、原因、备注、提交状态、错误提示与成功结果。
+  const [refundTarget, setRefundTarget] = useState<AdminOrderRow | null>(null);
+  const [refundReason, setRefundReason] = useState<RefundReason>('用户申请退款');
+  const [refundNote, setRefundNote] = useState('');
+  const [refunding, setRefunding] = useState(false);
+  const [refundError, setRefundError] = useState('');
+  const [refundDone, setRefundDone] = useState<{ reason: string } | null>(null);
 
   const query = viewQuery(view);
   const params = new URLSearchParams();
@@ -78,23 +89,54 @@ export function PaymentsPage() {
 
   const resetPage = () => setPage(1);
 
-  const refund = async (order: AdminOrderRow) => {
-    const ok = await confirm({
-      title: '确认退款？',
-      text: `订单 ${order.orderNo}\n用户：${order.user.nickname}（${order.user.email}）\n金额：${formatYuan(order.amountCents)}\n退款后该用户的付费会员权益将同步收回。`,
-      okText: '确认退款',
-    });
-    if (!ok) return;
+  const openRefund = (order: AdminOrderRow) => {
+    setRefundTarget(order);
+    setRefundReason('用户申请退款');
+    setRefundNote('');
+    setRefundError('');
+    setRefundDone(null);
+    setRefunding(false);
+  };
+
+  const closeRefund = () => {
+    if (refunding) {
+      return;
+    }
+    setRefundTarget(null);
+    setRefundError('');
+    setRefundDone(null);
+  };
+
+  const submitRefund = async () => {
+    if (!refundTarget || refunding) {
+      return;
+    }
+    const note = refundNote.trim();
+    if (refundReason === '其他' && !note) {
+      setRefundError('选择「其他」时请填写退款说明');
+      return;
+    }
+    const reason = note ? `${refundReason}：${note}` : refundReason;
+
+    setRefunding(true);
+    setRefundError('');
     try {
-      await adminFetch(`/orders/${order.id}/refund`, {
+      await adminFetch(`/orders/${refundTarget.id}/refund`, {
         method: 'POST',
-        body: { reason: '管理员操作退款' },
+        body: { reason: reason.slice(0, 255) },
       });
+      // 保留弹窗展示成功结果，列表在后台刷新。
+      setRefundDone({ reason });
       toast('订单已退款，会员权益已收回', 'success');
       await mutate();
       void revalidateAll();
     } catch (requestError) {
-      toast(requestError instanceof Error ? requestError.message : '退款失败', 'error');
+      // 失败时保留表单与填写内容，便于调整后重试；后端保证本地状态未变更。
+      setRefundError(
+        requestError instanceof Error ? requestError.message : '退款失败，请稍后重试',
+      );
+    } finally {
+      setRefunding(false);
     }
   };
 
@@ -260,7 +302,20 @@ export function PaymentsPage() {
                             : '¥0'}
                       </td>
                       <td>
-                        <Badge tone={status.tone}>{status.label}</Badge>
+                        <span
+                          title={
+                            order.status === 'refunded'
+                              ? [
+                                  order.refundReason ? `原因：${order.refundReason}` : '',
+                                  order.refundAt ? `退款时间：${formatDateTime(order.refundAt)}` : '',
+                                ]
+                                  .filter(Boolean)
+                                  .join('\n')
+                              : undefined
+                          }
+                        >
+                          <Badge tone={status.tone}>{status.label}</Badge>
+                        </span>
                       </td>
                       <td className="hide-m text-[12px] tabular-nums text-t3">
                         {formatDateTime(order.paidAt)}
@@ -270,7 +325,7 @@ export function PaymentsPage() {
                           <button
                             type="button"
                             className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11.5px] text-t3 transition hover:bg-white/5 hover:text-brand2"
-                            onClick={() => refund(order)}
+                            onClick={() => openRefund(order)}
                           >
                             <RotateCcw size={11} />
                             退款
@@ -290,6 +345,186 @@ export function PaymentsPage() {
           <Empty title="没有符合条件的订单" text="换个筛选条件或时间范围试试。" />
         )}
       </div>
+
+      <Modal
+        open={refundTarget !== null}
+        title={refundDone ? '退款成功' : '订单退款'}
+        onClose={closeRefund}
+        width={560}
+        closable={!refunding && !refundDone}
+        footer={
+          refundDone ? (
+            <button type="button" className="btn btn-red" onClick={closeRefund}>
+              完成
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn btn-line"
+                onClick={closeRefund}
+                disabled={refunding}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="btn btn-red"
+                onClick={submitRefund}
+                disabled={refunding}
+              >
+                {refunding ? '退款处理中…' : '确认退款'}
+              </button>
+            </>
+          )
+        }
+      >
+        {refundDone && refundTarget ? (
+          <div className="space-y-4">
+            <div className="flex flex-col items-center gap-3 py-4 text-center">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10">
+                <CheckCircle2 size={26} className="text-emerald-400" />
+              </span>
+              <p className="text-[15px] font-bold">退款已完成，会员权益已收回</p>
+              <p className="max-w-[420px] text-[12px] leading-relaxed text-t3">
+                支付宝退款成功的订单，资金会按原支付渠道退回；模拟支付或管理员赠送订单仅完成本地处理。
+              </p>
+            </div>
+            <div className="rounded-xl border border-line bg-panel2 px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[12px] text-t3">订单号</span>
+                <span className="mono text-[12px] text-t2">{refundTarget.orderNo}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-[12px] text-t3">用户</span>
+                <span className="text-[12.5px] text-t1">
+                  {refundTarget.user.nickname}
+                  <span className="ml-1.5 text-[11.5px] text-t3">
+                    {refundTarget.user.email}
+                  </span>
+                </span>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-[12px] text-t3">退款金额</span>
+                <span className="text-[16px] font-extrabold tabular-nums text-brand2">
+                  {formatYuan(refundTarget.amountCents)}
+                </span>
+              </div>
+              <div className="mt-2 flex items-start justify-between gap-3">
+                <span className="shrink-0 text-[12px] text-t3">退款原因</span>
+                <span className="text-right text-[12.5px] text-t2">{refundDone.reason}</span>
+              </div>
+            </div>
+            <p className="text-center text-[11.5px] text-t3">
+              列表与统计数据已同步刷新，退款记录可在「已退款」筛选中查看。
+            </p>
+          </div>
+        ) : refundTarget ? (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-line bg-panel2 px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[12px] text-t3">订单号</span>
+                <span className="mono text-[12px] text-t2">{refundTarget.orderNo}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-[12px] text-t3">用户</span>
+                <span className="text-[12.5px] text-t1">
+                  {refundTarget.user.nickname}
+                  <span className="ml-1.5 text-[11.5px] text-t3">
+                    {refundTarget.user.email}
+                  </span>
+                </span>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-[12px] text-t3">套餐</span>
+                <span className="text-[12.5px] text-t2">
+                  {refundTarget.planName ?? '付费会员'}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-[12px] text-t3">支付方式 / 时间</span>
+                <span className="text-[12.5px] text-t2">
+                  {refundTarget.payType === 'alipay' ? '支付宝' : '管理员赠送'} ·{' '}
+                  {formatDateTime(refundTarget.paidAt)}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-3 border-t border-line pt-2">
+                <span className="text-[12px] text-t3">退款金额</span>
+                <span className="text-[17px] font-extrabold tabular-nums text-brand2">
+                  {formatYuan(refundTarget.amountCents)}
+                </span>
+              </div>
+            </div>
+
+            <div className="field">
+              <label>退款原因</label>
+              <select
+                value={refundReason}
+                onChange={(event) => {
+                  setRefundReason(event.target.value as RefundReason);
+                  setRefundError('');
+                }}
+                disabled={refunding}
+              >
+                {REFUND_REASONS.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="field">
+              <label>
+                补充说明
+                {refundReason === '其他' ? <i>*</i> : null}
+              </label>
+              <textarea
+                value={refundNote}
+                maxLength={200}
+                onChange={(event) => {
+                  setRefundNote(event.target.value);
+                  setRefundError('');
+                }}
+                placeholder="选填，将随退款记录一并保存"
+                disabled={refunding}
+              />
+              <p className="mt-1.5 text-right text-[11px] text-t3">{refundNote.length}/200</p>
+            </div>
+
+            <div className="flex gap-2.5 rounded-xl border border-brand/25 bg-brand-dim px-3.5 py-3">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0 text-brand2" />
+              <div className="space-y-1 text-[11.5px] leading-relaxed text-t2">
+                <p>
+                  真实支付模式下将调用支付宝原路退款；模拟支付或管理员赠送订单仅做本地处理。
+                </p>
+                <p>退款成功后，该用户的付费会员权益会立即收回，且不可撤销。</p>
+                <p>若支付宝退款失败，订单与会员状态保持不变，可稍后重试。</p>
+              </div>
+            </div>
+
+            {refunding ? (
+              <div className="flex items-center gap-2.5 rounded-lg border border-line bg-panel2 px-3 py-2.5 text-[12px] text-t2">
+                <Loader2 size={15} className="animate-spin text-brand2" />
+                <span>
+                  正在提交退款请求
+                  {refundTarget.payType === 'alipay' ? '，支付宝退款通常需要几秒钟' : ''}
+                  ，请勿关闭窗口…
+                </span>
+              </div>
+            ) : null}
+
+            {refundError ? (
+              <div className="rounded-lg border border-brand2/40 bg-brand/10 px-3 py-2.5">
+                <p className="text-[12px] leading-relaxed text-[#ff8194]">{refundError}</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-t3">
+                  订单与会员权益未发生变更，可修改后重新提交。
+                </p>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </Modal>
     </div>
   );
 }
