@@ -626,6 +626,12 @@ export default function AlbumDetailPage() {
                 <ImageIcon size={12} />
                 {detail.imageCount}P
               </span>
+              {detail.videoCount > 0 ? (
+                <span className="chip">
+                  <Film size={12} />
+                  {detail.videoCount}V
+                </span>
+              ) : null}
               {detail.tags.map((tag) => (
                 <Link
                   key={tag.id}
