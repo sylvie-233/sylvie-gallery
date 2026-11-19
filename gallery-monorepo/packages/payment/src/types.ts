@@ -49,6 +49,24 @@ export interface PaymentQueryResult {
   buyerId: string | null;
 }
 
+/** 退款参数。 */
+export interface RefundPaymentInput {
+  orderNo: string;
+  /** 退款金额（分）；当前业务只做全额退款。 */
+  amountCents: number;
+  reason?: string;
+  /** 幂等号；默认使用 orderNo，重复请求会返回同一结果。 */
+  outRequestNo?: string;
+}
+
+/** 退款结果。 */
+export interface RefundResult {
+  provider: PaymentProviderName;
+  refundNo: string;
+  /** 实际退款金额（分）。 */
+  amountCents: number;
+}
+
 /** 解析后的异步通知。 */
 export interface PaymentNotification {
   provider: PaymentProviderName;
@@ -66,6 +84,8 @@ export interface PaymentProvider {
   createPagePayment(input: CreatePagePaymentInput): CreatePaymentResult;
   /** 主动查询订单状态。 */
   query(orderNo: string): Promise<PaymentQueryResult>;
+  /** 发起退款；失败抛出异常，调用方不得继续本地退款。 */
+  refund(input: RefundPaymentInput): Promise<RefundResult>;
   /** 校验异步通知签名。 */
   verifyNotify(params: Record<string, string>): boolean;
   /** 校验签名并解析通知。 */

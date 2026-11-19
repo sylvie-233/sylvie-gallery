@@ -8,6 +8,8 @@ import type {
   PaymentProvider,
   PaymentQueryResult,
   PaymentStatus,
+  RefundPaymentInput,
+  RefundResult,
 } from './types.js';
 
 /** 分转元：1900 → "19.00"。 */
@@ -116,6 +118,43 @@ export class AlipayProvider implements PaymentProvider {
         buyerId: null,
       };
     }
+  }
+
+  /**
+   * 发起退款（alipay.trade.refund）。
+   *
+   * `out_request_no` 默认与订单号一致：同一退款请求重复调用时，
+   * 支付宝返回同一结果而不会重复退款，便于数据库异常后安全重试。
+   */
+  async refund(input: RefundPaymentInput): Promise<RefundResult> {
+    const outRequestNo = input.outRequestNo ?? input.orderNo;
+    let result: Awaited<ReturnType<AlipaySdk['exec']>>;
+    try {
+      result = await this.sdk.exec('alipay.trade.refund', {
+        bizContent: {
+          out_trade_no: input.orderNo,
+          refund_amount: centsToYuan(input.amountCents),
+          out_request_no: outRequestNo,
+          ...(input.reason ? { refund_reason: input.reason } : {}),
+        },
+      });
+    } catch (error) {
+      throw new Error(
+        `支付宝退款请求失败：${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    if (result.code !== '10000') {
+      throw new Error(
+        `支付宝退款失败：${(result.subMsg as string | undefined) ?? result.msg ?? result.code}`,
+      );
+    }
+
+    return {
+      provider: 'alipay',
+      refundNo: outRequestNo,
+      amountCents: yuanToCents(result.refundFee as string | undefined) ?? input.amountCents,
+    };
   }
 
   /** 校验异步通知签名，并确认通知属于当前应用。 */

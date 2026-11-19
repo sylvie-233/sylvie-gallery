@@ -4,7 +4,9 @@ import type {
   AdminPaymentSummary,
 } from '@sylvie/types';
 
+import { env } from '../../config/env.js';
 import { dbClient, queryOneOn } from '../../db/index.js';
+import { refundAlipayPayment } from '../payment.service.js';
 import { HttpError } from '../../utils/http.js';
 import { normalizePage, toNumber, toPageResult } from '../../utils/format.js';
 import {
@@ -15,6 +17,7 @@ import {
   selectAdminOrders,
   selectOrderById,
   selectOrderForRefund,
+  selectOrderForRefundPreview,
   selectOrderTodayRevenue,
   selectOrderTotalRevenue,
   selectOrdersForExport,
@@ -96,14 +99,61 @@ export async function getAdminOrders(
   };
 }
 
+/**
+ * 后台退款：
+ * 1. 预读订单并校验；
+ * 2. 真实支付模式下先调用支付宝退款（幂等号 = 订单号，可安全重试）；
+ * 3. 退款成功后才在本地事务中标记退款并收回会员权益。
+ *
+ * 支付宝退款失败时本地状态保持不变，管理员可修复配置后重试。
+ */
 export async function refundAdminOrder(
   adminId: number,
   orderId: number,
   reason: string | undefined,
   ip?: string | null,
 ): Promise<AdminOrderRow> {
-  let userId = 0;
-  let orderNo = '';
+  const refundReason = reason?.trim() || '管理员操作退款';
+
+  const previewStatement = selectOrderForRefundPreview(orderId);
+  const preview = await dbClient.queryOne<RefundOrderRow>(
+    previewStatement.sql,
+    previewStatement.params,
+  );
+  if (!preview) {
+    throw new HttpError(404, '订单不存在');
+  }
+  if (preview.bizType !== 'vip') {
+    throw new HttpError(400, '积分解锁订单暂不支持退款');
+  }
+  if (preview.status !== 'paid') {
+    throw new HttpError(400, '仅已支付的会员订单可退款');
+  }
+
+  const needsAlipayRefund =
+    !env.ALIPAY_MOCK && preview.payType === 'alipay' && Number(preview.amountCents) > 0;
+  if (needsAlipayRefund) {
+    try {
+      await refundAlipayPayment({
+        orderNo: preview.orderNo,
+        amountCents: Number(preview.amountCents),
+        reason: refundReason,
+        // 同一订单重复退款请求使用相同幂等号，支付宝不会重复退款。
+        outRequestNo: preview.orderNo,
+      });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new HttpError(
+        502,
+        `支付宝退款失败，订单与会员权益均未变更：${detail}`,
+      );
+    }
+  }
+
+  let userId = Number(preview.userId);
+  let orderNo = preview.orderNo;
+  let already = false;
+
   await dbClient.transaction(async (conn) => {
     const orderStatement = selectOrderForRefund(orderId);
     const order = await queryOneOn<RefundOrderRow>(
@@ -117,13 +167,18 @@ export async function refundAdminOrder(
     if (order.bizType !== 'vip') {
       throw new HttpError(400, '积分解锁订单暂不支持退款');
     }
+    userId = Number(order.userId);
+    orderNo = order.orderNo;
+
+    // 预读与加锁之间可能已被其他管理员退款；支付宝退款幂等，可安全直接返回。
+    if (order.status === 'refunded') {
+      already = true;
+      return;
+    }
     if (order.status !== 'paid') {
       throw new HttpError(400, '仅已支付的会员订单可退款');
     }
 
-    userId = Number(order.userId);
-    orderNo = order.orderNo;
-    const refundReason = reason?.trim() || '管理员操作退款';
     const refundStatement = updateOrderRefund(refundReason, orderId);
     await conn.query(refundStatement.sql, refundStatement.params);
     const revokeStatement = revokeVipPrivilege(userId);
@@ -140,7 +195,13 @@ export async function refundAdminOrder(
     'order.refund',
     'order',
     orderId,
-    { orderNo, userId, reason: reason?.trim() || '管理员操作退款' },
+    {
+      orderNo,
+      userId,
+      reason: refundReason,
+      alipayRefund: needsAlipayRefund,
+      already,
+    },
     ip,
   );
 

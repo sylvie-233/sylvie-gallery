@@ -177,6 +177,7 @@ COMMIT
 | 验签失败 / `app_id` 不匹配 | 通知返回 `failure` 400 | 支付宝重试；订单不履约 |
 | 通知金额与订单不一致 | 通知返回 `failure` 500 | 支付宝重试；需人工排查 |
 | 非成功状态通知 | 返回 `success` | 不履约，订单保持 `created` |
+| 后台退款时支付宝退款失败 | 返回 502，本地订单与会员状态不变 | 修复配置后可重试；`out_request_no=orderNo` 幂等 |
 | RabbitMQ 不可用 / 未启用 | 通知处理内**同步履约** | 不丢单，响应前完成开通 |
 | MQ 消费失败 | 消息重新入队（`requeueOnError`） | 幂等重试，直到成功 |
 | 通知重复 | `fulfillVipOrder` 返回 `already` | 不重复开通，不重复叠加有效期 |
@@ -230,6 +231,7 @@ MQ_PREFETCH=1
 | `POST /api/orders/vip` | JWT | `{ code:200, data:{ order, payment:{ provider, mock, payUrl, message } } }` | 套餐不存在 404 / 支付未配置 503 |
 | `GET /api/orders/{orderNo}/status` | JWT | `{ code:200, data: OrderDto }` | 非本人订单 404 |
 | `POST /api/orders/alipay/notify` | 无（验签） | `text/plain: success` | `text/plain: failure` |
+| `POST /api/admin/orders/{id}/refund` | 管理员 JWT | 订单已退款、权益收回 | 非会员订单 400 / 支付宝退款失败 502 |
 | `POST /api/orders/{orderNo}/pay` | JWT | 仅 `ALIPAY_MOCK=true` 可用 | 真实模式返回 400 |
 
 `payment` 字段：
@@ -263,13 +265,25 @@ POST /api/orders/{orderNo}/pay → fulfillVipOrder(orderNo, MOCK...)
 
 后台退款（`POST /api/admin/orders/{id}/refund`）：
 
-1. 校验订单为已支付的会员订单；
-2. `pay_order.status = refunded`，写入 `refund_at` / `refund_reason`；
-3. `user.role = member`、`vip_expire_at = NULL`（管理员除外）；
-4. 写入权益收回通知；
-5. 取消该用户的会员到期延时通知。
+1. 预读并校验：必须是 `biz_type='vip'` 且 `status='paid'` 的会员订单；
+2. **真实支付模式**（`ALIPAY_MOCK=false` 且 `pay_type='alipay'` 且金额 > 0）：
+   - 先调用支付宝 `alipay.trade.refund`；
+   - `out_request_no = order_no`，同一订单重复请求不会重复退款；
+   - 退款失败返回 502，**本地订单与会员权益保持不变**，修复后可安全重试；
+3. 支付宝退款成功后才进入本地事务：
+   - `pay_order.status = refunded`，写入 `refund_at` / `refund_reason`；
+   - `user.role = member`、`vip_expire_at = NULL`（管理员除外）；
+   - 写入权益收回通知；
+4. 事务外取消该用户的会员到期延时通知；
+5. 写入 `admin_op_log`（包含 `alipayRefund` 标记）。
 
-> 当前退款为**全额收回会员权益**，不按剩余天数折算；积分解锁订单暂不支持退款。
+不调用支付宝的情况：
+
+- `ALIPAY_MOCK=true`（模拟支付）；
+- `pay_type='admin'`（后台赠送的 0 元订单）；
+- 金额为 0 的订单。
+
+> 当前退款为**全额退款 + 全额收回会员权益**，不按剩余天数折算；积分解锁订单暂不支持退款。
 
 ---
 

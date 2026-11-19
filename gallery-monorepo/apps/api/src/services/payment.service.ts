@@ -5,6 +5,8 @@ import {
   type CreatePagePaymentInput,
   type PaymentNotification,
   type PaymentQueryResult,
+  type RefundPaymentInput,
+  type RefundResult,
 } from '@sylvie/payment';
 
 import { env } from '../config/env.js';
@@ -135,6 +137,18 @@ export async function queryAlipayPayment(orderNo: string): Promise<PaymentQueryR
     return null;
   }
   return provider.query(orderNo);
+}
+
+/**
+ * 发起支付宝退款。
+ * 仅真实支付模式可用；模拟支付与管理员赠送订单不调用支付宝。
+ * 失败会抛错，调用方必须保持本地订单状态不变。
+ */
+export async function refundAlipayPayment(input: RefundPaymentInput): Promise<RefundResult> {
+  if (!provider) {
+    throw new Error('支付宝支付未配置，无法发起真实退款');
+  }
+  return provider.refund(input);
 }
 
 /** 支付通道状态（健康检查与文档展示用）。 */

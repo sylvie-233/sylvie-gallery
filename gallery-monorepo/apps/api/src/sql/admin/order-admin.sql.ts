@@ -30,6 +30,7 @@ export interface RefundOrderRow {
   orderNo: string;
   userId: number;
   bizType: 'vip' | 'unlock';
+  payType: PayType;
   status: OrderStatus;
   amountCents: number;
 }
@@ -163,10 +164,20 @@ export function selectUnlockOrderStats(): SqlStatement {
   };
 }
 
+/** 退款前预读（不加锁）：用于判断是否需要对支付宝发起真实退款。 */
+export function selectOrderForRefundPreview(orderId: number): SqlStatement {
+  return {
+    sql: `SELECT id, order_no AS orderNo, user_id AS userId, biz_type AS bizType,
+              pay_type AS payType, status, amount_cents AS amountCents
+         FROM pay_order WHERE id = ? LIMIT 1`,
+    params: [orderId],
+  };
+}
+
 export function selectOrderForRefund(orderId: number): SqlStatement {
   return {
     sql: `SELECT id, order_no AS orderNo, user_id AS userId, biz_type AS bizType,
-              status, amount_cents AS amountCents
+              pay_type AS payType, status, amount_cents AS amountCents
          FROM pay_order WHERE id = ? FOR UPDATE`,
     params: [orderId],
   };
