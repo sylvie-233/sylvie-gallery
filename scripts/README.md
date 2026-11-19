@@ -1,4 +1,4 @@
-# 本地 / 单机编排（MySQL + Redis + RabbitMQ + Mailpit + RustFS + API + Web + Admin）
+# 本地 / 单机编排（MySQL + Redis + RabbitMQ + Mailpit + RustFS + API + Web + Admin + 可观测性栈）
 
 | 服务 | 容器 | 默认端口 | 说明 |
 |---|---|---|---|
@@ -11,6 +11,11 @@
 | API | `sylvie-api` | `3000` → 容器 3000 | Hono，健康检查 `/health` |
 | Web | `sylvie-web` | `8080` → 容器 3001 | Next.js standalone |
 | Admin | `sylvie-admin` | `8081` → 容器 80 | React SPA + Nginx |
+| Alloy | `sylvie-alloy` | `4317` / `4318` / `12345` | OTLP gRPC / HTTP 接收器 + 容器日志采集，profile `observability` |
+| Prometheus | `sylvie-prometheus` | `9090` | 指标存储（Alloy remote write），profile `observability` |
+| Loki | `sylvie-loki` | `3100` | 日志存储，profile `observability` |
+| Tempo | `sylvie-tempo` | `3200` | 链路存储，profile `observability` |
+| Grafana | `sylvie-grafana` | `3030` | 统一查询 / 看板 / 告警（admin / 123456），profile `observability` |
 
 ## 使用
 
@@ -30,6 +35,7 @@ pwsh ./manage.ps1 cli                 # 进入 MySQL 客户端
 pwsh ./manage.ps1 init                # 删除业务库并重跑建表 + 演示数据
 pwsh ./manage.ps1 reset -Force        # 清空数据卷并重建全部服务
 pwsh ./manage.ps1 dev                 # 仅容器跑 MySQL/Redis/RabbitMQ/Mailpit/RustFS，本机 pnpm dev 热更新
+pwsh ./manage.ps1 obs                 # 启动 Alloy + Prometheus + Loki + Tempo + Grafana
 ```
 
 > 应用镜像使用 `node:24-alpine`（API / Web / Admin 构建）与 `nginx:1.29`（Admin 运行）。
@@ -54,7 +60,35 @@ docker compose -f scripts/docker-compose.yml down
 
 # 重置（清空 MySQL、Redis、RabbitMQ、Mailpit 与 RustFS 数据，下次启动重新初始化）
 docker compose -f scripts/docker-compose.yml down -v
+
+# 按需启动可观测性栈（不属于默认 up）
+docker compose -f scripts/docker-compose.yml --profile observability up -d
 ```
+
+## 可观测性栈
+
+可观测性组件全部使用 `observability` profile，默认不启动，避免日常开发占用内存：
+
+```bash
+# 1) 启动采集 / 存储 / 可视化
+docker compose -f scripts/docker-compose.yml --profile observability up -d
+# 或
+pwsh ./manage.ps1 obs
+
+# 2) 开启 API 上报（scripts/.env 或 apps/api/.env）
+#    OBSERVABILITY_ENABLED=true
+#    容器内 API 使用 OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4318
+#    本机 pnpm dev 使用 http://127.0.0.1:4318
+
+# 3) 打开 Grafana
+#    http://localhost:3030（admin / 123456）
+```
+
+数据流：API（OTel SDK）→ Alloy（OTLP）→ Prometheus（指标）/ Tempo（链路）；pino JSON 日志 → 容器 stdout → Alloy → Loki。三者通过 `trace_id` 在 Grafana 中联动。Grafana 已自动配置数据源与「希尔薇图集 · API 可观测性」看板；告警规则可按需在看板/Alerting 中创建。
+
+包实现与配置项见 [`packages/observability/README.md`](../gallery-monorepo/packages/observability/README.md)。
+
+> `scripts/.env` 中新增 `ALLOY_*` / `PROMETHEUS_*` / `LOKI_*` / `TEMPO_*` / `GRAFANA_*` 端口与管理密码变量，按需修改。
 
 ## 初始化 SQL
 
@@ -81,7 +115,7 @@ node scripts/generate-demo-data.mjs
 
 ## 环境变量
 
-`scripts/.env.example` 包含 MySQL、Redis、RabbitMQ、Mailpit、RustFS、支付宝、JWT、CORS、MCP、Web/Admin 端口与构建地址。开发环境验证码邮件可在 Mailpit（http://localhost:8025）查看，支付宝默认走模拟支付或沙箱；生产部署前至少替换：
+`scripts/.env.example` 包含 MySQL、Redis、RabbitMQ、Mailpit、RustFS、支付宝、JWT、CORS、MCP、可观测性、Web/Admin 端口与构建地址。开发环境验证码邮件可在 Mailpit（http://localhost:8025）查看，支付宝默认走模拟支付或沙箱；生产部署前至少替换：
 
 - `MYSQL_ROOT_PASSWORD` / `MYSQL_PASSWORD`
 - `JWT_SECRET`（≥ 32 位随机字符串）

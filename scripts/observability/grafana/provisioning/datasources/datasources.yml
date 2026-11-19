@@ -1,0 +1,49 @@
+# Grafana 数据源：Prometheus（指标）、Loki（日志）、Tempo（链路）
+# 三者通过 trace_id 关联，日志里可直接跳转链路。
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: sylvie-prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      timeInterval: 15s
+
+  - name: Loki
+    uid: sylvie-loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      # pino 输出的 JSON 日志中提取 trace_id，点击即可跳到 Tempo。
+      derivedFields:
+        - datasourceUid: sylvie-tempo
+          matcherRegex: '"trace_id":"([0-9a-f]+)"'
+          name: TraceID
+          url: '$${__value.raw}'
+          urlDisplayLabel: '查看链路'
+
+  - name: Tempo
+    uid: sylvie-tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      httpMethod: GET
+      # 从链路跳到对应容器的日志；容器名与服务名一致（sylvie-api）。
+      tracesToLogsV2:
+        datasourceUid: sylvie-loki
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+        filterByTraceID: true
+        filterBySpanID: false
+        tags:
+          - key: service.name
+            value: container
+      serviceMap:
+        datasourceUid: sylvie-prometheus
+      nodeGraph:
+        enabled: true

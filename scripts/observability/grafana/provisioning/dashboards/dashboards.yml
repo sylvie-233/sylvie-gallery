@@ -1,0 +1,14 @@
+# 自动加载 scripts/observability/grafana/dashboards 下的仪表盘 JSON。
+apiVersion: 1
+
+providers:
+  - name: Sylvie Gallery
+    orgId: 1
+    folder: '希尔薇图集'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

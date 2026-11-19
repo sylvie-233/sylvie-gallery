@@ -1,0 +1,102 @@
+// ============================================================================
+// Grafana Alloy 统一采集配置
+//   OTLP（API 的 trace / metrics）→ Tempo / Prometheus
+//   容器 stdout（pino JSON 日志）→ Loki
+// 仅通过 docker compose profile: observability 启动。
+// ============================================================================
+
+// ---------- 1. 接收 API 通过 OTLP HTTP 推送的链路与指标 ----------
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+// 批量打包后再转发，降低后端压力。
+otelcol.processor.batch "default" {
+  timeout = "5s"
+
+  output {
+    metrics = [otelcol.exporter.prometheus.default.input]
+    traces  = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+// ---------- 2. 指标：OTLP → Prometheus remote write ----------
+otelcol.exporter.prometheus "default" {
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+prometheus.remote_write "default" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}
+
+// ---------- 3. 链路：OTLP → Tempo ----------
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+
+    tls {
+      insecure = true
+    }
+  }
+}
+
+// ---------- 4. 日志：读取业务容器 stdout → Loki ----------
+discovery.docker "containers" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "30s"
+}
+
+discovery.relabel "containers" {
+  targets = []
+
+  // 只采集本项目的容器，避免把宿主机其它容器日志带入。
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/sylvie-.+"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(sylvie-.+)"
+    target_label  = "container"
+  }
+
+  // compose 服务名，如 api / web / admin / mysql。
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_log_stream"]
+    target_label  = "stream"
+  }
+}
+
+loki.source.docker "default" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.containers.targets
+  labels        = { env = "local" }
+  relabel_rules = discovery.relabel.containers.rules
+  forward_to    = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

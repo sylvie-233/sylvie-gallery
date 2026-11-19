@@ -1,0 +1,329 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fragments": [],
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "sylvie-prometheus" },
+      "description": "全站 HTTP 请求速率（5 分钟窗口）。",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 20 },
+              { "color": "red", "value": 50 }
+            ]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "sylvie-prometheus" },
+          "expr": "sum(rate(sylvie_http_server_requests_total[5m]))",
+          "legendFormat": "QPS",
+          "refId": "A"
+        }
+      ],
+      "title": "请求速率",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "sylvie-prometheus" },
+      "description": "5xx 请求占全部请求的比例。",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.01 },
+              { "color": "red", "value": 0.05 }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "sylvie-prometheus" },
+          "expr": "sum(rate(sylvie_http_server_requests_total{http_response_status_code=~\"5..\"}[5m])) / clamp_min(sum(rate(sylvie_http_server_requests_total[5m])), 0.001)",
+          "legendFormat": "5xx 占比",
+          "refId": "A"
+        }
+      ],
+      "title": "5xx 错误率",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "sylvie-prometheus" },
+      "description": "全站 HTTP 请求 P95 耗时。",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "red", "value": 2 }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "sylvie-prometheus" },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(sylvie_http_server_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "P95",
+          "refId": "A"
+        }
+      ],
+      "title": "P95 延迟",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "sylvie-prometheus" },
+      "description": "所选时间范围内 MCP 工具失败次数。",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "sylvie-prometheus" },
+          "expr": "sum(increase(sylvie_mcp_tool_errors_total[$__range]))",
+          "legendFormat": "失败次数",
+          "refId": "A"
+        }
+      ],
+      "title": "MCP 工具失败",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "sylvie-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 4 },
+      "id": 5,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "sylvie-prometheus" },
+          "expr": "sum by (http_route) (rate(sylvie_http_server_requests_total[5m]))",
+          "legendFormat": "{{http_route}}",
+          "refId": "A"
+        }
+      ],
+      "title": "各路由请求速率",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "sylvie-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 4 },
+      "id": 6,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "sylvie-prometheus" },
+          "expr": "histogram_quantile(0.95, sum by (le, http_route) (rate(sylvie_http_server_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{http_route}}",
+          "refId": "A"
+        }
+      ],
+      "title": "各路由 P95 延迟",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "sylvie-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 1,
+            "showPoints": "never"
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 11 },
+      "id": 7,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "sylvie-prometheus" },
+          "expr": "sum by (mcp_tool_name, mcp_tool_outcome) (rate(sylvie_mcp_tool_calls_total[5m]))",
+          "legendFormat": "{{mcp_tool_name}} / {{mcp_tool_outcome}}",
+          "refId": "A"
+        }
+      ],
+      "title": "MCP 工具调用速率",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "sylvie-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 11 },
+      "id": 8,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "sylvie-prometheus" },
+          "expr": "histogram_quantile(0.95, sum by (le, mcp_tool_name) (rate(sylvie_mcp_tool_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{mcp_tool_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "MCP 工具 P95 耗时",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "sylvie-loki" },
+      "description": "API 容器结构化日志；点击日志中的 TraceID 可跳转 Tempo 查看完整链路。",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 18 },
+      "id": 9,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "sylvie-loki" },
+          "expr": "{service=\"api\"}",
+          "refId": "A"
+        }
+      ],
+      "title": "API 日志",
+      "type": "logs"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["sylvie", "api", "observability"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "希尔薇图集 · API 可观测性",
+  "uid": "sylvie-api-observability",
+  "version": 1
+}

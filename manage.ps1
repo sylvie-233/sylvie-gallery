@@ -22,6 +22,7 @@
       init      删除业务库并重新执行建表 SQL 与演示数据（需确认）
       pull      拉取 MySQL / Redis / RabbitMQ / Mailpit / RustFS 镜像，并以最新基础镜像重建应用
       dev       启动 MySQL / Redis / RabbitMQ / Mailpit / RustFS 容器后，在本机运行 pnpm dev（三端热更新）
+      obs       启动可观测性栈（Alloy + Prometheus + Loki + Tempo + Grafana），不包含业务容器
 
 .PARAMETER Target
     操作目标，默认 all（仅容器相关操作使用，dev 忽略）：
@@ -76,12 +77,15 @@
 
 .EXAMPLE
     pwsh ./manage.ps1 dev
+
+.EXAMPLE
+    pwsh ./manage.ps1 obs
 #>
 #Requires -Version 7.0
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('up', 'down', 'restart', 'reset', 'build', 'logs', 'cli', 'status', 'init', 'pull', 'dev')]
+    [ValidateSet('up', 'down', 'restart', 'reset', 'build', 'logs', 'cli', 'status', 'init', 'pull', 'dev', 'obs')]
     [string]$Action = 'status',
 
     [ValidateSet('mysql', 'redis', 'rabbitmq', 'mailpit', 'rustfs', 'api', 'web', 'admin', 'all')]
@@ -567,5 +571,29 @@ switch ($Action) {
 
     'dev' {
         Invoke-DevMode
+    }
+
+    'obs' {
+        # 可观测性栈使用 compose profile 隔离，不参与默认 up / reset。
+        Invoke-Compose -ComposeArgs @(
+            '--profile', 'observability', 'up', '-d',
+            'alloy', 'prometheus', 'loki', 'tempo', 'grafana'
+        )
+
+        $grafanaPort = Get-EnvValue -Name 'GRAFANA_PORT' -Default '3030'
+        $prometheusPort = Get-EnvValue -Name 'PROMETHEUS_PORT' -Default '9090'
+        $lokiPort = Get-EnvValue -Name 'LOKI_PORT' -Default '3100'
+        $tempoPort = Get-EnvValue -Name 'TEMPO_PORT' -Default '3200'
+        $alloyUiPort = Get-EnvValue -Name 'ALLOY_UI_PORT' -Default '12345'
+
+        Write-Host ''
+        Write-Host '可观测性栈已启动：' -ForegroundColor Cyan
+        Write-Host "  Grafana     http://localhost:$grafanaPort（admin / 123456）"
+        Write-Host "  Prometheus  http://localhost:$prometheusPort"
+        Write-Host "  Loki        http://localhost:$lokiPort"
+        Write-Host "  Tempo       http://localhost:$tempoPort"
+        Write-Host "  Alloy UI    http://localhost:$alloyUiPort"
+        Write-Host ''
+        Write-Host '在 scripts/.env 或 apps/api/.env 设置 OBSERVABILITY_ENABLED=true 后重启 API，才会开始上报数据。' -ForegroundColor Yellow
     }
 }

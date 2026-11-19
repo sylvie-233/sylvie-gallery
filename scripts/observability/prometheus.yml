@@ -1,0 +1,14 @@
+# Prometheus：接收 Alloy remote write 的 OTLP 指标，并采集自身与 Alloy 的运行指标。
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['prometheus:9090']
+
+  # Alloy 自身运行指标，便于排查采集链路问题。
+  - job_name: alloy
+    static_configs:
+      - targets: ['alloy:12345']
