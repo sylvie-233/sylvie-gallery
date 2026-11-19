@@ -129,7 +129,7 @@ export default function AuthorDetailPage() {
             </div>
 
             <p className="mt-3 text-[12.5px] leading-relaxed text-t3">
-              其中 {author.albumCount} 套提供原图压缩包；积分解锁后可在线查看全部并下载，付费会员全站畅看。
+              其中 {author.albumCount} 套提供原图/视频压缩包；积分解锁后可在线查看全部并下载，付费会员全站畅看。
             </p>
 
             {author.bio ? (

@@ -131,7 +131,7 @@ CREATE TABLE `album` (
   `cover_url`      VARCHAR(255)    NOT NULL                COMMENT '封面 URL（3:4 缩略图）',
   `image_count`    INT UNSIGNED    NOT NULL DEFAULT 0      COMMENT '图片数（如 37P）',
   `video_count`    TINYINT UNSIGNED NOT NULL DEFAULT 0    COMMENT '视频数（如 1V，0 不显示徽章）',
-  `package_size`   DECIMAL(10,2)   NOT NULL DEFAULT 0.00   COMMENT '原图压缩包大小（MB，四宫格展示）',
+  `package_size`   DECIMAL(10,2)   NOT NULL DEFAULT 0.00   COMMENT '原图与视频压缩包大小（MB，四宫格展示）',
   `points`         SMALLINT UNSIGNED NOT NULL DEFAULT 0   COMMENT '积分解锁消耗（0=不可积分解锁）',
   `view_count`     INT UNSIGNED    NOT NULL DEFAULT 0      COMMENT '浏览量（热门排序依据，冗余）',
   `download_count` INT UNSIGNED    NOT NULL DEFAULT 0      COMMENT '下载次数（冗余，统计用）',
@@ -476,7 +476,7 @@ CREATE TABLE `user_view_log` (
 
 -- ---------------------------------------------------------------------
 -- 21. 下载记录表
---     覆盖：已解锁/付费会员的「打包下载原图」行为留痕、下载次数统计
+--     覆盖：已解锁/付费会员的「打包下载原图与视频」行为留痕、下载次数统计
 --           （album.download_count 明细来源）、异常高频下载风控
 -- ---------------------------------------------------------------------
 CREATE TABLE `download_log` (

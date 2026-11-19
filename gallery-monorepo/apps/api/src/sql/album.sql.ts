@@ -600,10 +600,16 @@ export function selectAlbumForDownload(albumId: number): SqlStatement {
 }
 
 /** 下载用原图 URL 列表（仅图片，不含视频，排除软删除，按 sort_order 排序）。 */
-export function selectDownloadImageUrls(albumId: number): SqlStatement {
+/** 下载打包用的媒体行：图片与视频都参与，按展示顺序输出。 */
+export interface DownloadMediaRow {
+  url: string;
+  mediaType: 'image' | 'video';
+}
+
+export function selectDownloadMediaUrls(albumId: number): SqlStatement {
   return {
-    sql: `SELECT url FROM album_image
-      WHERE album_id = ? AND media_type = 'image' AND is_deleted = 0
+    sql: `SELECT url, media_type AS mediaType FROM album_image
+      WHERE album_id = ? AND is_deleted = 0
       ORDER BY sort_order ASC, id ASC`,
     params: [albumId],
   };

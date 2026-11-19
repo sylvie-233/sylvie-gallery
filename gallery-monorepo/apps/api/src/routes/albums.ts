@@ -110,7 +110,7 @@ const unlockRoute = createRoute({
 });
 
 /**
- * GET /api/albums/{id}/download —— 打包下载原图 ZIP。
+ * GET /api/albums/{id}/download —— 打包下载原图与视频 ZIP。
  * 鉴权：authenticate + downloadLimit；需已解锁或付费会员，下载不扣积分。
  * 响应：流式 ZIP，Content-Disposition 使用 RFC 5987 的 filename* 传递中文文件名。
  */
@@ -118,7 +118,7 @@ const downloadRoute = createRoute({
   method: 'get',
   path: '/{id}/download',
   tags: ['图集'],
-  summary: '打包下载原图 ZIP',
+  summary: '打包下载原图与视频 ZIP',
   description: '需已解锁或付费会员；下载不扣积分。',
   middleware: [authenticate, downloadLimit],
   request: { params: idParamsSchema },

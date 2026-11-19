@@ -53,7 +53,8 @@ import {
   selectCommentById,
   selectCommentForUpdate,
   selectCommentParent,
-  selectDownloadImageUrls,
+  selectDownloadMediaUrls,
+  type DownloadMediaRow,
   selectFavoriteAlbumIds,
   selectFavoriteForUpdate,
   selectFavoritesForAlbums,
@@ -705,22 +706,36 @@ export async function createAlbumZip(
     }
   }
 
-  const imagesStatement = selectDownloadImageUrls(albumId);
-  const images = await dbClient.query<{ url: string }>(
-    imagesStatement.sql,
-    imagesStatement.params,
+  const mediaStatement = selectDownloadMediaUrls(albumId);
+  const mediaRows = await dbClient.query<DownloadMediaRow>(
+    mediaStatement.sql,
+    mediaStatement.params,
   );
-  if (images.length === 0) {
-    throw new HttpError(404, '该图集暂无可下载的图片');
+  // 演示数据里同一视频 URL 可能对应多条媒体行，按「类型 + URL」去重，
+  // 避免压缩包里重复放入同一文件。
+  const media = [
+    ...new Map(mediaRows.map((row) => [`${row.mediaType}:${row.url}`, row])).values(),
+  ];
+  if (media.length === 0) {
+    throw new HttpError(404, '该图集暂无可下载的媒体文件');
   }
 
+  /** 从 URL 推断扩展名；无法识别时按媒体类型回退。 */
+  const extensionOf = (url: string, mediaType: 'image' | 'video'): string => {
+    const matched = /\.(png|jpe?g|webp|gif|mp4|mov|webm|avi|mkv)(?:\?|#|$)/i.exec(url);
+    if (matched?.[1]) {
+      return matched[1].toLowerCase();
+    }
+    return mediaType === 'video' ? 'mp4' : 'jpg';
+  };
+
   /**
-   * 打开图片源：
-   * - 本项目上传的图片存为相对地址 `/api/files/<key>`，直接读对象存储，
+   * 打开媒体源（图片或视频）：
+   * - 本项目上传的文件存为相对地址 `/api/files/<key>`，直接读对象存储，
    *   避免 Node `fetch` 无法解析相对 URL（此前会静默跳过，导致空压缩包）；
-   * - 外链（如演示图集使用的 picsum）保持 HTTP 拉取。
+   * - 外链（如演示图集使用的 picsum / MDN 视频）保持 HTTP 拉取。
    */
-  const openImageSource = async (url: string): Promise<Readable | null> => {
+  const openMediaSource = async (url: string): Promise<Readable | null> => {
     if (url.startsWith('/api/files/')) {
       const object = await getObject(url.slice('/api/files/'.length));
       if (!object) {
@@ -748,25 +763,35 @@ export async function createAlbumZip(
 
   void (async () => {
     let appended = 0;
-    for (const [index, image] of images.entries()) {
+    for (const [index, item] of media.entries()) {
       try {
-        const body = await openImageSource(image.url);
+        const body = await openMediaSource(item.url);
         if (!body) {
-          log.warn('图片源不存在，已跳过', { index: index + 1, url: image.url });
+          log.warn('媒体源不存在，已跳过', {
+            order: index + 1,
+            mediaType: item.mediaType,
+            url: item.url,
+          });
           continue;
         }
-        const extension = /\.(png|jpe?g|webp)(?:\?|$)/i.exec(image.url)?.[1]?.toLowerCase() ?? 'jpg';
-        const name = `${String(index + 1).padStart(3, '0')}.${extension}`;
-        archive.append(body, { name });
+        const extension = extensionOf(item.url, item.mediaType);
+        // 编号按实际成功写入的文件连续递增，跳过失败的媒体不会留下空号。
+        const name = `${String(appended + 1).padStart(3, '0')}.${extension}`;
+        // 视频本身已压缩，直接 store，避免无意义的二次压缩开销。
+        archive.append(body, { name, store: item.mediaType === 'video' });
         appended += 1;
       } catch (error) {
-        log.warn('图片下载失败', error, { index: index + 1, url: image.url });
+        log.warn('媒体下载失败', error, {
+          order: index + 1,
+          mediaType: item.mediaType,
+          url: item.url,
+        });
       }
     }
 
     if (appended === 0) {
-      // 全部图片都不可读时中止，避免给用户返回一个空压缩包。
-      log.error('图集没有可打包的图片', { albumId });
+      // 全部媒体都不可读时中止，避免给用户返回一个空压缩包。
+      log.error('图集没有可打包的媒体文件', { albumId });
       archive.abort();
       return;
     }

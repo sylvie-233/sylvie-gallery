@@ -188,30 +188,32 @@ export async function getAdminAlbumDetail(albumId: number): Promise<AdminAlbumDe
 /**
  * 估算图集压缩包大小（MB，保留两位小数），写入 album.package_size 供前台展示。
  *
+ * 统计范围与下载打包一致：图片 + 视频。按 URL 去重，避免同一文件被重复计算。
  * 优先使用前端传入的 size；缺失时依次尝试：对象存储按 key 探测 → 对 http(s) 地址发 HEAD。
  * 每批 8 个并发，失败或超时（2.5s）的单个媒体按 0 计，保证保存流程不被外部探测阻塞。
  */
-async function estimatePackageSizeMb(images: AdminMediaInput[]): Promise<number> {
-  if (images.length === 0) {
+async function estimatePackageSizeMb(mediaList: AdminMediaInput[]): Promise<number> {
+  if (mediaList.length === 0) {
     return 0;
   }
 
+  const uniqueMedia = [...new Map(mediaList.map((item) => [item.url, item])).values()];
   const sizes: number[] = [];
   const batchSize = 8;
-  for (let start = 0; start < images.length; start += batchSize) {
-    const batch = images.slice(start, start + batchSize);
+  for (let start = 0; start < uniqueMedia.length; start += batchSize) {
+    const batch = uniqueMedia.slice(start, start + batchSize);
     const results = await Promise.all(
-      batch.map(async (image) => {
-        if (image.size && image.size > 0) {
-          return image.size;
+      batch.map(async (media) => {
+        if (media.size && media.size > 0) {
+          return media.size;
         }
-        if (image.url.startsWith('/api/files/')) {
-          const key = image.url.slice('/api/files/'.length);
+        if (media.url.startsWith('/api/files/')) {
+          const key = media.url.slice('/api/files/'.length);
           return (await getObjectSize(key)) ?? 0;
         }
-        if (/^https?:\/\//i.test(image.url)) {
+        if (/^https?:\/\//i.test(media.url)) {
           try {
-            const response = await fetch(image.url, {
+            const response = await fetch(media.url, {
               method: 'HEAD',
               signal: AbortSignal.timeout(2500),
             });
@@ -382,7 +384,8 @@ export async function saveAdminAlbum(
     input.status === 'draft' || input.status === 'offline' || input.status === 'published'
       ? input.status
       : (existing?.status ?? 'draft');
-  const packageSize = await estimatePackageSizeMb(input.images);
+  // 压缩包大小按图片 + 视频的原始体积汇总。
+  const packageSize = await estimatePackageSizeMb([...input.images, ...input.videos]);
   const coverUrl = input.coverUrl || input.images[0]?.url || existing?.coverUrl || '';
   const imageCount = input.images.length;
   const videoCount = input.videos.length;

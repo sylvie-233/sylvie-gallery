@@ -412,7 +412,7 @@ export function AlbumEditorPage() {
 
               <div className="space-y-1 border-t border-line pt-3 text-[11px] leading-relaxed text-t3">
                 <p>· 「保存草稿」暂存不发布，稍后可在图集管理中继续</p>
-                <p>· 压缩包大小由系统按原图体积自动汇总</p>
+                <p>· 压缩包大小由系统按原图与视频体积自动汇总</p>
                 <p>· 是否进入瀑布流推荐池，可在图集管理中按套设置</p>
               </div>
             </div>

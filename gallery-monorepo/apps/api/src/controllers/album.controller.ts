@@ -110,7 +110,7 @@ export async function unlock(c: AppContext, id: number): Promise<Response> {
 }
 
 /**
- * GET /api/albums/:id/download —— 打包下载原图 ZIP。
+ * GET /api/albums/:id/download —— 打包下载原图与视频 ZIP。
  *
  * @param id 路径参数
  * 服务层校验解锁 / 会员权限并生成流式 ZIP；下载不扣积分。

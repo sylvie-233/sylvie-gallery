@@ -115,7 +115,7 @@ export default function MembershipPage() {
         </div>
         <h1 className="text-[26px] font-extrabold tracking-tight">选择适合你的会员方式</h1>
         <p className="mx-auto mt-2 max-w-xl text-[13px] leading-relaxed text-t3">
-          注册会员可免费预览与积分解锁，付费会员全站畅看并可打包下载原图。会员均不提供上传或发布入口。
+          注册会员可免费预览与积分解锁，付费会员全站畅看并可打包下载原图与视频。会员均不提供上传或发布入口。
         </p>
       </div>
 

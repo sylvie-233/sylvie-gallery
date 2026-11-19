@@ -544,10 +544,10 @@ export default function AlbumDetailPage() {
   };
 
   const descriptionLine = canViewAll
-    ? `已解锁，可在线查看全部；原图压缩包 ${detail.packageSize} MB，可打包下载`
+    ? `已解锁，可在线查看全部；原图/视频压缩包 ${detail.packageSize} MB，可打包下载`
     : user
-      ? `可预览 3 张，解锁后在线看全部；原图压缩包 ${detail.packageSize} MB，解锁后下载`
-      : `登录可预览 3 张，解锁后在线看全部；原图压缩包 ${detail.packageSize} MB，解锁后下载`;
+      ? `可预览 3 张，解锁后在线看全部；原图/视频压缩包 ${detail.packageSize} MB，解锁后下载`
+      : `登录可预览 3 张，解锁后在线看全部；原图/视频压缩包 ${detail.packageSize} MB，解锁后下载`;
 
   const primaryLabel = !user
     ? '登录解锁'

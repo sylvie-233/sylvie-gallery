@@ -63,7 +63,7 @@ export interface AlbumAuthorDto {
 
 /**
  * 图集卡片（列表 / 推荐池 / 关联作品共用）。
- * `points` 为解锁所需积分；`packageSize` 为原图压缩包体积（MB，保留两位小数）；
+ * `points` 为解锁所需积分；`packageSize` 为原图/视频压缩包体积（MB，保留两位小数）；
  * `imageCount` / `videoCount` 为媒体数量；`favorited` 表示当前用户是否已收藏。
  */
 export interface AlbumCardDto {
