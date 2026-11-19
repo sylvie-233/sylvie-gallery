@@ -62,7 +62,12 @@ export function SiteHeader() {
     setMobileCompact(false);
   }, [pathname]);
 
-  // 移动端滚动后收起导航，只保留粘性搜索框；阈值滞回，避免高度变化引发来回抖动。
+  // 移动端滚动后收起导航，只保留粘性搜索框。
+  // 收起会让头部高度减少约 100px，浏览器滚动锚定会同步回退 scrollY；
+  // 因此：
+  // 1. 收起阈值取大于「头部高度 + 回退距离」，避免回退后落在顶部附近；
+  // 2. 只在真正回到顶部（scrollY <= 0）时展开。
+  // 否则回退后的 scrollY 会再次满足展开条件，造成头部持续闪烁。
   useEffect(() => {
     let ticking = false;
 
@@ -75,10 +80,10 @@ export function SiteHeader() {
 
       const current = window.scrollY;
       setMobileCompact((compact) => {
-        if (!compact && current > 96) {
+        if (!compact && current > 160) {
           return true;
         }
-        if (compact && current < 32) {
+        if (compact && current <= 0) {
           return false;
         }
         return compact;
