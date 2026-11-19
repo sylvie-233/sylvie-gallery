@@ -12,6 +12,9 @@
     "build": "tsup src/main.ts --format esm --dts --clean --target node20",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "clean": "rimraf dist .turbo",
     "lint": "eslint . --max-warnings 0"
   },
@@ -44,10 +47,12 @@
     "@sylvie/tsconfig": "workspace:*",
     "@types/archiver": "^6.0.3",
     "@types/node": "^22.10.5",
+    "@vitest/coverage-v8": "^5.1.1",
     "eslint": "^9.18.0",
     "rimraf": "^6.0.1",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^5.1.1"
   }
 }
