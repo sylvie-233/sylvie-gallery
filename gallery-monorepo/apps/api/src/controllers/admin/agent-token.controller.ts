@@ -14,12 +14,12 @@ import type { CreateAgentTokenInput } from '../../validators/admin/agent-token.j
 import { adminOperator } from './helpers.js';
 
 /** GET /api/admin/agent-tokens —— 返回令牌列表，不包含明文令牌。 */
-export async function list(c: AppContext): Promise<Response> {
+export async function list(c: AppContext) {
   return success(c, await listAgentTokens());
 }
 
 /** POST /api/admin/agent-tokens —— 入参来自校验后的 body；明文令牌只在本次响应返回。 */
-export async function create(c: AppContext, input: CreateAgentTokenInput): Promise<Response> {
+export async function create(c: AppContext, input: CreateAgentTokenInput) {
   const operator = adminOperator(c);
   return success(
     c,
@@ -30,7 +30,7 @@ export async function create(c: AppContext, input: CreateAgentTokenInput): Promi
 }
 
 /** POST /api/admin/agent-tokens/:id/revoke —— 吊销后令牌立即失效，service 写入管理日志。 */
-export async function revoke(c: AppContext, id: number): Promise<Response> {
+export async function revoke(c: AppContext, id: number) {
   const operator = adminOperator(c);
   return success(
     c,
@@ -40,7 +40,7 @@ export async function revoke(c: AppContext, id: number): Promise<Response> {
 }
 
 /** DELETE /api/admin/agent-tokens/:id —— 仅允许删除已吊销令牌，删除操作写管理日志。 */
-export async function remove(c: AppContext, id: number): Promise<Response> {
+export async function remove(c: AppContext, id: number) {
   const operator = adminOperator(c);
   await deleteAgentToken(operator.adminId, id, operator.ip);
   return success(c, null, '令牌已删除');

@@ -8,6 +8,6 @@ import { success } from '../../utils/http.js';
 import type { LogListInput } from '../../validators/admin/system.js';
 
 /** GET /api/admin/logs —— 参数来自 query，按动作、关键词与日期分页查询。 */
-export async function list(c: AppContext, query: LogListInput): Promise<Response> {
+export async function list(c: AppContext, query: LogListInput) {
   return success(c, await getAdminLogs(query));
 }

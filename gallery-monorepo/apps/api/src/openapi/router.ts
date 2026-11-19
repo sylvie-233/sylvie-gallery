@@ -24,14 +24,15 @@ export function createApiRouter() {
 }
 
 /**
- * 把「返回值符合项目统一响应结构」的处理器绑定到路由。
+ * 把控制器绑定到路由，并保留 `RouteHandler` 的返回类型约束。
  *
- * 处理器内部可通过 `c.req.valid('query' | 'json' | 'param')` 获取已校验数据，
- * 无需再次手动解析请求。控制器统一返回原生 `Response`，因此这里做一次类型放宽。
+ * 控制器内部通过 `success()` 返回 `TypedResponse`，其 data 类型必须与
+ * 路由 `responses` 中的 schema 对齐；不匹配时在这里直接编译报错。
+ * 少数流式/纯文本响应（ZIP 下载、支付宝通知、CSV）使用 `rawRouteHandler`。
  */
 export function routeHandler<R extends RouteConfig>(
   _route: R,
-  handler: (c: Parameters<RouteHandler<R, AppEnv>>[0]) => Response | Promise<Response>,
+  handler: RouteHandler<R, AppEnv>,
 ): RouteHandler<R, AppEnv> {
-  return handler as unknown as RouteHandler<R, AppEnv>;
+  return handler;
 }

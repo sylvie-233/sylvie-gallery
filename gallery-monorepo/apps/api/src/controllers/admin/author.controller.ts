@@ -16,12 +16,12 @@ import type { AuthorInput, AuthorListInput } from '../../validators/admin/catalo
 import { adminOperator } from './helpers.js';
 
 /** GET /api/admin/authors —— 参数来自 query，按状态与关键词分页查询作者。 */
-export async function list(c: AppContext, query: AuthorListInput): Promise<Response> {
+export async function list(c: AppContext, query: AuthorListInput) {
   return success(c, await getAdminAuthors(query));
 }
 
 /** POST /api/admin/authors —— 入参来自校验后的 body；创建后失效作者与站点缓存。 */
-export async function create(c: AppContext, input: AuthorInput): Promise<Response> {
+export async function create(c: AppContext, input: AuthorInput) {
   const operator = adminOperator(c);
   const result = await createAdminAuthor(operator.adminId, input, operator.ip);
   await invalidateCache('authors', 'site');
@@ -29,7 +29,7 @@ export async function create(c: AppContext, input: AuthorInput): Promise<Respons
 }
 
 /** PUT /api/admin/authors/:id —— 作者名等资料会展示在图集详情，需连带失效图集缓存。 */
-export async function update(c: AppContext, id: number, input: AuthorInput): Promise<Response> {
+export async function update(c: AppContext, id: number, input: AuthorInput) {
   const operator = adminOperator(c);
   const result = await updateAdminAuthor(operator.adminId, id, input, operator.ip);
   await invalidateCache('authors', 'albums', 'site');
@@ -37,7 +37,7 @@ export async function update(c: AppContext, id: number, input: AuthorInput): Pro
 }
 
 /** POST /api/admin/authors/:id/toggle —— 在显示（status=1）/隐藏（status=0）之间切换。 */
-export async function toggle(c: AppContext, id: number): Promise<Response> {
+export async function toggle(c: AppContext, id: number) {
   const operator = adminOperator(c);
   const result = await toggleAdminAuthor(operator.adminId, id, operator.ip);
   await invalidateCache('authors', 'site');
@@ -45,7 +45,7 @@ export async function toggle(c: AppContext, id: number): Promise<Response> {
 }
 
 /** DELETE /api/admin/authors/:id —— 软删除作者，并失效作者、图集与站点缓存。 */
-export async function remove(c: AppContext, id: number): Promise<Response> {
+export async function remove(c: AppContext, id: number) {
   const operator = adminOperator(c);
   await deleteAdminAuthor(operator.adminId, id, operator.ip);
   await invalidateCache('authors', 'albums', 'site');

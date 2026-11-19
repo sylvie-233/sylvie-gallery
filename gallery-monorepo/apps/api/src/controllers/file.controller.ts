@@ -14,7 +14,7 @@ const ALLOWED_PREFIXES = ['avatars/', 'albums/', 'authors/'];
  * key 来自通配路径（可含多级 `/`）；拒绝前缀不在白名单或包含 `..` 的路径，
  * 防止目录穿越访问桶内其他对象。对象内容不可变，因此可长期强缓存。
  */
-export async function proxy(c: AppContext): Promise<Response> {
+export async function proxy(c: AppContext) {
   const key = c.req.param('key');
   if (!key || !ALLOWED_PREFIXES.some((prefix) => key.startsWith(prefix)) || key.includes('..')) {
     return failure(c, 404, '文件不存在');

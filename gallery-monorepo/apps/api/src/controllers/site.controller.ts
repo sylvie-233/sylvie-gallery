@@ -12,7 +12,7 @@ import { currentUser } from './helpers.js';
  *
  * 缓存 30 秒；缓存键按访客 / 用户区分，登录用户能看到自己的作者订阅状态，避免串号。
  */
-export async function bootstrap(c: AppContext): Promise<Response> {
+export async function bootstrap(c: AppContext) {
   const userId = currentUser(c)?.id;
   const data = await cached(
     cacheKey('site', 'bootstrap', userId ?? 'guest'),
@@ -23,6 +23,6 @@ export async function bootstrap(c: AppContext): Promise<Response> {
 }
 
 /** GET /api/site/config —— 站点配置键值对：变化很少，缓存 5 分钟。 */
-export async function config(c: AppContext): Promise<Response> {
+export async function config(c: AppContext) {
   return success(c, await cached(cacheKey('site', 'config'), 300, getConfigMap));
 }

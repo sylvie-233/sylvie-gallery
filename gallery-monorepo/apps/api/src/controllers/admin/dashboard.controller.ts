@@ -8,11 +8,11 @@ import { success } from '../../utils/http.js';
 import type { TrendInput } from '../../validators/admin/system.js';
 
 /** GET /api/admin/dashboard —— 汇总用户、图集、订单与营收等看板指标。 */
-export async function dashboard(c: AppContext): Promise<Response> {
+export async function dashboard(c: AppContext) {
   return success(c, await getAdminDashboard());
 }
 
 /** GET /api/admin/dashboard/trend —— 参数来自 query.mode（7d/30d/6m），返回对应区间趋势。 */
-export async function trend(c: AppContext, input: TrendInput): Promise<Response> {
+export async function trend(c: AppContext, input: TrendInput) {
   return success(c, await getAdminTrend(input.mode));
 }

@@ -16,12 +16,12 @@ import type { AnnouncementListInput, AnnouncementSaveInput } from '../../validat
 import { adminOperator } from './helpers.js';
 
 /** GET /api/admin/announcements —— 参数来自 query，按类型、状态、关键词与日期分页查询。 */
-export async function list(c: AppContext, query: AnnouncementListInput): Promise<Response> {
+export async function list(c: AppContext, query: AnnouncementListInput) {
   return success(c, await getAdminAnnouncements(query));
 }
 
 /** POST /api/admin/announcements —— 入参来自校验后的 body；创建后失效公告与站点缓存。 */
-export async function create(c: AppContext, input: AnnouncementSaveInput): Promise<Response> {
+export async function create(c: AppContext, input: AnnouncementSaveInput) {
   const operator = adminOperator(c);
   const result = await createAdminAnnouncement(operator.adminId, input, operator.ip);
   await invalidateCache('announcements', 'site');
@@ -33,7 +33,7 @@ export async function update(
   c: AppContext,
   id: number,
   input: AnnouncementSaveInput,
-): Promise<Response> {
+) {
   const operator = adminOperator(c);
   const result = await updateAdminAnnouncement(operator.adminId, id, input, operator.ip);
   await invalidateCache('announcements', 'site');
@@ -41,7 +41,7 @@ export async function update(
 }
 
 /** POST /api/admin/announcements/:id/toggle —— 在发布（status=1）与下线（status=0）之间切换。 */
-export async function toggle(c: AppContext, id: number): Promise<Response> {
+export async function toggle(c: AppContext, id: number) {
   const operator = adminOperator(c);
   const result = await toggleAdminAnnouncement(operator.adminId, id, operator.ip);
   await invalidateCache('announcements', 'site');
@@ -49,7 +49,7 @@ export async function toggle(c: AppContext, id: number): Promise<Response> {
 }
 
 /** DELETE /api/admin/announcements/:id —— 软删除公告，前台查询即时不可见。 */
-export async function remove(c: AppContext, id: number): Promise<Response> {
+export async function remove(c: AppContext, id: number) {
   const operator = adminOperator(c);
   await deleteAdminAnnouncement(operator.adminId, id, operator.ip);
   await invalidateCache('announcements', 'site');

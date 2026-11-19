@@ -24,7 +24,7 @@ import { currentUser, requireUser } from './helpers.js';
  * @param query 路由校验后的 authorListSchema（仅 keyword）
  * 游客列表缓存 1 分钟（含订阅状态，故登录用户不缓存）；关键词作为缓存键的一部分。
  */
-export async function list(c: AppContext, query: AuthorListInput): Promise<Response> {
+export async function list(c: AppContext, query: AuthorListInput) {
   const user = currentUser(c);
   const loader = () => listAuthors(query.keyword, user?.id);
 
@@ -47,7 +47,7 @@ export async function detail(
   c: AppContext,
   id: number,
   query: AuthorDetailInput,
-): Promise<Response> {
+) {
   const user = currentUser(c);
   const loader = () => getAuthorDetail(id, user?.id, query.page, query.pageSize);
 
@@ -64,7 +64,7 @@ export async function detail(
  * @param id 路径参数
  * 副作用：新增 / 删除 author_subscription 记录；响应 subscribed 为切换后的状态。
  */
-export async function subscribe(c: AppContext, id: number): Promise<Response> {
+export async function subscribe(c: AppContext, id: number) {
   const result = await toggleSubscription(id, requireUser(c).id);
   return success(c, result, result.subscribed ? '已订阅该作者' : '已取消订阅');
 }
@@ -75,6 +75,6 @@ export async function subscribe(c: AppContext, id: number): Promise<Response> {
  * @param query 路由校验后的 pageQuerySchema
  * 只返回当前登录用户订阅的作者，按订阅时间倒序。
  */
-export async function subscriptions(c: AppContext, query: PageQueryInput): Promise<Response> {
+export async function subscriptions(c: AppContext, query: PageQueryInput) {
   return success(c, await listSubscribedAuthors(requireUser(c).id, query.page, query.pageSize));
 }

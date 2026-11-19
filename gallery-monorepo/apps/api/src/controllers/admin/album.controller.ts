@@ -21,12 +21,12 @@ import type {
 import { adminOperator } from './helpers.js';
 
 /** GET /api/admin/albums —— 参数来自 query，按状态与关键词分页查询后台图集。 */
-export async function list(c: AppContext, query: AlbumListInput): Promise<Response> {
+export async function list(c: AppContext, query: AlbumListInput) {
   return success(c, await getAdminAlbums(query));
 }
 
 /** GET /api/admin/albums/:id —— id 取自路径参数，返回含全部媒体的详情。 */
-export async function detail(c: AppContext, id: number): Promise<Response> {
+export async function detail(c: AppContext, id: number) {
   return success(c, await getAdminAlbumDetail(id));
 }
 
@@ -39,7 +39,7 @@ async function invalidateAlbumCaches(): Promise<void> {
 }
 
 /** POST /api/admin/albums —— 入参来自校验后的 body（id=null 表示新建）；写库后失效图集相关缓存。 */
-export async function create(c: AppContext, input: AlbumSaveInput): Promise<Response> {
+export async function create(c: AppContext, input: AlbumSaveInput) {
   const operator = adminOperator(c);
   const result = await saveAdminAlbum(operator.adminId, input, null, operator.ip);
   await invalidateAlbumCaches();
@@ -47,7 +47,7 @@ export async function create(c: AppContext, input: AlbumSaveInput): Promise<Resp
 }
 
 /** PUT /api/admin/albums/:id —— 更新已有图集；标签收录数与作者统计由 service 在同事务维护。 */
-export async function update(c: AppContext, id: number, input: AlbumSaveInput): Promise<Response> {
+export async function update(c: AppContext, id: number, input: AlbumSaveInput) {
   const operator = adminOperator(c);
   const result = await saveAdminAlbum(operator.adminId, input, id, operator.ip);
   await invalidateAlbumCaches();
@@ -59,7 +59,7 @@ export async function updateStatus(
   c: AppContext,
   id: number,
   input: AlbumStatusInput,
-): Promise<Response> {
+) {
   const operator = adminOperator(c);
   const result = await updateAdminAlbumStatus(operator.adminId, id, input.status, operator.ip);
   await invalidateAlbumCaches();
@@ -67,7 +67,7 @@ export async function updateStatus(
 }
 
 /** POST /api/admin/albums/:id/recommend —— 切换推荐池标记。 */
-export async function toggleRecommend(c: AppContext, id: number): Promise<Response> {
+export async function toggleRecommend(c: AppContext, id: number) {
   const operator = adminOperator(c);
   const result = await toggleAdminAlbumRecommend(operator.adminId, id, operator.ip);
   // 推荐标记只影响图集列表与首页聚合，无需失效标签/作者缓存。
@@ -76,7 +76,7 @@ export async function toggleRecommend(c: AppContext, id: number): Promise<Respon
 }
 
 /** DELETE /api/admin/albums/:id —— 软删除图集，并同步回收标签收录数与作者图集数。 */
-export async function remove(c: AppContext, id: number): Promise<Response> {
+export async function remove(c: AppContext, id: number) {
   const operator = adminOperator(c);
   await deleteAdminAlbum(operator.adminId, id, operator.ip);
   await invalidateAlbumCaches();

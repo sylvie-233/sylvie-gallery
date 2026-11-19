@@ -16,12 +16,12 @@ import type { TagListInput, TagNameInput } from '../../validators/admin/catalog.
 import { adminOperator } from './helpers.js';
 
 /** GET /api/admin/tags —— 参数来自 query，按状态与关键词分页查询标签。 */
-export async function list(c: AppContext, query: TagListInput): Promise<Response> {
+export async function list(c: AppContext, query: TagListInput) {
   return success(c, await getAdminTags(query));
 }
 
 /** POST /api/admin/tags —— 入参为校验后的标签名，创建后失效标签与站点缓存。 */
-export async function create(c: AppContext, input: TagNameInput): Promise<Response> {
+export async function create(c: AppContext, input: TagNameInput) {
   const operator = adminOperator(c);
   const result = await createAdminTag(operator.adminId, input.name, operator.ip);
   await invalidateCache('tags', 'site');
@@ -29,7 +29,7 @@ export async function create(c: AppContext, input: TagNameInput): Promise<Respon
 }
 
 /** PUT /api/admin/tags/:id —— 重命名标签，图集侧展示同步变化，需连带失效图集缓存。 */
-export async function update(c: AppContext, id: number, input: TagNameInput): Promise<Response> {
+export async function update(c: AppContext, id: number, input: TagNameInput) {
   const operator = adminOperator(c);
   const result = await updateAdminTag(operator.adminId, id, input.name, operator.ip);
   await invalidateCache('tags', 'albums', 'site');
@@ -37,7 +37,7 @@ export async function update(c: AppContext, id: number, input: TagNameInput): Pr
 }
 
 /** POST /api/admin/tags/:id/toggle —— 在显示（status=1）/隐藏（status=0）之间切换。 */
-export async function toggle(c: AppContext, id: number): Promise<Response> {
+export async function toggle(c: AppContext, id: number) {
   const operator = adminOperator(c);
   const result = await toggleAdminTag(operator.adminId, id, operator.ip);
   await invalidateCache('tags', 'site');
@@ -45,7 +45,7 @@ export async function toggle(c: AppContext, id: number): Promise<Response> {
 }
 
 /** DELETE /api/admin/tags/:id —— 仅未被收录的标签可删，service 内会再次校验。 */
-export async function remove(c: AppContext, id: number): Promise<Response> {
+export async function remove(c: AppContext, id: number) {
   const operator = adminOperator(c);
   await deleteAdminTag(operator.adminId, id, operator.ip);
   await invalidateCache('tags', 'site');

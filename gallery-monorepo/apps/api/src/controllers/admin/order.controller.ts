@@ -14,12 +14,12 @@ import type { OrderListInput, RefundInput } from '../../validators/admin/commerc
 import { adminOperator } from './helpers.js';
 
 /** GET /api/admin/orders —— 参数来自 query，返回订单分页与汇总数据。 */
-export async function list(c: AppContext, query: OrderListInput): Promise<Response> {
+export async function list(c: AppContext, query: OrderListInput) {
   return success(c, await getAdminOrders(query));
 }
 
 /** GET /api/admin/orders/export —— 按同样筛选导出 CSV；空结果返回 JSON 而非文件。 */
-export async function exportOrders(c: AppContext, query: OrderListInput): Promise<Response> {
+export async function exportOrders(c: AppContext, query: OrderListInput) {
   const operator = adminOperator(c);
   const result = await exportAdminOrders(operator.adminId, query, operator.ip);
   if (result.count === 0) {
@@ -38,7 +38,7 @@ export async function refund(
   c: AppContext,
   id: number,
   input: RefundInput,
-): Promise<Response> {
+) {
   const operator = adminOperator(c);
   const result = await refundAdminOrder(operator.adminId, id, input.reason, operator.ip);
   // 退款已收回权益，移除尚未触发的到期通知，避免后续误发提醒。

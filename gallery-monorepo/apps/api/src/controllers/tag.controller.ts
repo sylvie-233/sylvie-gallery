@@ -7,6 +7,6 @@ import type { AppContext } from '../types/context.js';
 import { success } from '../utils/http.js';
 
 /** GET /api/tags —— 标签云：按收录套数排序，结果 2 分钟内复用。 */
-export async function list(c: AppContext): Promise<Response> {
+export async function list(c: AppContext) {
   return success(c, await cached(cacheKey('tags', 'list'), 120, listTags));
 }

@@ -10,7 +10,7 @@ import type { AdminLoginInput } from '../../validators/admin/auth.js';
 import { requireUser } from '../helpers.js';
 
 /** POST /api/admin/auth/login —— 入参来自校验后的 body；非 admin 角色统一返回 403。 */
-export async function loginAdmin(c: AppContext, input: AdminLoginInput): Promise<Response> {
+export async function loginAdmin(c: AppContext, input: AdminLoginInput) {
   // 演示后台允许使用简写 admin 登录；正式账号仍为邮箱
   const email = input.email.includes('@')
     ? input.email
@@ -25,6 +25,6 @@ export async function loginAdmin(c: AppContext, input: AdminLoginInput): Promise
 }
 
 /** GET /api/admin/auth/me —— 当前管理员 ID 由鉴权中间件注入，返回最新资料。 */
-export async function me(c: AppContext): Promise<Response> {
+export async function me(c: AppContext) {
   return success(c, await getProfileById(requireUser(c).id));
 }

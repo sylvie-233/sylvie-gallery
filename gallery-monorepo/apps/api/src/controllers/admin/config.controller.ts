@@ -20,12 +20,12 @@ import type {
 import { adminOperator } from './helpers.js';
 
 /** GET /api/admin/config —— 一次性返回站点配置、会员套餐与友情链接。 */
-export async function bundle(c: AppContext): Promise<Response> {
+export async function bundle(c: AppContext) {
   return success(c, await getAdminConfigBundle());
 }
 
 /** PUT /api/admin/config/site —— 保存站点配置；签到积分与水印开关影响前台站点聚合。 */
-export async function updateSite(c: AppContext, input: SiteConfigInput): Promise<Response> {
+export async function updateSite(c: AppContext, input: SiteConfigInput) {
   const operator = adminOperator(c);
   const result = await updateAdminSiteConfig(operator.adminId, input, operator.ip);
   await invalidateCache('site');
@@ -33,7 +33,7 @@ export async function updateSite(c: AppContext, input: SiteConfigInput): Promise
 }
 
 /** PUT /api/admin/config/plan —— 保存会员套餐；价格与权益同时影响订单页与站点数据。 */
-export async function updatePlan(c: AppContext, input: PlanConfigInput): Promise<Response> {
+export async function updatePlan(c: AppContext, input: PlanConfigInput) {
   const operator = adminOperator(c);
   const result = await updateAdminPlan(operator.adminId, input, operator.ip);
   await invalidateCache('orders', 'site');
@@ -41,7 +41,7 @@ export async function updatePlan(c: AppContext, input: PlanConfigInput): Promise
 }
 
 /** POST /api/admin/config/friends —— 新增友情链接，入参来自校验后的 body。 */
-export async function createFriend(c: AppContext, input: FriendLinkInput): Promise<Response> {
+export async function createFriend(c: AppContext, input: FriendLinkInput) {
   const operator = adminOperator(c);
   const result = await createAdminFriendLink(operator.adminId, input, operator.ip);
   await invalidateCache('site');
@@ -49,7 +49,7 @@ export async function createFriend(c: AppContext, input: FriendLinkInput): Promi
 }
 
 /** DELETE /api/admin/config/friends/:id —— 删除友情链接，仅失效站点缓存。 */
-export async function deleteFriend(c: AppContext, id: number): Promise<Response> {
+export async function deleteFriend(c: AppContext, id: number) {
   const operator = adminOperator(c);
   await deleteAdminFriendLink(operator.adminId, id, operator.ip);
   await invalidateCache('site');

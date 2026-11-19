@@ -14,7 +14,7 @@ import type { CommentListInput, CommentReviewInput } from '../../validators/admi
 import { adminOperator } from './helpers.js';
 
 /** GET /api/admin/comments —— 参数来自 query，按审核状态、关键词与日期分页查询。 */
-export async function list(c: AppContext, query: CommentListInput): Promise<Response> {
+export async function list(c: AppContext, query: CommentListInput) {
   return success(c, await getAdminComments(query));
 }
 
@@ -23,7 +23,7 @@ export async function review(
   c: AppContext,
   id: number,
   input: CommentReviewInput,
-): Promise<Response> {
+) {
   const operator = adminOperator(c);
   const result = await reviewAdminComment(operator.adminId, id, input.status, operator.ip);
   await invalidateCache('albums', 'site');
@@ -31,7 +31,7 @@ export async function review(
 }
 
 /** DELETE /api/admin/comments/:id —— 删除后图集 comment_count 由 service 在同一操作中扣减。 */
-export async function remove(c: AppContext, id: number): Promise<Response> {
+export async function remove(c: AppContext, id: number) {
   const operator = adminOperator(c);
   await deleteAdminComment(operator.adminId, id, operator.ip);
   await invalidateCache('albums', 'site');

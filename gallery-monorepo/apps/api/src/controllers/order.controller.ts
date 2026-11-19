@@ -23,7 +23,7 @@ import { requireUser } from './helpers.js';
 const log = moduleLogger('order');
 
 /** GET /api/orders/plans —— 会员套餐列表：套餐极少变动，缓存 5 分钟。 */
-export async function plans(c: AppContext): Promise<Response> {
+export async function plans(c: AppContext) {
   return success(c, await cached(cacheKey('orders', 'plans'), 300, listPlans));
 }
 
@@ -33,7 +33,7 @@ export async function plans(c: AppContext): Promise<Response> {
  * @param input 路由校验后的 createVipSchema（planCode）
  * 副作用：写入 created 状态订单；返回订单与支付信息（mock 模式下无需跳转收银台）。
  */
-export async function createVip(c: AppContext, input: CreateVipInput): Promise<Response> {
+export async function createVip(c: AppContext, input: CreateVipInput) {
   return success(
     c,
     await createVipOrder(requireUser(c).id, input.planCode),
@@ -47,7 +47,7 @@ export async function createVip(c: AppContext, input: CreateVipInput): Promise<R
  * @param orderNo 路径参数，来自 `c.req.valid('param').orderNo`
  * 副作用：标记订单已支付并履约开通会员，同时登记会员到期提醒的延时任务。
  */
-export async function pay(c: AppContext, orderNo: string): Promise<Response> {
+export async function pay(c: AppContext, orderNo: string) {
   const user = requireUser(c);
   const order = await payOrder(orderNo, user.id);
   await scheduleVipExpiryNotice(user.id);
@@ -60,7 +60,7 @@ export async function pay(c: AppContext, orderNo: string): Promise<Response> {
  * @param orderNo 路径参数；仅限本人订单（服务层校验 userId）。
  * 支付回跳后前端轮询此接口，直到 paid 或 closed。
  */
-export async function status(c: AppContext, orderNo: string): Promise<Response> {
+export async function status(c: AppContext, orderNo: string) {
   return success(c, await getOrderStatus(orderNo, requireUser(c).id));
 }
 
@@ -74,7 +74,7 @@ export async function status(c: AppContext, orderNo: string): Promise<Response> 
 export async function alipayNotify(
   c: AppContext,
   params: Record<string, string>,
-): Promise<Response> {
+) {
   const notification = parseAlipayNotify(params);
   if (!notification) {
     log.warn('支付宝通知验签失败', { orderNo: params.out_trade_no ?? '' });
@@ -128,7 +128,7 @@ export async function alipayNotify(
  * @param query 路由校验后的 purchasesQuerySchema（ordersPage / unlocksPage / pageSize）
  * 返回订单分页、解锁记录分页与累计消费概览（金额单位：分）。
  */
-export async function mine(c: AppContext, query: PurchasesQueryInput): Promise<Response> {
+export async function mine(c: AppContext, query: PurchasesQueryInput) {
   return success(
     c,
     await getPurchases(

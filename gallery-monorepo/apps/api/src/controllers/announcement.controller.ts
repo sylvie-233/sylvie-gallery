@@ -15,7 +15,7 @@ import { currentUser } from './helpers.js';
  * 只缓存无关键词的常规分页（60 秒），搜索结果实时查询；
  * 缓存键故意不含 userId，公告内容本身与用户无关。
  */
-export async function list(c: AppContext, query: AnnouncementListInput): Promise<Response> {
+export async function list(c: AppContext, query: AnnouncementListInput) {
   const userId = currentUser(c)?.id;
   const loader = () => listAnnouncements(query, userId);
 

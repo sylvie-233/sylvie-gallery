@@ -8,7 +8,7 @@ import { HttpError, success } from '../../utils/http.js';
 import { currentAdminId } from '../../utils/request.js';
 
 /** POST /api/admin/upload —— file 来自 multipart；kind 缺省为 image，非法值直接 400。 */
-export async function upload(c: AppContext): Promise<Response> {
+export async function upload(c: AppContext) {
   const body = await c.req.parseBody();
   const file = body['file'];
   // 表单字段都是字符串；未传 kind 时按图片处理。
