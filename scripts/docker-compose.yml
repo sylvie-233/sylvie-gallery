@@ -185,6 +185,9 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_SECURE: ${SMTP_SECURE:-false}
       SMTP_FROM: ${SMTP_FROM:-希尔薇图集 <noreply@sylvie.cc>}
+      MCP_ENABLED: ${MCP_ENABLED:-true}
+      # 本地开发默认开放写工具；生产部署请显式设为 false，或在后台只签发只读令牌
+      MCP_ALLOW_WRITE: ${MCP_ALLOW_WRITE:-true}
       MQ_ENABLED: ${MQ_ENABLED:-true}
       MQ_URL: amqp://${RABBITMQ_USER:-sylvie}:${RABBITMQ_PASSWORD:-123456}@rabbitmq:5672
       MQ_QUEUE_PREFIX: ${MQ_QUEUE_PREFIX:-sylvie}

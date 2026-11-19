@@ -12,6 +12,8 @@ MCP_ENABLED=true
 MCP_ALLOW_WRITE=true
 ```
 
+使用 Docker Compose 时由 `scripts/docker-compose.yml` 注入，本地默认 `MCP_ALLOW_WRITE=true`；生产部署请在 `scripts/.env` 中显式设为 `false`，或在后台只签发只读令牌。
+
 重启 API 后生效。端点：
 
 ```

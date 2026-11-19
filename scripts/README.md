@@ -81,9 +81,10 @@ node scripts/generate-demo-data.mjs
 
 ## 环境变量
 
-`scripts/.env.example` 包含 MySQL、Redis、RabbitMQ、Mailpit、RustFS、支付宝、JWT、CORS、Web/Admin 端口与构建地址。开发环境验证码邮件可在 Mailpit（http://localhost:8025）查看，支付宝默认走模拟支付或沙箱；生产部署前至少替换：
+`scripts/.env.example` 包含 MySQL、Redis、RabbitMQ、Mailpit、RustFS、支付宝、JWT、CORS、MCP、Web/Admin 端口与构建地址。开发环境验证码邮件可在 Mailpit（http://localhost:8025）查看，支付宝默认走模拟支付或沙箱；生产部署前至少替换：
 
 - `MYSQL_ROOT_PASSWORD` / `MYSQL_PASSWORD`
 - `JWT_SECRET`（≥ 32 位随机字符串）
 - `S3_ACCESS_KEY` / `S3_SECRET_KEY`
 - `WEB_PUBLIC_URL`（后台跳转前台的公网地址）
+- `MCP_ALLOW_WRITE`（生产建议 `false`；关闭后写工具不会注册，只读令牌不受影响）
