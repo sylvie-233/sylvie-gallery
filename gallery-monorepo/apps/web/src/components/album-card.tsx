@@ -6,12 +6,11 @@ import { Star } from 'lucide-react';
 
 import type { AlbumCardDto } from '@sylvie/types';
 import { cn, formatCount } from '@sylvie/utils';
+import { AuthorAvatar, CoverImage } from '@sylvie/ui/web';
 
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
-import { AuthorAvatar } from './avatar';
-import { CoverImage } from './cover-image';
 
 const MASONRY_RATIOS = ['3 / 4', '4 / 5', '2 / 3', '5 / 7', '3 / 4', '4 / 5'];
 

@@ -5,10 +5,9 @@ import useSWRInfinite from 'swr/infinite';
 import { Sparkles } from 'lucide-react';
 
 import type { AlbumCardDto, PageResult } from '@sylvie/types';
+import { EmptyState, AlbumGridSkeleton } from '@sylvie/ui/web';
 
 import { AlbumCard } from '@/components/album-card';
-import { EmptyState } from '@/components/empty-state';
-import { AlbumGridSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 

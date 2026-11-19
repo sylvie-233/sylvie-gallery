@@ -44,7 +44,7 @@ WorkBuddy 通过后台生成的 Agent 令牌连接 MCP 端点 `/api/mcp`，可�
 - **管理后台**：React 19、Vite、React Router、Tailwind CSS v4、SWR + Zustand（独立登录，仅面向桌面端）
 - **后端**：Node.js、Hono、Zod、MySQL 8（mysql2 参数化查询）、RustFS（S3 兼容）
 - **图片与下载**：Sharp 生成缩略图与水印，archiver 打包 ZIP
-- **共享包**：`@sylvie/types`、`@sylvie/db`、`@sylvie/utils`
+- **共享包**：`@sylvie/types`、`@sylvie/db`、`@sylvie/utils`、`@sylvie/ui`（Web / Admin 两套视觉组件）、`@sylvie/logger`、`@sylvie/storage`
 - **工程**：pnpm workspace + Turborepo、ESLint、Docker Compose
 
 ## 快速开始

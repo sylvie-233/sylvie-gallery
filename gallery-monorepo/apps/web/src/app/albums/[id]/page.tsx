@@ -24,11 +24,8 @@ import {
 
 import { ROLE_LABELS, type AlbumDetailDto, type CommentDto } from '@sylvie/types';
 import { cn, formatCount, formatDateTime, formatPrice } from '@sylvie/utils';
+import { Avatar, AuthorAvatar, CoverImage, EmptyState, DetailSkeleton } from '@sylvie/ui/web';
 
-import { Avatar, AuthorAvatar } from '@/components/avatar';
-import { CoverImage } from '@/components/cover-image';
-import { EmptyState } from '@/components/empty-state';
-import { DetailSkeleton } from '@/components/skeletons';
 import { Lightbox } from '@/components/lightbox';
 import { apiFetch, downloadFile } from '@/lib/api';
 import { revalidateAll as refreshAll, useAuth } from '@/lib/auth';

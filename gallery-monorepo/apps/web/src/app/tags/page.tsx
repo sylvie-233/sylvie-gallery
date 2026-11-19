@@ -5,9 +5,8 @@ import useSWR from 'swr';
 
 import type { TagDto } from '@sylvie/types';
 import { cn } from '@sylvie/utils';
+import { EmptyState, TagCloudSkeleton } from '@sylvie/ui/web';
 
-import { EmptyState } from '@/components/empty-state';
-import { TagCloudSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 
 const SIZE_CLASSES = [

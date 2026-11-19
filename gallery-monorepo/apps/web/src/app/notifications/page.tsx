@@ -2,18 +2,16 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import useSWR from 'swr';
 import { Bell, Crown, Image as ImageIcon, Info, ShieldCheck } from 'lucide-react';
 
 import type { NotificationDto, NotificationType, PageResult } from '@sylvie/types';
 import { cn, formatDateTime } from '@sylvie/utils';
+import { CoverImage, EmptyState, Pagination, NotificationListSkeleton } from '@sylvie/ui/web';
+import { useBodyScrollLock, useNavigationKeys } from '@sylvie/ui';
 
 import { AuthGate } from '@/components/auth-gate';
-import { CoverImage } from '@/components/cover-image';
-import { EmptyState } from '@/components/empty-state';
-import { Pagination } from '@/components/pagination';
-import { NotificationListSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
@@ -42,22 +40,8 @@ function NotificationDetailModal({
 }) {
   const router = useRouter();
 
-  useEffect(() => {
-    if (!notification) {
-      return;
-    }
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
-    };
-  }, [notification, onClose]);
+  useBodyScrollLock(Boolean(notification));
+  useNavigationKeys({ onEscape: onClose }, Boolean(notification));
 
   if (!notification) {
     return null;

@@ -8,11 +8,9 @@ import { Bell, ChevronDown, ChevronLeft, ChevronUp } from 'lucide-react';
 
 import type { AuthorDetailDto } from '@sylvie/types';
 import { formatDate } from '@sylvie/utils';
+import { EmptyState, Pagination, AuthorDetailSkeleton } from '@sylvie/ui/web';
 
 import { AlbumCard } from '@/components/album-card';
-import { EmptyState } from '@/components/empty-state';
-import { Pagination } from '@/components/pagination';
-import { AuthorDetailSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 import { useAuth, revalidateAll } from '@/lib/auth';
 import { useToast } from '@/lib/toast';

@@ -7,12 +7,9 @@ import { Crown, Eye, Receipt, Sparkles } from 'lucide-react';
 
 import type { PurchaseData } from '@sylvie/types';
 import { formatDateTime, formatPrice } from '@sylvie/utils';
+import { CoverImage, EmptyState, Pagination, PurchaseSkeleton } from '@sylvie/ui/web';
 
 import { AuthGate } from '@/components/auth-gate';
-import { CoverImage } from '@/components/cover-image';
-import { EmptyState } from '@/components/empty-state';
-import { Pagination } from '@/components/pagination';
-import { PurchaseSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useConfirm } from '@/lib/confirm';

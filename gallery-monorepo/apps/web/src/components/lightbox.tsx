@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 import type { AlbumImageDto } from '@sylvie/types';
 import { cn } from '@sylvie/utils';
-
-import { CoverImage } from './cover-image';
+import { useBodyScrollLock, useNavigationKeys } from '@sylvie/ui';
+import { CoverImage } from '@sylvie/ui/web';
 
 interface LightboxProps {
   images: AlbumImageDto[];
@@ -20,23 +19,12 @@ interface LightboxProps {
 export function Lightbox({ images, index, onIndexChange, onClose }: LightboxProps) {
   const current = images[index];
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      } else if (event.key === 'ArrowLeft' && index > 0) {
-        onIndexChange(index - 1);
-      } else if (event.key === 'ArrowRight' && index < images.length - 1) {
-        onIndexChange(index + 1);
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
-    };
-  }, [images.length, index, onClose, onIndexChange]);
+  useBodyScrollLock();
+  useNavigationKeys({
+    onEscape: onClose,
+    onPrev: index > 0 ? () => onIndexChange(index - 1) : undefined,
+    onNext: index < images.length - 1 ? () => onIndexChange(index + 1) : undefined,
+  });
 
   if (!current) {
     return null;

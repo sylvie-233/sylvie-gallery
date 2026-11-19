@@ -5,6 +5,7 @@ import { Upload, X } from 'lucide-react';
 
 import { AVATAR_PRESETS, MAX_AVATAR_BYTES, type UserProfile } from '@sylvie/types';
 import { avatarInitials, cn } from '@sylvie/utils';
+import { useBodyScrollLock, useNavigationKeys } from '@sylvie/ui';
 
 import { apiFetch, apiUpload } from '@/lib/api';
 import { revalidateAll, useAuth } from '@/lib/auth';
@@ -43,22 +44,8 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
     setError('');
   }, [open, user]);
 
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
-    };
-  }, [open, onClose]);
+  useBodyScrollLock(open);
+  useNavigationKeys({ onEscape: onClose }, open);
 
   if (!open) {
     return null;

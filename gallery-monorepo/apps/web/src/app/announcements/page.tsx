@@ -6,11 +6,9 @@ import { Bell, Search } from 'lucide-react';
 
 import type { AnnouncementDto, PageResult } from '@sylvie/types';
 import { formatDate } from '@sylvie/utils';
+import { EmptyState, Pagination, NoticeListSkeleton } from '@sylvie/ui/web';
 
 import { AnnouncementModal } from '@/components/announcement-modal';
-import { EmptyState } from '@/components/empty-state';
-import { Pagination } from '@/components/pagination';
-import { NoticeListSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 

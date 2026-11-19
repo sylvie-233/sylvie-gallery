@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+/* 扫描共享 Web 组件中的 Tailwind 类名 */
+@source '../../../../packages/ui/src/web';
 
 @theme {
   --color-ink: #0b0b0e;

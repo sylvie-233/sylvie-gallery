@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 import type { AnnouncementDto } from '@sylvie/types';
 import { cn, formatDate } from '@sylvie/utils';
+import { useBodyScrollLock, useNavigationKeys } from '@sylvie/ui';
 
 interface AnnouncementModalProps {
   announcement: AnnouncementDto | null;
@@ -13,22 +13,8 @@ interface AnnouncementModalProps {
 }
 
 export function AnnouncementModal({ announcement, onClose }: AnnouncementModalProps) {
-  useEffect(() => {
-    if (!announcement) {
-      return;
-    }
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
-    };
-  }, [announcement, onClose]);
+  useBodyScrollLock(Boolean(announcement));
+  useNavigationKeys({ onEscape: onClose }, Boolean(announcement));
 
   if (!announcement) {
     return null;

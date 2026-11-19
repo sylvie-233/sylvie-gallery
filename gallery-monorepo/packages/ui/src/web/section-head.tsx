@@ -12,6 +12,7 @@ interface SectionHeadProps {
   className?: string;
 }
 
+/** 前台分区标题：标题 + 副标题 + 右侧「查看全部」链接。 */
 export function SectionHead({
   title,
   sub,

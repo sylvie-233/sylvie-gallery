@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Star, X } from 'lucide-react';
 
 import type { AdminMediaInput } from '@sylvie/types';
+import { useBodyScrollLock, useNavigationKeys } from '@sylvie/ui';
 
 export function AdminLightbox({
   images,
@@ -18,19 +18,12 @@ export function AdminLightbox({
 }) {
   const current = images[index];
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-      if (event.key === 'ArrowLeft' && index > 0) onIndexChange(index - 1);
-      if (event.key === 'ArrowRight' && index < images.length - 1) onIndexChange(index + 1);
-    };
-    document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
-    };
-  }, [index, images.length, onClose, onIndexChange]);
+  useBodyScrollLock();
+  useNavigationKeys({
+    onEscape: onClose,
+    onPrev: index > 0 ? () => onIndexChange(index - 1) : undefined,
+    onNext: index < images.length - 1 ? () => onIndexChange(index + 1) : undefined,
+  });
 
   if (!current) return null;
 

@@ -7,6 +7,7 @@ interface EmptyStateProps {
   icon?: ReactNode;
 }
 
+/** 前台空态：标题 + 说明 + 可选图标与操作。 */
 export function EmptyState({ title, text, action, icon }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center px-4 py-16 text-center">

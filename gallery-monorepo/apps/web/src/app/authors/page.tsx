@@ -5,10 +5,9 @@ import useSWR from 'swr';
 import { Search } from 'lucide-react';
 
 import type { AuthorDto } from '@sylvie/types';
+import { EmptyState, AuthorGridSkeleton } from '@sylvie/ui/web';
 
 import { AuthorCard } from '@/components/author-card';
-import { EmptyState } from '@/components/empty-state';
-import { AuthorGridSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 

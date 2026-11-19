@@ -5,12 +5,11 @@ import { Bell } from 'lucide-react';
 
 import type { AnnouncementDto } from '@sylvie/types';
 import { formatDate } from '@sylvie/utils';
+import { SectionHead, HomeSkeleton } from '@sylvie/ui/web';
 
 import { AlbumCard } from '@/components/album-card';
 import { AnnouncementModal } from '@/components/announcement-modal';
 import { AuthorCard } from '@/components/author-card';
-import { SectionHead } from '@/components/section-head';
-import { HomeSkeleton } from '@/components/skeletons';
 import { useBootstrap } from '@/lib/hooks';
 
 export default function HomePage() {

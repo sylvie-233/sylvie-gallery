@@ -9,7 +9,7 @@ interface LogoProps {
   href?: string;
 }
 
-/** 全站统一「希」字渐变方块 Logo。 */
+/** 前台统一「希」字渐变方块 Logo。 */
 export function Logo({ size = 32, withText = true, className, href = '/' }: LogoProps) {
   const content = (
     <span className={cn('flex items-center gap-2.5', className)}>

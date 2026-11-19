@@ -30,6 +30,7 @@
 | `gallery-monorepo/apps/api` | Hono API：JWT、Agent 令牌、MySQL 参数化查询、RustFS 对象存储、Sharp 图片处理、ZIP 下载、MCP。分层：`routes/` 用 `@hono/zod-openapi` 的 `createRoute` 声明接口 → `controllers/` 处理请求 → `services/` 编排业务 → `sql/` 构建参数化 SQL。`/api/docs` 为 Scalar 文档页，`/api/openapi.json` 由路由声明自动生成；`/api/mcp` 为 MCP Streamable HTTP 端点（见 `apps/api/MCP.md`）。 |
 | `gallery-monorepo/packages/types` | API 响应、DTO、枚举常量；Web 与 API 共用。 |
 | `gallery-monorepo/packages/db` | Drizzle schema（25 张表，`src/schema/`）、mysql2 连接池、事务与参数化查询封装。 |
+| `gallery-monorepo/packages/ui` | 共享 UI：`@sylvie/ui`（分页计算、浮层滚动锁 / 键盘导航等无样式工具）、`@sylvie/ui/web`（前台视觉组件）、`@sylvie/ui/admin`（后台视觉组件）。样式不同但用途相同的组件分命名空间维护。 |
 | `gallery-monorepo/packages/logger` | 基于 pino 的共享日志层：统一接口、敏感字段脱敏、开发彩色输出、`child` / `scope` 子日志。 |
 | `gallery-monorepo/packages/storage` | S3 / RustFS 共享对象存储层：建桶、健康检查、上传/读取/探测/删除，配置与 URL 规则由调用方注入。 |
 | `gallery-monorepo/packages/utils` | 日期、计数、价格、文本格式化等纯函数。 |
@@ -81,6 +82,7 @@ MySQL 8 / InnoDB / `utf8mb4_unicode_ci`；主键统一 `BIGINT UNSIGNED AUTO_INC
 - OpenAPI 文档由 `createRoute` 的路由声明自动生成（`@hono/zod-openapi`），不要再手写 spec 文件。新增接口时在 `routes/` 声明请求与响应模型（`validators/` 放请求 schema，`openapi/models/` 放响应模型），handler 放 `controllers/`。
 - 日志统一使用 `@sylvie/logger`：API 侧从 `apps/api/src/utils/logger.ts` 取实例，按模块用 `moduleLogger('模块名')` 派生；不要直接使用 `console.*`（`config/env.ts` 在日志初始化前的校验失败除外）。
 - 对象存储统一使用 `@sylvie/storage`：API 侧实例在 `apps/api/src/services/storage.service.ts`，配置从 env 注入；不要再直接使用 `@aws-sdk/client-s3`。图片压缩/水印等业务处理仍留在 API。
+- 可复用组件放 `@sylvie/ui`：无样式逻辑放根入口，前台视觉组件放 `@sylvie/ui/web`，后台放 `@sylvie/ui/admin`；依赖应用状态（auth、SWR、路由、后台日期工具）的组件留在应用内。两个应用都需在 CSS 中用 `@source` 声明对应子目录，Tailwind 才会生成组件类名。
 - Agent / MCP 接入使用独立 `agent_token`，不要复用登录 JWT：令牌分 `read` / `write` scope、可设有效期并支持吊销，明文只在创建时返回一次。MCP 端点 `/api/mcp` 由 `authenticateMcp + requireAdmin` 保护，写工具需同时满足 `MCP_ALLOW_WRITE=true` 与令牌 `scope=write`。
 - 原型仅作视觉与交互参考，实际页面以 Web/Admin 实现为准；三者视觉语言一致：深色背景、玫红 `#ff2d55`、渐变「希」字 Logo。
 

@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@sylvie/types": "workspace:*",
+    "@sylvie/ui": "workspace:*",
     "@sylvie/utils": "workspace:*",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",

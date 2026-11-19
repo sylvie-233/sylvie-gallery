@@ -6,7 +6,8 @@ import { X } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
-import { Logo } from './logo';
+import { Logo } from '@sylvie/ui/web';
+import { useBodyScrollLock, useNavigationKeys } from '@sylvie/ui';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -38,22 +39,8 @@ export function AuthModal() {
     return () => window.clearTimeout(timer);
   }, [countdown]);
 
-  useEffect(() => {
-    if (!authOpen) {
-      return;
-    }
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        closeAuth();
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
-    };
-  }, [authOpen, closeAuth]);
+  useBodyScrollLock(authOpen);
+  useNavigationKeys({ onEscape: closeAuth }, authOpen);
 
   if (!authOpen) {
     return null;

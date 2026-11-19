@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect, useState } from 'react';
 
 import { cn } from '@sylvie/utils';
@@ -14,8 +12,8 @@ interface CoverImageProps {
 }
 
 /**
- * 图片展示统一入口：
- * - 原生懒加载（首屏图片可传 eager 提前加载）；
+ * 前台图片展示统一入口：
+ * - 原生懒加载（首屏可传 eager）；
  * - 加载中显示 shimmer 骨架，加载完成后淡入；
  * - 外链失败时回落到渐变占位，避免破图。
  */

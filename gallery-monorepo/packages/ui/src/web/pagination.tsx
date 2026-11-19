@@ -1,6 +1,8 @@
-'use client';
-
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+import { cn } from '@sylvie/utils';
+
+import { buildPageItems } from '../common/pagination.js';
 
 interface PaginationProps {
   page: number;
@@ -9,37 +11,18 @@ interface PaginationProps {
   className?: string;
 }
 
-function buildPages(page: number, totalPages: number): Array<number | '...'> {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
-  }
-  const result: Array<number | '...'> = [1];
-  if (page > 4) {
-    result.push('...');
-  }
-  const start = Math.max(2, page - 1);
-  const end = Math.min(totalPages - 1, page + 1);
-  for (let value = start; value <= end; value += 1) {
-    result.push(value);
-  }
-  if (page < totalPages - 3) {
-    result.push('...');
-  }
-  result.push(totalPages);
-  return result;
-}
-
+/** 前台分页：胶囊按钮 + 品牌色当前页。 */
 export function Pagination({ page, totalPages, onChange, className }: PaginationProps) {
   if (totalPages <= 1) {
     return null;
   }
 
-  const pages = buildPages(page, totalPages);
+  const pages = buildPageItems(page, totalPages);
   const buttonClass =
     'inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-line bg-panel px-3 text-[13px] text-t2 transition hover:border-line2 hover:text-t1 disabled:opacity-35';
 
   return (
-    <div className={`flex flex-wrap items-center justify-center gap-2 pt-7 ${className ?? ''}`}>
+    <div className={cn('flex flex-wrap items-center justify-center gap-2 pt-7', className)}>
       <button
         type="button"
         className={buttonClass}

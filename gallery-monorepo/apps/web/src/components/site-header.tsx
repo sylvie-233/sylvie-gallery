@@ -20,12 +20,11 @@ import {
 
 import { ROLE_LABELS } from '@sylvie/types';
 import { cn } from '@sylvie/utils';
+import { Avatar, Logo } from '@sylvie/ui/web';
 
 import { useAuth } from '@/lib/auth';
 import { useConfirm } from '@/lib/confirm';
 import { useToast } from '@/lib/toast';
-import { Avatar } from './avatar';
-import { Logo } from './logo';
 
 const NAV_ITEMS = [
   { href: '/', label: '首页', icon: Home },

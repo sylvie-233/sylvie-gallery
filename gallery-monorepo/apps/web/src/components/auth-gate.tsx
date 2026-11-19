@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { LogIn } from 'lucide-react';
 
 import { useAuth } from '@/lib/auth';
-import { EmptyState } from './empty-state';
+import { EmptyState } from '@sylvie/ui/web';
 
 /** 受保护页面：未登录时展示登录引导，不在客户端跳转。 */
 export function AuthGate({ children }: { children: ReactNode }) {

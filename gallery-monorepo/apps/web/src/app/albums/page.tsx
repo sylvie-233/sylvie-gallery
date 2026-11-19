@@ -7,11 +7,9 @@ import { FilterX } from 'lucide-react';
 
 import { SORT_LABELS, type AlbumCardDto, type PageResult, type SortType } from '@sylvie/types';
 import { cn } from '@sylvie/utils';
+import { EmptyState, Pagination, AlbumGridSkeleton } from '@sylvie/ui/web';
 
 import { AlbumCard } from '@/components/album-card';
-import { EmptyState } from '@/components/empty-state';
-import { Pagination } from '@/components/pagination';
-import { AlbumGridSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 

@@ -33,7 +33,13 @@ export function Avatar({
       style={{ width: size, height: size, ...style }}
     >
       {avatarType === 1 && avatarUrl ? (
-        <img src={avatarUrl} alt={nickname} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+        <img
+          src={avatarUrl}
+          alt={nickname}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
       ) : (
         avatarInitials(nickname)
       )}
@@ -59,13 +65,13 @@ export function AuthorAvatar({
   size = 36,
   className,
 }: AuthorAvatarProps) {
-  const style =
-    avatarUrl && /^https?:|^\/api\//.test(avatarUrl)
-      ? undefined
-      : {
-          background: `linear-gradient(135deg, ${color}, ${color}99)`,
-          fontSize: size * 0.36,
-        };
+  const hasImage = Boolean(avatarUrl && /^https?:|^\/api\//.test(avatarUrl));
+  const style = hasImage
+    ? undefined
+    : {
+        background: `linear-gradient(135deg, ${color}, ${color}99)`,
+        fontSize: size * 0.36,
+      };
 
   return (
     <span
@@ -75,8 +81,14 @@ export function AuthorAvatar({
       )}
       style={{ width: size, height: size, ...style }}
     >
-      {avatarUrl && /^https?:|^\/api\//.test(avatarUrl) ? (
-        <img src={avatarUrl} alt={name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+      {hasImage ? (
+        <img
+          src={avatarUrl ?? ''}
+          alt={name}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
       ) : (
         initial || name.slice(0, 1)
       )}

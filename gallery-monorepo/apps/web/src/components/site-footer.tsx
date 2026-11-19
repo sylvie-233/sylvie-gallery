@@ -3,7 +3,7 @@
 import Link from 'next/link';
 
 import { useBootstrap } from '@/lib/hooks';
-import { Logo } from './logo';
+import { Logo } from '@sylvie/ui/web';
 
 export function SiteFooter() {
   const { data } = useBootstrap();

@@ -24,13 +24,11 @@ import {
   type AlbumCardDto,
 } from '@sylvie/types';
 import { cn, formatDate } from '@sylvie/utils';
+import { Avatar, EmptyState, Pagination } from '@sylvie/ui/web';
 
 import { AlbumCard } from '@/components/album-card';
 import { AuthGate } from '@/components/auth-gate';
 import { AuthorCard } from '@/components/author-card';
-import { Avatar } from '@/components/avatar';
-import { EmptyState } from '@/components/empty-state';
-import { Pagination } from '@/components/pagination';
 import { ProfileEditModal } from '@/components/profile-edit-modal';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';

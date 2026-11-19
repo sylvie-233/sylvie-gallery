@@ -6,12 +6,10 @@ import useSWR from 'swr';
 import { Heart } from 'lucide-react';
 
 import type { AlbumCardDto, PageResult } from '@sylvie/types';
+import { EmptyState, Pagination, AlbumGridSkeleton } from '@sylvie/ui/web';
 
 import { AlbumCard } from '@/components/album-card';
 import { AuthGate } from '@/components/auth-gate';
-import { EmptyState } from '@/components/empty-state';
-import { Pagination } from '@/components/pagination';
-import { AlbumGridSkeleton } from '@/components/skeletons';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 

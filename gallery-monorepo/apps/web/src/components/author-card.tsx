@@ -3,8 +3,8 @@ import { Images } from 'lucide-react';
 
 import type { AuthorDto } from '@sylvie/types';
 import { cn } from '@sylvie/utils';
+import { CoverImage } from '@sylvie/ui/web';
 
-import { CoverImage } from './cover-image';
 
 interface AuthorCardProps {
   author: AuthorDto;
