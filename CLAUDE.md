@@ -64,6 +64,16 @@ pnpm dev:admin      # http://localhost:3002
 
 API 启动后可访问 `http://localhost:3000/api/docs` 查看接口文档，OpenAPI JSON 位于 `/api/openapi.json`。接口定义以 `createRoute` 声明为准，新增/调整接口时同步更新路由声明、validators 与响应模型。
 
+API 单元测试使用 Vitest，测试集中在 `apps/api/tests/`，目录结构镜像 `src/`（如 `tests/middleware/auth.test.ts`），源码目录不混入测试文件；测试不连接 MySQL / Redis / S3 / MQ（数据库与缓存用 `vi.mock` 替身）：
+
+```bash
+cd gallery-monorepo
+pnpm --filter @sylvie/api test            # 单次运行
+pnpm --filter @sylvie/api test:watch      # 监听
+pnpm --filter @sylvie/api test:coverage   # 覆盖率
+pnpm test                                 # 根目录经 turbo 运行全部测试
+```
+
 开发环境邮件统一投递到 Mailpit：网页端 `http://localhost:8025`，SMTP `localhost:1025`。注册 / 找回密码的验证码会真实发信，可在 Mailpit 中查看。
 
 可观测性栈默认不启动，按需开启：`pwsh ./manage.ps1 obs` 或 `docker compose -f scripts/docker-compose.yml --profile observability up -d`，Grafana 位于 `http://localhost:3030`（`admin / 123456`）。随后在 `scripts/.env` 或 `apps/api/.env` 设置 `OBSERVABILITY_ENABLED=true` 并重启 API；容器内端点用 `http://alloy:4318`，本机 `pnpm dev` 用 `http://127.0.0.1:4318`。数据流为 API → Alloy → Prometheus / Tempo，pino 日志 → Alloy → Loki，Grafana 通过 `trace_id` 联动。
@@ -101,6 +111,7 @@ MySQL 8 / InnoDB / `utf8mb4_unicode_ci`；主键统一 `BIGINT UNSIGNED AUTO_INC
 - 邮件与短信统一使用 `@sylvie/notify`，API 侧实例在 `apps/api/src/services/notify.service.ts`：`SMTP_HOST` 为空时自动跳过邮件通道，发送失败只记录日志、不阻断业务；开发环境由 Mailpit 捕获，生产环境替换为真实 SMTP。接入短信时实现 `SmsSender` 并注入 `sms.send`，不要在业务代码里直接依赖服务商 SDK。
 - 支付统一使用 `@sylvie/payment`，API 侧封装在 `apps/api/src/services/payment.service.ts`：开发阶段配置支付宝沙箱（`ALIPAY_MOCK=false` + 沙箱网关与密钥），本地默认仍是 `ALIPAY_MOCK=true` 模拟支付。真实支付流程为「创建订单 → 跳转收银台 → 异步通知验签 → MQ 异步履约（不可用时同步兜底）→ 幂等标记已支付并开通会员」。异步通知必须验签并校验金额，履约统一走 `fulfillVipOrder`。后台退款在真实支付模式下先调用 `alipay.trade.refund`（幂等号 = 订单号），成功后才本地标记退款并收回权益；支付宝退款失败时本地状态不变。
 - 消息队列统一使用 `@sylvie/mq`，API 侧入口 `apps/api/src/mq/index.ts`：支付成功事件发布到 `${MQ_QUEUE_PREFIX}.payment.paid`，消费端幂等履约并登记会员到期通知；`MQ_ENABLED=false` 或 MQ 不可用时自动退化为同步履约。新增事件按同样模式声明事件类型、队列与消费者。
+- 测试约定：纯函数、validators、`sql/*.sql.ts` 构建器与中间件必须补测试，统一放在 `apps/api/tests/` 下与 `src/` 对应的子目录；数据库 / 缓存 / 外部服务用 `vi.mock`，不要在单测中连接真实依赖。新增中间件时同时覆盖「放行 / 拒绝 / 依赖故障降级」三类路径。跨模块集成测试（真实 HTTP + 数据库）暂不纳入单测，需要时在 `tests/` 下单独建目录并配置独立 tsconfig。
 - 原型仅作视觉与交互参考，实际页面以 Web/Admin 实现为准；三者视觉语言一致：深色背景、玫红 `#ff2d55`、渐变「希」字 Logo。
 
 ## Git 工作流
