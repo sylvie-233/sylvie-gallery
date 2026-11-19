@@ -15,6 +15,7 @@ import { mqEnabled, mqHealthy } from './mq/index.js';
 import { errorHandler } from './middleware/error.js';
 import { globalRateLimit } from './middleware/rate-limit.js';
 import { requestLogger } from './middleware/request-logger.js';
+import { observability } from './observability/index.js';
 import apiRoutes from './routes/index.js';
 import { storageHealthy } from './services/storage.service.js';
 import type { AppEnv } from './types/context.js';
@@ -24,6 +25,8 @@ import { logger } from './utils/logger.js';
 /** 应用实例：全局中间件与 `/api` 业务路由的统一挂载点。 */
 export const app = new OpenAPIHono<AppEnv>();
 
+// 可观测性放在最外层：后续中间件与业务日志都能拿到 trace 上下文。
+app.use('*', observability.middleware());
 app.use('*', requestLogger);
 app.use(
   '*',
@@ -31,7 +34,7 @@ app.use(
     origin: corsOrigins,
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
-    exposeHeaders: ['Content-Disposition'],
+    exposeHeaders: ['Content-Disposition', 'x-trace-id'],
     maxAge: 86400,
   }),
 );

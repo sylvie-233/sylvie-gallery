@@ -40,6 +40,22 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).default('info'),
   LOG_PRETTY: z.enum(['true', 'false']).optional(),
 
+  /** 可观测性总开关：关闭时链路 / 指标全部退化为 no-op，不连接 OTLP 后端。 */
+  OBSERVABILITY_ENABLED: z.enum(['true', 'false']).default('false'),
+  OTEL_SERVICE_NAME: z.string().default('sylvie-api'),
+  /** OTLP HTTP 端点；留空时使用 OpenTelemetry 标准环境变量或默认 localhost:4318。 */
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().default(''),
+  /** OTLP 请求头，格式 `key=value,key2=value2`，用于 Grafana Cloud 等鉴权场景。 */
+  OTEL_EXPORTER_OTLP_HEADERS: z.string().default(''),
+  OTEL_TRACES_ENABLED: z.enum(['true', 'false']).default('true'),
+  OTEL_METRICS_ENABLED: z.enum(['true', 'false']).default('true'),
+  /** 根 span 采样率 0~1；存在 OTEL_TRACES_SAMPLER 时以该环境变量为准。 */
+  OTEL_TRACE_SAMPLE_RATIO: z.coerce.number().min(0).max(1).default(1),
+  /** 指标导出间隔（毫秒）。 */
+  OTEL_METRIC_EXPORT_INTERVAL: z.coerce.number().int().positive().default(15000),
+  /** 额外禁用的自动埋点，逗号分隔，如 `aws-sdk,grpc`。 */
+  OTEL_DISABLED_INSTRUMENTATIONS: z.string().default(''),
+
   MCP_ENABLED: z.enum(['true', 'false']).default('true'),
   MCP_ALLOW_WRITE: z.enum(['true', 'false']).default('false'),
 

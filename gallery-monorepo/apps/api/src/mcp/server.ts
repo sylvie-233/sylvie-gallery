@@ -6,6 +6,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import type { AuthUser } from '../types/context.js';
+import { instrumentMcpServer } from './instrumentation.js';
 import { registerReadTools } from './tools/read.js';
 import { registerWriteTools } from './tools/write.js';
 
@@ -29,6 +30,8 @@ export function createMcpServer(admin: AuthUser, allowWrite: boolean): McpServer
     },
   );
 
+  // 先安装埋点，再注册工具；所有工具调用都会自动包一层 span 与指标。
+  instrumentMcpServer(server);
   registerReadTools(server, admin);
   if (allowWrite) {
     registerWriteTools(server, admin);
