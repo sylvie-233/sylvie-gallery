@@ -88,7 +88,7 @@ curl -s -D - -o /dev/null http://localhost:3000/api/albums | grep -i x-trace-id
    └─ SELECT
    ```
 
-   每个 span 都包含耗时、状态与属性；数据库查询以 `SELECT` 等 span 呈现，可定位慢查询发生在哪一步。
+   每个 span 都包含耗时、状态与属性；数据库查询以 `SELECT` 等 span 呈现，`db.query.text` 记录 SQL 结构，参数已脱敏为 `?`（包内默认开启 `maskStatement`），可定位慢查询发生在哪一步而不会把邮箱、令牌等业务值写入 Tempo。
 
 也可以直接调 Tempo HTTP API：
 

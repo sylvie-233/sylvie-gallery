@@ -187,6 +187,7 @@ await observability.wrapToolHandler('list_albums', () => listAlbums(input, admin
 - **日志不重复上报**：pino 结构化日志走 stdout → Alloy → Loki；同时禁用 NodeSDK 的 OTLP 日志通道。
 - **故障降级**：启动失败由调用方记录并继续提供业务；SDK 未启动时指标写入自动跳过，trace 字段返回空对象。
 - **低基数**：HTTP 指标使用 `c.req.routePath`（路由模板）而非真实路径，避免 ID 造成时间序列爆炸。
+- **SQL 脱敏**：内置开启 mysql2 instrumentation 的 `maskStatement`，span 中只保留 SQL 结构与表名，参数统一替换为 `?`，避免邮箱、令牌等业务值进入 Tempo。
 - **关闭即零开销**：`start()` 直接返回，不动态加载任何 OTel 包。
 
 ## 注意事项

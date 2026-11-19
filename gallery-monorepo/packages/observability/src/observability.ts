@@ -57,6 +57,9 @@ const DEFAULT_IGNORE_PATHS = ['/health', '/api/docs', '/api/openapi.json'];
 /** HTTP instrumentation 名称，用于关闭重复的服务端 span。 */
 const HTTP_INSTRUMENTATION = '@opentelemetry/instrumentation-http';
 
+/** MySQL2 instrumentation 名称，用于配置 SQL 文本脱敏。 */
+const MYSQL2_INSTRUMENTATION = '@opentelemetry/instrumentation-mysql2';
+
 const METER_NAME = 'sylvie-observability';
 
 interface RuntimeState {
@@ -145,6 +148,11 @@ export function createObservability(options: ObservabilityOptions): Observabilit
             ignorePaths,
           );
         },
+      },
+      [MYSQL2_INSTRUMENTATION]: {
+        // mysql2 默认会把参数格式化进 db.query.text（可能包含邮箱、令牌等业务值），
+        // 开启脱敏后只保留 SQL 结构与表名，参数统一替换为 ?。
+        maskStatement: true,
       },
     };
     for (const name of disabled) {
