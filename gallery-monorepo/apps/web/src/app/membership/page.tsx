@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Crown, Sparkles } from 'lucide-react';
 
-import type { MembershipPlanDto } from '@sylvie/types';
+import type { MembershipPlanDto, OrderDto } from '@sylvie/types';
 import { formatDate, formatPrice } from '@sylvie/utils';
 
+import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useConfirm } from '@/lib/confirm';
 import { useBootstrap } from '@/lib/hooks';
@@ -39,6 +40,49 @@ export default function MembershipPage() {
 
   const plan = data?.plans[0] ?? FALLBACK_PLAN;
   const benefits = plan.benefits.length > 0 ? plan.benefits : FALLBACK_PLAN.benefits;
+
+  /**
+   * 支付宝支付完成回跳：轮询订单状态，确认支付后刷新会员权益。
+   * 异步通知通常更快，这里只是兜底，因此轮询 10 次（约 20 秒）。
+   */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const orderNo = params.get('out_trade_no') ?? params.get('orderNo');
+    if (!orderNo) {
+      return;
+    }
+
+    let cancelled = false;
+    let attempts = 0;
+
+    const poll = async (): Promise<void> => {
+      if (cancelled) {
+        return;
+      }
+      try {
+        const order = await apiFetch<OrderDto>(`/api/orders/${orderNo}/status`);
+        if (order.status === 'paid') {
+          toast('支付成功，会员权益已生效', 'success');
+          await refreshUser();
+          await revalidateAll();
+          await mutate();
+          window.history.replaceState({}, '', window.location.pathname);
+          return;
+        }
+      } catch {
+        // 忽略瞬时错误，继续轮询。
+      }
+      attempts += 1;
+      if (attempts < 10) {
+        window.setTimeout(() => void poll(), 2000);
+      }
+    };
+
+    void poll();
+    return () => {
+      cancelled = true;
+    };
+  }, [toast, refreshUser, revalidateAll, mutate]);
 
   const handlePaidAction = async () => {
     if (!user) {

@@ -7,6 +7,7 @@ import { cache } from './cache/index.js';
 import { corsOrigins } from './config/env.js';
 import { dbClient } from './db/index.js';
 import { jobsEnabled, jobsHealthy } from './jobs/index.js';
+import { mqEnabled, mqHealthy } from './mq/index.js';
 import { errorHandler } from './middleware/error.js';
 import { globalRateLimit } from './middleware/rate-limit.js';
 import { requestLogger } from './middleware/request-logger.js';
@@ -61,12 +62,14 @@ app.get('/health', async (c) => {
       cache.ping(),
       jobsHealthy(),
     ]);
+    const queueReady = mqHealthy();
     return success(c, {
-      status: storage && cacheReady && jobReady ? 'ok' : 'degraded',
+      status: storage && cacheReady && jobReady && queueReady ? 'ok' : 'degraded',
       db: 'up',
       storage: storage ? 'up' : 'down',
       cache: cacheReady ? 'up' : 'down',
       jobs: jobsEnabled ? (jobReady ? 'up' : 'down') : 'disabled',
+      mq: mqEnabled ? (queueReady ? 'up' : 'down') : 'disabled',
     });
   } catch (error) {
     (c.get('logger') ?? logger).error('健康检查失败：数据库连接异常', error);

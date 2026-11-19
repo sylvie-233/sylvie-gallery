@@ -22,7 +22,7 @@
 
 | 路径 | 职责 |
 |---|---|
-| `scripts/docker-compose.yml` | MySQL 8 + Redis 7.4 + Mailpit + RustFS + API + Web + Admin 编排；Mailpit 捕获开发环境邮件，首次启动执行建表与演示数据。 |
+| `scripts/docker-compose.yml` | MySQL 8 + Redis 7.4 + RabbitMQ 4.4 + Mailpit + RustFS + API + Web + Admin 编排；Mailpit 捕获开发环境邮件，首次启动执行建表与演示数据。 |
 | `manage.ps1` | 根目录运维脚本：up/down/restart/reset/build/logs/cli/status/init/pull/dev。 |
 | `scripts/init/02-demo-data.sql` | 演示数据（37 套图集 / 1140 条媒体 / 公告 / 评论 / 收藏 / 订单），由 `scripts/generate-demo-data.mjs` 生成。 |
 | `gallery-monorepo/apps/web` | Next.js 15 App Router 前台，Tailwind CSS v4 + SWR；通过 rewrites 代理 `/api`。 |
@@ -35,6 +35,8 @@
 | `gallery-monorepo/packages/cache` | 共享缓存层：内存 / Redis 双后端、`remember` 防击穿、固定窗口限流计数、前缀失效。 |
 | `gallery-monorepo/packages/job` | 基于 BullMQ 的共享任务调度层：cron / 固定间隔定时任务、可替换的延时任务、Worker 管理。 |
 | `gallery-monorepo/packages/notify` | 共享通知层：邮件（nodemailer / Mailpit）与短信通道，短信实现由调用方注入。 |
+| `gallery-monorepo/packages/mq` | 基于 amqplib 的消息队列层：持久化队列、confirm 发布、自动重连与订阅恢复。 |
+| `gallery-monorepo/packages/payment` | 支付层：支付宝网页支付、主动查询与异步通知验签，沙箱 / 生产仅切换网关与密钥。 |
 | `gallery-monorepo/packages/storage` | S3 / RustFS 共享对象存储层：建桶、健康检查、上传/读取/探测/删除，配置与 URL 规则由调用方注入。 |
 | `gallery-monorepo/packages/utils` | 日期、计数、价格、文本格式化等纯函数。 |
 
@@ -46,8 +48,8 @@
 # 容器化一键启动（含三端）：前台 8080、后台 8081、API 3000、Mailpit 8025
 pwsh ./manage.ps1 up
 
-# 或本地热更新：仅容器跑 MySQL / Redis / Mailpit / RustFS，再启动三个 pnpm 服务
-docker compose -f scripts/docker-compose.yml up -d mysql redis mailpit rustfs
+# 或本地热更新：仅容器跑 MySQL / Redis / RabbitMQ / Mailpit / RustFS，再启动三个 pnpm 服务
+docker compose -f scripts/docker-compose.yml up -d mysql redis rabbitmq mailpit rustfs
 cd gallery-monorepo
 pnpm install
 cp apps/api/.env.example apps/api/.env
@@ -92,6 +94,8 @@ MySQL 8 / InnoDB / `utf8mb4_unicode_ci`；主键统一 `BIGINT UNSIGNED AUTO_INC
 - 缓存与限流统一使用 `@sylvie/cache`：API 实例在 `apps/api/src/cache/index.ts`，缓存键用 `cacheKey('域', ...)` 分段；只缓存访客可复用数据（登录用户带收藏 / 订阅状态，除 `site:bootstrap` 外不缓存），管理端写操作后调用 `invalidateCache('域', ...)`。限流规则集中在 `apps/api/src/middleware/rate-limit.ts`，登录、验证码、注册、评论、解锁、下载等敏感接口必须限流；缓存不可用时按放行降级。
 - 定时 / 延时任务统一使用 `@sylvie/job`，API 侧入口在 `apps/api/src/jobs/index.ts`（`JOB_ENABLED=true` 时启动 Worker）：会员到期由「每 10 分钟扫描降级 + 支付时登记的延时到期通知」共同处理；新增任务需在 `ApiJobs` 中声明数据、注册 handler，并保证幂等。BullMQ 自定义 jobId 不能包含冒号。
 - 邮件与短信统一使用 `@sylvie/notify`，API 侧实例在 `apps/api/src/services/notify.service.ts`：`SMTP_HOST` 为空时自动跳过邮件通道，发送失败只记录日志、不阻断业务；开发环境由 Mailpit 捕获，生产环境替换为真实 SMTP。接入短信时实现 `SmsSender` 并注入 `sms.send`，不要在业务代码里直接依赖服务商 SDK。
+- 支付统一使用 `@sylvie/payment`，API 侧封装在 `apps/api/src/services/payment.service.ts`：开发阶段配置支付宝沙箱（`ALIPAY_MOCK=false` + 沙箱网关与密钥），本地默认仍是 `ALIPAY_MOCK=true` 模拟支付。真实支付流程为「创建订单 → 跳转收银台 → 异步通知验签 → MQ 异步履约（不可用时同步兜底）→ 幂等标记已支付并开通会员」。异步通知必须验签并校验金额，履约统一走 `fulfillVipOrder`。
+- 消息队列统一使用 `@sylvie/mq`，API 侧入口 `apps/api/src/mq/index.ts`：支付成功事件发布到 `${MQ_QUEUE_PREFIX}.payment.paid`，消费端幂等履约并登记会员到期通知；`MQ_ENABLED=false` 或 MQ 不可用时自动退化为同步履约。新增事件按同样模式声明事件类型、队列与消费者。
 - 原型仅作视觉与交互参考，实际页面以 Web/Admin 实现为准；三者视觉语言一致：深色背景、玫红 `#ff2d55`、渐变「希」字 Logo。
 
 ## Git 工作流

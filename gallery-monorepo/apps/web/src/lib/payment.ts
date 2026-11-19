@@ -45,7 +45,12 @@ export async function purchaseVip({
     });
 
     if (!result.payment.mock) {
-      toast('订单已创建，请在支付宝中完成支付', 'info');
+      if (!result.payment.payUrl) {
+        toast('支付渠道暂不可用，请稍后再试', 'error');
+        return false;
+      }
+      toast('正在跳转支付宝收银台…', 'info');
+      window.location.assign(result.payment.payUrl);
       return true;
     }
 

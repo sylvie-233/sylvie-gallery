@@ -49,6 +49,17 @@ const payRoute = createRoute({
   responses: { 200: successResponse(OrderSchema, '支付成功'), ...errorResponses },
 });
 
+const statusRoute = createRoute({
+  method: 'get',
+  path: '/{orderNo}/status',
+  tags: ['订单'],
+  summary: '查询订单状态',
+  description: '支付宝支付回跳后轮询；仅能查询本人订单。',
+  middleware: [authenticate],
+  request: { params: orderNoParamsSchema },
+  responses: { 200: successResponse(OrderSchema, '订单状态'), ...errorResponses },
+});
+
 const mineRoute = createRoute({
   method: 'get',
   path: '/mine',
@@ -70,8 +81,24 @@ router.openapi(
   routeHandler(payRoute, (c) => orderController.pay(c, c.req.valid('param').orderNo)),
 );
 router.openapi(
+  statusRoute,
+  routeHandler(statusRoute, (c) => orderController.status(c, c.req.valid('param').orderNo)),
+);
+router.openapi(
   mineRoute,
   routeHandler(mineRoute, (c) => orderController.mine(c, c.req.valid('query'))),
 );
+
+/** 支付宝异步通知：表单提交，响应纯文本，不需要 JWT。 */
+router.post('/alipay/notify', async (c) => {
+  const body = await c.req.parseBody();
+  const params: Record<string, string> = {};
+  for (const [key, value] of Object.entries(body)) {
+    if (typeof value === 'string') {
+      params[key] = value;
+    }
+  }
+  return orderController.alipayNotify(c, params);
+});
 
 export default router;

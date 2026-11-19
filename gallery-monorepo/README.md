@@ -8,13 +8,15 @@
 |---|---|---|
 | Web | `apps/web` | Next.js 15（App Router）+ React 19 + Tailwind CSS v4 + SWR |
 | Admin | `apps/admin` | React 19 + Vite + React Router + Tailwind CSS v4 + SWR + Zustand |
-| API | `apps/api` | Hono + MySQL 8 + Redis 7.4 + RustFS（S3 兼容）+ Sharp + SMTP（Mailpit） |
+| API | `apps/api` | Hono + MySQL 8 + Redis 7.4 + RabbitMQ 4.4 + RustFS（S3 兼容）+ Sharp + SMTP（Mailpit）+ 支付宝 |
 | 共享类型 | `packages/types` | API DTO、管理端 DTO、枚举常量 |
 | 共享工具 | `packages/utils` | 日期 / 计数 / 价格 / 文本格式化 |
 | 共享 UI | `packages/ui` | 无样式工具 + Web / Admin 两套视觉组件 |
 | 共享缓存 | `packages/cache` | 内存 / Redis 双后端、防击穿、固定窗口限流 |
 | 共享任务 | `packages/job` | BullMQ 定时任务 / 延时任务封装 |
 | 共享通知 | `packages/notify` | 邮件 / 短信通道封装，短信实现由调用方注入 |
+| 共享消息队列 | `packages/mq` | RabbitMQ 持久化队列、confirm 发布、自动重连 |
+| 共享支付 | `packages/payment` | 支付宝网页支付、查询与异步通知验签 |
 | 共享日志 | `packages/logger` | pino 封装、脱敏、子日志 |
 | 共享存储 | `packages/storage` | S3 / RustFS 对象存储封装 |
 | 数据库客户端 | `packages/db` | Drizzle schema、mysql2 连接池与参数化查询 |

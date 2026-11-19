@@ -42,6 +42,11 @@ const envSchema = z.object({
   MCP_ENABLED: z.enum(['true', 'false']).default('true'),
   MCP_ALLOW_WRITE: z.enum(['true', 'false']).default('false'),
 
+  MQ_ENABLED: z.enum(['true', 'false']).default('false'),
+  MQ_URL: z.string().default('amqp://sylvie:123456@127.0.0.1:5672'),
+  MQ_QUEUE_PREFIX: z.string().default('sylvie'),
+  MQ_PREFETCH: z.coerce.number().int().positive().default(1),
+
   CACHE_DRIVER: z.enum(['memory', 'redis']).default('memory'),
   CACHE_PREFIX: z.string().default('sylvie'),
   CACHE_DEFAULT_TTL: z.coerce.number().int().positive().default(60),
@@ -79,6 +84,17 @@ const envSchema = z.object({
     .string()
     .default('true')
     .transform((value) => value !== 'false'),
+
+  ALIPAY_APP_ID: z.string().default(''),
+  /** 应用私钥；支持用 \\n 表示换行。 */
+  ALIPAY_PRIVATE_KEY: z.string().default(''),
+  /** 支付宝公钥；支持用 \\n 表示换行。 */
+  ALIPAY_PUBLIC_KEY: z.string().default(''),
+  ALIPAY_GATEWAY: z.string().default('https://openapi-sandbox.dl.alipaydev.com/gateway.do'),
+  ALIPAY_NOTIFY_URL: z.string().default('http://localhost:3000/api/orders/alipay/notify'),
+  ALIPAY_RETURN_URL: z.string().default('http://localhost:3001/membership'),
+  ALIPAY_SIGN_TYPE: z.enum(['RSA2', 'RSA']).default('RSA2'),
+  ALIPAY_KEY_TYPE: z.enum(['PKCS1', 'PKCS8']).default('PKCS8'),
 });
 
 const parsed = envSchema.safeParse(process.env);

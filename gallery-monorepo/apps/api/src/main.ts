@@ -5,6 +5,7 @@ import { cache } from './cache/index.js';
 import { env } from './config/env.js';
 import { dbClient } from './db/index.js';
 import { startJobs, stopJobs } from './jobs/index.js';
+import { startMq, stopMq } from './mq/index.js';
 import { closeNotifier } from './services/notify.service.js';
 import { ensureBucket } from './services/storage.service.js';
 import { logger } from './utils/logger.js';
@@ -14,6 +15,7 @@ async function bootstrap(): Promise<void> {
   await dbClient.ping();
   await ensureBucket();
   await startJobs();
+  await startMq();
 
   const server = serve(
     {
@@ -41,7 +43,7 @@ async function bootstrap(): Promise<void> {
 
     server.close(() => {
       closeNotifier();
-      void Promise.all([stopJobs(), dbClient.close(), cache.close()])
+      void Promise.all([stopMq(), stopJobs(), dbClient.close(), cache.close()])
         .then(() => logger.flush())
         .then(() => process.exit(0))
         .catch((error: unknown) => {

@@ -42,6 +42,7 @@ import type { AuthUser } from '../types/context.js';
 import { HttpError } from '../utils/http.js';
 import { createOrderNo, effectiveRole, normalizePage, toNumber, toPageResult } from '../utils/format.js';
 import { getAlbumCardsByIds } from './album.service.js';
+import { createAlipayPagePayment, realPaymentEnabled } from './payment.service.js';
 
 function mapOrder(row: OrderRow): OrderDto {
   return {
@@ -121,27 +122,53 @@ export async function createVipOrder(
     throw new HttpError(500, '订单创建失败，请稍后重试');
   }
 
-  return {
-    order: mapOrder(order),
-    payment: {
+  let payment: VipOrderResult['payment'];
+  if (env.ALIPAY_MOCK) {
+    payment = {
       provider: 'alipay',
-      mock: env.ALIPAY_MOCK,
-      payUrl: env.ALIPAY_MOCK ? `/api/orders/${orderNo}/pay` : null,
-      message: env.ALIPAY_MOCK
-        ? '当前为模拟支付宝支付，确认后将直接视为支付成功'
-        : '请使用支付宝完成支付',
-    },
-  };
+      mock: true,
+      payUrl: `/api/orders/${orderNo}/pay`,
+      message: '当前为模拟支付宝支付，确认后将直接视为支付成功',
+    };
+  } else if (realPaymentEnabled) {
+    payment = {
+      provider: 'alipay',
+      mock: false,
+      payUrl: createAlipayPagePayment({
+        orderNo,
+        amountCents: Number(plan.priceCents),
+        subject: `希尔薇图集 · ${plan.name}`,
+        body: '付费会员开通 / 续费',
+      }),
+      message: '订单已创建，请在支付宝中完成支付',
+    };
+  } else {
+    throw new HttpError(503, '支付渠道未配置：请设置 ALIPAY_MOCK=true 或配置支付宝密钥');
+  }
+
+  return { order: mapOrder(order), payment };
 }
 
-/** 模拟支付回调：仅开发/演示环境可用。 */
-export async function payOrder(orderNo: string, userId: number): Promise<OrderDto> {
-  if (!env.ALIPAY_MOCK) {
-    throw new HttpError(
-      501,
-      '真实支付宝支付尚未配置（需商户号与回调地址），请设置 ALIPAY_MOCK=true 进行本地演示',
-    );
-  }
+/** 支付履约结果。 */
+export interface FulfillVipOrderResult {
+  order: OrderDto;
+  userId: number;
+  /** 订单此前已支付（重复通知）时为 true。 */
+  already: boolean;
+}
+
+/**
+ * 会员订单履约：加锁、校验金额、标记已支付、开通会员、写入通知。
+ * 支付宝异步通知、MQ 消费与模拟支付都走这里，保证幂等。
+ */
+export async function fulfillVipOrder(
+  orderNo: string,
+  tradeNo: string,
+  amountCents?: number | null,
+  expectedUserId?: number,
+): Promise<FulfillVipOrderResult> {
+  let userId = 0;
+  let already = false;
 
   await dbClient.transaction(async (conn) => {
     const orderStatement = selectPayOrderForUpdate(orderNo);
@@ -154,34 +181,60 @@ export async function payOrder(orderNo: string, userId: number): Promise<OrderDt
     if (!order) {
       throw new HttpError(404, '订单不存在');
     }
-    if (Number(order.userId) !== userId) {
+    userId = Number(order.userId);
+    if (expectedUserId !== undefined && userId !== expectedUserId) {
       throw new HttpError(403, '无权操作该订单');
     }
+    if (order.bizType !== 'vip') {
+      throw new HttpError(400, '仅会员订单支持在线支付');
+    }
     if (order.status === 'paid') {
+      already = true;
       return;
     }
     if (order.status !== 'created') {
       throw new HttpError(400, '订单状态不允许支付');
     }
+    if (
+      amountCents !== undefined &&
+      amountCents !== null &&
+      amountCents !== Number(order.amountCents)
+    ) {
+      throw new HttpError(400, '支付金额与订单金额不一致');
+    }
 
-    const paidStatement = markOrderPaid(`MOCK${Date.now()}`, order.id);
+    const paidStatement = markOrderPaid(tradeNo, order.id);
     await conn.query(paidStatement.sql, paidStatement.params);
 
-    if (order.bizType === 'vip') {
-      const vipStatement = activateVipAfterPayment(order.vipDays, userId);
-      await conn.query(vipStatement.sql, vipStatement.params);
-    }
+    const vipStatement = activateVipAfterPayment(order.vipDays, userId);
+    await conn.query(vipStatement.sql, vipStatement.params);
 
     const notificationStatement = insertOrderPaidNotification(
       userId,
-      order.bizType === 'vip' ? '付费会员开通成功' : '订单支付成功',
-      order.bizType === 'vip'
-        ? `${order.planName ?? '付费会员'}已生效，续费天数会在剩余有效期上叠加。`
-        : `订单 ${orderNo} 已支付成功。`,
+      '付费会员开通成功',
+      `${order.planName ?? '付费会员'}已生效，续费天数会在剩余有效期上叠加。`,
     );
     await conn.query(notificationStatement.sql, notificationStatement.params);
   });
 
+  const order = await getOrderByNo(orderNo);
+  if (!order) {
+    throw new HttpError(404, '订单不存在');
+  }
+  return { order, userId, already };
+}
+
+/** 模拟支付回调：仅开发/演示环境可用。 */
+export async function payOrder(orderNo: string, userId: number): Promise<OrderDto> {
+  if (!env.ALIPAY_MOCK) {
+    throw new HttpError(400, '真实支付模式下请通过支付宝完成支付');
+  }
+  const result = await fulfillVipOrder(orderNo, `MOCK${Date.now()}`, null, userId);
+  return result.order;
+}
+
+/** 查询本人订单状态，供支付回跳后轮询。 */
+export async function getOrderStatus(orderNo: string, userId: number): Promise<OrderDto> {
   const order = await getOrderByNo(orderNo, userId);
   if (!order) {
     throw new HttpError(404, '订单不存在');

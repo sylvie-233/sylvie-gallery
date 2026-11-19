@@ -114,9 +114,15 @@ importers:
       '@sylvie/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@sylvie/mq':
+        specifier: workspace:*
+        version: link:../../packages/mq
       '@sylvie/notify':
         specifier: workspace:*
         version: link:../../packages/notify
+      '@sylvie/payment':
+        specifier: workspace:*
+        version: link:../../packages/payment
       '@sylvie/storage':
         specifier: workspace:*
         version: link:../../packages/storage

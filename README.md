@@ -9,7 +9,7 @@
 
 - **图集浏览**：首页最近更新、标签 / 作者 / 关键词筛选、收藏与热度排序、瀑布流，以及前台公告弹层。
 - **积分解锁**：每日签到获得解锁积分；注册会员消耗 `album.points` 永久解锁单套图集，解锁后重复下载不再扣分，`user.points` 不会为负。
-- **会员体系**：付费会员全站畅看与下载，不消耗积分；v1 仅接入支付宝，本地开发默认 `ALIPAY_MOCK=true` 模拟支付，续费在剩余有效期上叠加 30 天。
+- **会员体系**：付费会员全站畅看与下载，不消耗积分；支持支付宝沙箱 / 生产支付（异步通知经 RabbitMQ 幂等履约），本地默认 `ALIPAY_MOCK=true` 模拟支付，续费在剩余有效期上叠加 30 天。
 - **水印预览**：未解锁时只返回前 3 张带水印预览，解锁后及付费会员一律返回原图；全局开关 `image.watermark_on` 只控制未解锁预览。
 - **互动与下载**：收藏、作者订阅、评论审核；解锁后可在线查看全部图片并打包 ZIP 下载。
 - **独立管理后台**：数据看板、图集编辑 / 发布 / 推荐 / 下架、标签与作者、评论审核、公告、支付流水与退款、用户管理、操作日志与 CSV 导出。
@@ -17,7 +17,8 @@
 - **缓存与限流**：Redis 7.4 承载站点数据缓存与接口限流（登录、验证码、评论、下载等），多实例共享计数；本地可切换为进程内存。
 - **定时 / 延时任务**：BullMQ 负责付费会员到期扫描与降级、到期通知延时任务，服务重启不丢任务。
 - **开发邮件**：Mailpit 捕获验证码与通知邮件，网页端直接查看，无需真实 SMTP 账号。
-- **一键部署**：Docker Compose 编排 MySQL 8、Redis 7.4、RustFS、API、Web、Admin，首次启动自动建表并写入演示数据。
+- **消息队列**：RabbitMQ 承载支付成功等异步事件，支付通知入队后幂等履约，MQ 不可用时自动同步兜底。
+- **一键部署**：Docker Compose 编排 MySQL 8、Redis 7.4、RabbitMQ 4.4、RustFS、API、Web、Admin，首次启动自动建表并写入演示数据。
 
 ## 页面预览
 
@@ -45,15 +46,15 @@ WorkBuddy 通过后台生成的 Agent 令牌连接 MCP 端点 `/api/mcp`，可�
 
 - **前台**：Next.js 15（App Router）、React 19、Tailwind CSS v4、SWR
 - **管理后台**：React 19、Vite、React Router、Tailwind CSS v4、SWR + Zustand（独立登录，仅面向桌面端）
-- **后端**：Node.js、Hono、Zod、MySQL 8（mysql2 参数化查询）、Redis 7.4（缓存 / 限流 / BullMQ 任务）、RustFS（S3 兼容）
+- **后端**：Node.js、Hono、Zod、MySQL 8（mysql2 参数化查询）、Redis 7.4（缓存 / 限流 / BullMQ 任务）、RabbitMQ 4.4（异步事件）、RustFS（S3 兼容）
 - **图片与下载**：Sharp 生成缩略图与水印，archiver 打包 ZIP
-- **共享包**：`@sylvie/types`、`@sylvie/db`、`@sylvie/utils`、`@sylvie/ui`（Web / Admin 两套视觉组件）、`@sylvie/logger`、`@sylvie/storage`、`@sylvie/cache`、`@sylvie/job`、`@sylvie/notify`
+- **共享包**：`@sylvie/types`、`@sylvie/db`、`@sylvie/utils`、`@sylvie/ui`（Web / Admin 两套视觉组件）、`@sylvie/logger`、`@sylvie/storage`、`@sylvie/cache`、`@sylvie/job`、`@sylvie/notify`、`@sylvie/mq`、`@sylvie/payment`
 - **工程**：pnpm workspace + Turborepo、ESLint、Docker Compose
 
 ## 快速开始
 
 ```powershell
-# 一键构建并启动 MySQL + Redis + Mailpit + RustFS + API + Web + Admin，等待健康检查
+# 一键构建并启动 MySQL + Redis + RabbitMQ + Mailpit + RustFS + API + Web + Admin，等待健康检查
 pwsh ./manage.ps1 up
 ```
 
@@ -64,6 +65,7 @@ pwsh ./manage.ps1 up
 - API：<http://localhost:3000>（健康检查 `/health`）
 - RustFS 控制台：<http://localhost:9001>
 - Redis：`localhost:6379`
+- RabbitMQ：`localhost:5672`（AMQP）
 - Mailpit 邮件箱：<http://localhost:8025>（SMTP `localhost:1025`）
 
 演示账号密码均为 `123456`：
@@ -76,10 +78,10 @@ pwsh ./manage.ps1 up
 
 开发验证码固定为 `123456`。
 
-本地开发（仅用容器跑 MySQL + Redis + Mailpit + RustFS，三端热更新）：
+本地开发（仅用容器跑 MySQL + Redis + RabbitMQ + Mailpit + RustFS，三端热更新）：
 
 ```bash
-docker compose -f scripts/docker-compose.yml up -d mysql redis mailpit rustfs
+docker compose -f scripts/docker-compose.yml up -d mysql redis rabbitmq mailpit rustfs
 
 cd gallery-monorepo
 pnpm install

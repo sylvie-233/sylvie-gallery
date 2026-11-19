@@ -74,6 +74,30 @@ services:
       retries: 20
       start_period: 5s
 
+  rabbitmq:
+    # RabbitMQ：支付成功等异步事件的消息队列
+    image: rabbitmq:4.4
+    container_name: sylvie-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-sylvie}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-123456}
+      TZ: Asia/Shanghai
+    ports:
+      - '${RABBITMQ_PORT:-5672}:5672'
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test:
+        - CMD
+        - rabbitmq-diagnostics
+        - -q
+        - ping
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
   mailpit:
     # Mailpit：开发环境邮件捕获，网页端查看验证码 / 通知邮件
     image: axllent/mailpit:latest
@@ -161,6 +185,18 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_SECURE: ${SMTP_SECURE:-false}
       SMTP_FROM: ${SMTP_FROM:-希尔薇图集 <noreply@sylvie.cc>}
+      MQ_ENABLED: ${MQ_ENABLED:-true}
+      MQ_URL: amqp://${RABBITMQ_USER:-sylvie}:${RABBITMQ_PASSWORD:-123456}@rabbitmq:5672
+      MQ_QUEUE_PREFIX: ${MQ_QUEUE_PREFIX:-sylvie}
+      MQ_PREFETCH: ${MQ_PREFETCH:-1}
+      ALIPAY_APP_ID: ${ALIPAY_APP_ID:-}
+      ALIPAY_PRIVATE_KEY: ${ALIPAY_PRIVATE_KEY:-}
+      ALIPAY_PUBLIC_KEY: ${ALIPAY_PUBLIC_KEY:-}
+      ALIPAY_GATEWAY: ${ALIPAY_GATEWAY:-https://openapi-sandbox.dl.alipaydev.com/gateway.do}
+      ALIPAY_NOTIFY_URL: ${ALIPAY_NOTIFY_URL:-http://localhost:3000/api/orders/alipay/notify}
+      ALIPAY_RETURN_URL: ${ALIPAY_RETURN_URL:-http://localhost:3001/membership}
+      ALIPAY_SIGN_TYPE: ${ALIPAY_SIGN_TYPE:-RSA2}
+      ALIPAY_KEY_TYPE: ${ALIPAY_KEY_TYPE:-PKCS8}
       TZ: Asia/Shanghai
     ports:
       - '${API_PORT:-3000}:3000'
@@ -168,6 +204,8 @@ services:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
       rustfs:
         condition: service_healthy
@@ -245,6 +283,8 @@ services:
 volumes:
   mailpit_data:
     name: sylvie_mailpit_data
+  rabbitmq_data:
+    name: sylvie_rabbitmq_data
   mysql_data:
     name: sylvie_mysql_data
   redis_data:
