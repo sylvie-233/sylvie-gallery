@@ -8,7 +8,7 @@
 |---|---|---|
 | Web | `apps/web` | Next.js 15（App Router）+ React 19 + Tailwind CSS v4 + SWR |
 | Admin | `apps/admin` | React 19 + Vite + React Router + Tailwind CSS v4 + SWR + Zustand |
-| API | `apps/api` | Hono + MySQL 8 + Redis 7.4 + RustFS（S3 兼容）+ Sharp |
+| API | `apps/api` | Hono + MySQL 8 + Redis 7.4 + RustFS（S3 兼容）+ Sharp + SMTP（Mailpit） |
 | 共享类型 | `packages/types` | API DTO、管理端 DTO、枚举常量 |
 | 共享工具 | `packages/utils` | 日期 / 计数 / 价格 / 文本格式化 |
 | 共享 UI | `packages/ui` | 无样式工具 + Web / Admin 两套视觉组件 |
@@ -30,11 +30,11 @@ pwsh ./manage.ps1 dev         # 只容器跑基础服务，本机热更新三端
 pwsh ./manage.ps1 reset -Force
 ```
 
-容器化地址：前台 http://localhost:8080、后台 http://localhost:8081、API http://localhost:3000、RustFS 控制台 http://localhost:9001、Redis localhost:6379。详见 `scripts/README.md`。
+容器化地址：前台 http://localhost:8080、后台 http://localhost:8081、API http://localhost:3000、RustFS 控制台 http://localhost:9001、Redis localhost:6379、Mailpit 邮件箱 http://localhost:8025（SMTP 1025）。详见 `scripts/README.md`。
 
 ## 本地开发（热更新）
 
-### 1. 启动 MySQL、Redis 与 RustFS
+### 1. 启动 MySQL、Redis、Mailpit 与 RustFS
 
 ```bash
 # 仓库根目录

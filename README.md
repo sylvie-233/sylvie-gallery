@@ -16,6 +16,7 @@
 - **Agent / MCP 接入**：后台可生成只读 / 读写 Agent 令牌，WorkBuddy 等工具通过 `/api/mcp` 直接查询与操作图集、评论、订单等数据，令牌支持有效期与吊销。
 - **缓存与限流**：Redis 7.4 承载站点数据缓存与接口限流（登录、验证码、评论、下载等），多实例共享计数；本地可切换为进程内存。
 - **定时 / 延时任务**：BullMQ 负责付费会员到期扫描与降级、到期通知延时任务，服务重启不丢任务。
+- **开发邮件**：Mailpit 捕获验证码与通知邮件，网页端直接查看，无需真实 SMTP 账号。
 - **一键部署**：Docker Compose 编排 MySQL 8、Redis 7.4、RustFS、API、Web、Admin，首次启动自动建表并写入演示数据。
 
 ## 页面预览
@@ -52,7 +53,7 @@ WorkBuddy 通过后台生成的 Agent 令牌连接 MCP 端点 `/api/mcp`，可�
 ## 快速开始
 
 ```powershell
-# 一键构建并启动 MySQL + Redis + RustFS + API + Web + Admin，等待健康检查
+# 一键构建并启动 MySQL + Redis + Mailpit + RustFS + API + Web + Admin，等待健康检查
 pwsh ./manage.ps1 up
 ```
 
@@ -63,6 +64,7 @@ pwsh ./manage.ps1 up
 - API：<http://localhost:3000>（健康检查 `/health`）
 - RustFS 控制台：<http://localhost:9001>
 - Redis：`localhost:6379`
+- Mailpit 邮件箱：<http://localhost:8025>（SMTP `localhost:1025`）
 
 演示账号密码均为 `123456`：
 
@@ -74,10 +76,10 @@ pwsh ./manage.ps1 up
 
 开发验证码固定为 `123456`。
 
-本地开发（仅用容器跑 MySQL + Redis + RustFS，三端热更新）：
+本地开发（仅用容器跑 MySQL + Redis + Mailpit + RustFS，三端热更新）：
 
 ```bash
-docker compose -f scripts/docker-compose.yml up -d mysql redis rustfs
+docker compose -f scripts/docker-compose.yml up -d mysql redis mailpit rustfs
 
 cd gallery-monorepo
 pnpm install

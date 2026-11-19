@@ -1,12 +1,12 @@
 <#
 .SYNOPSIS
-    希尔薇图集本地环境运维脚本（MySQL + Redis + RustFS + API + Web + Admin）。
+    希尔薇图集本地环境运维脚本（MySQL + Redis + Mailpit + RustFS + API + Web + Admin）。
 
 .DESCRIPTION
     封装 scripts/docker-compose.yml 的常用操作：启动、停止、重启、重置、构建、日志、
     状态、进入 MySQL 客户端、重新执行初始化 SQL、拉取镜像。
 
-    另外提供 dev 模式：仅用容器运行 MySQL、Redis 与 RustFS，再用 pnpm 在本机启动
+    另外提供 dev 模式：仅用容器运行 MySQL、Redis、Mailpit 与 RustFS，再用 pnpm 在本机启动
     API（3000）、Web（3001）与 Admin（3002），便于热更新开发。
 
 .PARAMETER Action
@@ -20,18 +20,19 @@
       cli       进入 MySQL 命令行
       status    查看容器状态与访问地址
       init      删除业务库并重新执行建表 SQL 与演示数据（需确认）
-      pull      拉取 MySQL / Redis / RustFS 镜像，并以最新基础镜像重建应用
-      dev       启动 MySQL / Redis / RustFS 容器后，在本机运行 pnpm dev（三端热更新）
+      pull      拉取 MySQL / Redis / Mailpit / RustFS 镜像，并以最新基础镜像重建应用
+      dev       启动 MySQL / Redis / Mailpit / RustFS 容器后，在本机运行 pnpm dev（三端热更新）
 
 .PARAMETER Target
     操作目标，默认 all（仅容器相关操作使用，dev 忽略）：
       mysql  仅 MySQL
       redis  仅 Redis 缓存与限流
+      mailpit 仅 Mailpit 开发邮件捕获
       rustfs 仅 RustFS 对象存储
       api    仅 API（自动启动依赖的 MySQL / Redis / RustFS）
       web    仅 Web（自动启动依赖的 API / MySQL / Redis / RustFS）
       admin  仅 Admin（自动启动依赖的 API / MySQL / Redis / RustFS）
-      all    MySQL + Redis + RustFS + API + Web + Admin
+      all    MySQL + Redis + Mailpit + RustFS + API + Web + Admin
 
 .PARAMETER Force
     reset / init 跳过二次确认；build 时禁用 Docker 构建缓存。
@@ -82,7 +83,7 @@ param(
     [ValidateSet('up', 'down', 'restart', 'reset', 'build', 'logs', 'cli', 'status', 'init', 'pull', 'dev')]
     [string]$Action = 'status',
 
-    [ValidateSet('mysql', 'redis', 'rustfs', 'api', 'web', 'admin', 'all')]
+    [ValidateSet('mysql', 'redis', 'mailpit', 'rustfs', 'api', 'web', 'admin', 'all')]
     [string]$Target = 'all',
 
     [switch]$Force,
@@ -110,12 +111,13 @@ $MonorepoRoot = Join-Path $ScriptRoot 'gallery-monorepo'
 $DatabaseName = 'sylvie_gallery'
 
 $ContainerNames = @{
-    mysql  = 'sylvie-mysql'
-    redis  = 'sylvie-redis'
-    rustfs = 'sylvie-rustfs'
-    api    = 'sylvie-api'
-    web    = 'sylvie-web'
-    admin  = 'sylvie-admin'
+    mysql   = 'sylvie-mysql'
+    redis   = 'sylvie-redis'
+    mailpit = 'sylvie-mailpit'
+    rustfs  = 'sylvie-rustfs'
+    api     = 'sylvie-api'
+    web     = 'sylvie-web'
+    admin   = 'sylvie-admin'
 }
 
 $AppServices = @('api', 'web', 'admin')
@@ -161,11 +163,12 @@ function Get-TargetServices {
     switch ($Target) {
         'mysql' { return @('mysql') }
         'redis' { return @('redis') }
+        'mailpit' { return @('mailpit') }
         'rustfs' { return @('rustfs') }
         'api' { return @('api') }
         'web' { return @('web') }
         'admin' { return @('admin') }
-        default { return @('mysql', 'redis', 'rustfs', 'api', 'web', 'admin') }
+        default { return @('mysql', 'redis', 'mailpit', 'rustfs', 'api', 'web', 'admin') }
     }
 }
 
@@ -179,6 +182,9 @@ function Get-WaitServices {
     }
     if ($services -contains 'redis' -or $services -contains 'api' -or $services -contains 'web' -or $services -contains 'admin') {
         $result += 'redis'
+    }
+    if ($services -contains 'mailpit' -or $services -contains 'api' -or $services -contains 'web' -or $services -contains 'admin') {
+        $result += 'mailpit'
     }
     if ($services -contains 'rustfs' -or $services -contains 'api' -or $services -contains 'web' -or $services -contains 'admin') {
         $result += 'rustfs'
@@ -215,6 +221,7 @@ function Get-DisplayName {
     switch ($Service) {
         'mysql' { 'MySQL' }
         'redis' { 'Redis' }
+        'mailpit' { 'Mailpit' }
         'rustfs' { 'RustFS' }
         'api' { 'API' }
         'web' { 'Web' }
@@ -351,6 +358,11 @@ function Write-AccessUrls {
         $redisPort = Get-EnvValue -Name 'REDIS_PORT' -Default '6379'
         Write-Host "  Redis         localhost:$redisPort"
     }
+    if ($Target -in @('mailpit', 'all')) {
+        $mailpitUiPort = Get-EnvValue -Name 'MAILPIT_UI_PORT' -Default '8025'
+        $mailpitSmtpPort = Get-EnvValue -Name 'MAILPIT_SMTP_PORT' -Default '1025'
+        Write-Host "  Mailpit       http://localhost:$mailpitUiPort（SMTP $mailpitSmtpPort）"
+    }
     Write-Host '  后台演示账号  admin / 123456'
 }
 
@@ -387,9 +399,9 @@ function Invoke-DevMode {
     Write-Host '停止容器化应用服务，释放 3000 / 3001 / 3002 端口...' -ForegroundColor DarkGray
     & docker compose --file $ComposeFile stop api web admin *> $null
 
-    Invoke-Compose -ComposeArgs @('up', '-d', 'mysql', 'redis', 'rustfs')
-    Write-Host '等待 MySQL / Redis / RustFS 就绪...' -ForegroundColor Cyan
-    foreach ($service in @('mysql', 'redis', 'rustfs')) {
+    Invoke-Compose -ComposeArgs @('up', '-d', 'mysql', 'redis', 'mailpit', 'rustfs')
+    Write-Host '等待 MySQL / Redis / Mailpit / RustFS 就绪...' -ForegroundColor Cyan
+    foreach ($service in @('mysql', 'redis', 'mailpit', 'rustfs')) {
         Wait-ContainerHealthy -ContainerName $ContainerNames[$service] -DisplayName (Get-DisplayName $service)
     }
 
@@ -441,7 +453,7 @@ switch ($Action) {
     }
 
     'reset' {
-        Confirm-Destructive -Message '将删除 MySQL、Redis 与 RustFS 数据卷，数据库、缓存、头像与图集原图都会丢失。'
+        Confirm-Destructive -Message '将删除 MySQL、Redis、Mailpit 与 RustFS 数据卷，数据库、缓存、测试邮件、头像与图集原图都会丢失。'
         Invoke-Compose -ComposeArgs @('down', '-v')
 
         $services = Get-TargetServices
@@ -526,6 +538,9 @@ switch ($Action) {
         }
         if ($services -contains 'redis') {
             Invoke-Compose -ComposeArgs @('pull', 'redis')
+        }
+        if ($services -contains 'mailpit') {
+            Invoke-Compose -ComposeArgs @('pull', 'mailpit')
         }
         if ($services -contains 'rustfs') {
             Invoke-Compose -ComposeArgs @('pull', 'rustfs')

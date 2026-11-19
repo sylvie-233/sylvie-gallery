@@ -74,6 +74,23 @@ services:
       retries: 20
       start_period: 5s
 
+  mailpit:
+    # Mailpit：开发环境邮件捕获，网页端查看验证码 / 通知邮件
+    image: axllent/mailpit:latest
+    container_name: sylvie-mailpit
+    restart: unless-stopped
+    environment:
+      MP_MAX_MESSAGES: ${MAILPIT_MAX_MESSAGES:-1000}
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      MP_DATABASE: /data/mailpit.db
+      TZ: Asia/Shanghai
+    ports:
+      - '${MAILPIT_UI_PORT:-8025}:8025'
+      - '${MAILPIT_SMTP_PORT:-1025}:1025'
+    volumes:
+      - mailpit_data:/data
+
   rustfs:
     # RustFS：S3 兼容对象存储，保存头像与图集原图
     image: rustfs/rustfs:latest
@@ -138,6 +155,12 @@ services:
       JOB_ENABLED: ${JOB_ENABLED:-true}
       JOB_CONCURRENCY: ${JOB_CONCURRENCY:-2}
       JOB_VIP_SWEEP_CRON: "${JOB_VIP_SWEEP_CRON:-*/10 * * * *}"
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_FROM: ${SMTP_FROM:-希尔薇图集 <noreply@sylvie.cc>}
       TZ: Asia/Shanghai
     ports:
       - '${API_PORT:-3000}:3000'
@@ -220,6 +243,8 @@ services:
     stop_grace_period: 10s
 
 volumes:
+  mailpit_data:
+    name: sylvie_mailpit_data
   mysql_data:
     name: sylvie_mysql_data
   redis_data:

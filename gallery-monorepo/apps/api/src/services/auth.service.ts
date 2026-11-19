@@ -22,6 +22,7 @@ import {
 import { HttpError } from '../utils/http.js';
 import { signToken } from '../utils/jwt.js';
 import { moduleLogger } from '../utils/logger.js';
+import { sendVerifyCodeMail } from './mailer.service.js';
 import { getProfileById } from './user.service.js';
 
 const CODE_TTL_MINUTES = 10;
@@ -31,7 +32,10 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-/** 发送邮箱验证码：开发环境返回固定演示码，生产环境仅写日志（接入 SMTP 后替换）。 */
+/**
+ * 发送邮箱验证码：开发环境返回固定演示码。
+ * 配置 SMTP_HOST 后会真实发信（开发环境对接 Mailpit），未配置则只写日志。
+ */
 export async function sendVerifyCode(
   emailInput: string,
   scene: 'register' | 'reset_password',
@@ -54,6 +58,9 @@ export async function sendVerifyCode(
   await dbClient.execute(codeStatement.sql, codeStatement.params);
 
   log.info('验证码已生成', { email, scene, code, ttlMinutes: CODE_TTL_MINUTES });
+
+  // 发信失败不阻断流程，验证码已落库；返回值仍表示验证码已生成。
+  await sendVerifyCodeMail(email, code, scene, CODE_TTL_MINUTES);
 
   const result: { sent: boolean; expiresIn: number; demoCode?: string } = {
     sent: true,

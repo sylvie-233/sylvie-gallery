@@ -22,7 +22,7 @@
 
 | 路径 | 职责 |
 |---|---|
-| `scripts/docker-compose.yml` | MySQL 8 + Redis 7.4 + RustFS + API + Web + Admin 编排；首次启动执行建表与演示数据。 |
+| `scripts/docker-compose.yml` | MySQL 8 + Redis 7.4 + Mailpit + RustFS + API + Web + Admin 编排；Mailpit 捕获开发环境邮件，首次启动执行建表与演示数据。 |
 | `manage.ps1` | 根目录运维脚本：up/down/restart/reset/build/logs/cli/status/init/pull/dev。 |
 | `scripts/init/02-demo-data.sql` | 演示数据（37 套图集 / 1140 条媒体 / 公告 / 评论 / 收藏 / 订单），由 `scripts/generate-demo-data.mjs` 生成。 |
 | `gallery-monorepo/apps/web` | Next.js 15 App Router 前台，Tailwind CSS v4 + SWR；通过 rewrites 代理 `/api`。 |
@@ -42,11 +42,11 @@
 前置：Node.js ≥ 20、pnpm ≥ 9、Docker。
 
 ```bash
-# 容器化一键启动（含三端）：前台 8080、后台 8081、API 3000
+# 容器化一键启动（含三端）：前台 8080、后台 8081、API 3000、Mailpit 8025
 pwsh ./manage.ps1 up
 
-# 或本地热更新：仅容器跑 MySQL + RustFS（可选 Redis），再启动三个 pnpm 服务
-docker compose -f scripts/docker-compose.yml up -d mysql rustfs redis
+# 或本地热更新：仅容器跑 MySQL / Redis / Mailpit / RustFS，再启动三个 pnpm 服务
+docker compose -f scripts/docker-compose.yml up -d mysql redis mailpit rustfs
 cd gallery-monorepo
 pnpm install
 cp apps/api/.env.example apps/api/.env
@@ -58,6 +58,8 @@ pnpm dev:admin      # http://localhost:3002
 演示账号密码均为 `123456`：`admin@sylvie.cc`（管理员，后台也可输入简写 `admin`）、`demo@sylvie.cc`（注册会员）、`vip@sylvie.cc`（付费会员）。开发验证码固定为 `123456`。
 
 API 启动后可访问 `http://localhost:3000/api/docs` 查看接口文档，OpenAPI JSON 位于 `/api/openapi.json`。接口定义以 `createRoute` 声明为准，新增/调整接口时同步更新路由声明、validators 与响应模型。
+
+开发环境邮件统一投递到 Mailpit：网页端 `http://localhost:8025`，SMTP `localhost:1025`。注册 / 找回密码的验证码会真实发信，可在 Mailpit 中查看。
 
 ## 跨文档业务规则
 
@@ -88,6 +90,7 @@ MySQL 8 / InnoDB / `utf8mb4_unicode_ci`；主键统一 `BIGINT UNSIGNED AUTO_INC
 - Agent / MCP 接入使用独立 `agent_token`，不要复用登录 JWT：令牌分 `read` / `write` scope、可设有效期并支持吊销，明文只在创建时返回一次。MCP 端点 `/api/mcp` 由 `authenticateMcp + requireAdmin` 保护，写工具需同时满足 `MCP_ALLOW_WRITE=true` 与令牌 `scope=write`。
 - 缓存与限流统一使用 `@sylvie/cache`：API 实例在 `apps/api/src/cache/index.ts`，缓存键用 `cacheKey('域', ...)` 分段；只缓存访客可复用数据（登录用户带收藏 / 订阅状态，除 `site:bootstrap` 外不缓存），管理端写操作后调用 `invalidateCache('域', ...)`。限流规则集中在 `apps/api/src/middleware/rate-limit.ts`，登录、验证码、注册、评论、解锁、下载等敏感接口必须限流；缓存不可用时按放行降级。
 - 定时 / 延时任务统一使用 `@sylvie/job`，API 侧入口在 `apps/api/src/jobs/index.ts`（`JOB_ENABLED=true` 时启动 Worker）：会员到期由「每 10 分钟扫描降级 + 支付时登记的延时到期通知」共同处理；新增任务需在 `ApiJobs` 中声明数据、注册 handler，并保证幂等。BullMQ 自定义 jobId 不能包含冒号。
+- 邮件统一走 `apps/api/src/services/mailer.service.ts`：`SMTP_HOST` 为空时跳过发信（只写日志），发送失败只记录日志、不阻断业务；开发环境由 Mailpit 捕获，生产环境替换为真实 SMTP。
 - 原型仅作视觉与交互参考，实际页面以 Web/Admin 实现为准；三者视觉语言一致：深色背景、玫红 `#ff2d55`、渐变「希」字 Logo。
 
 ## Git 工作流

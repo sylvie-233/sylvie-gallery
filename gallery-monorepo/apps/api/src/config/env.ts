@@ -56,6 +56,13 @@ const envSchema = z.object({
   JOB_CONCURRENCY: z.coerce.number().int().positive().default(2),
   JOB_VIP_SWEEP_CRON: z.string().default('*/10 * * * *'),
 
+  SMTP_HOST: z.string().default(''),
+  SMTP_PORT: z.coerce.number().int().positive().default(1025),
+  SMTP_USER: z.string().default(''),
+  SMTP_PASSWORD: z.string().default(''),
+  SMTP_SECURE: z.enum(['true', 'false']).default('false'),
+  SMTP_FROM: z.string().default('希尔薇图集 <noreply@sylvie.cc>'),
+
   S3_ENDPOINT: z.string().default('http://127.0.0.1:9000'),
   S3_REGION: z.string().default('us-east-1'),
   S3_ACCESS_KEY: z.string().default('rustfsadmin'),

@@ -5,6 +5,7 @@ import { cache } from './cache/index.js';
 import { env } from './config/env.js';
 import { dbClient } from './db/index.js';
 import { startJobs, stopJobs } from './jobs/index.js';
+import { closeMailer } from './services/mailer.service.js';
 import { ensureBucket } from './services/storage.service.js';
 import { logger } from './utils/logger.js';
 
@@ -39,6 +40,7 @@ async function bootstrap(): Promise<void> {
     logger.info('收到关闭信号，正在关闭服务', { signal });
 
     server.close(() => {
+      closeMailer();
       void Promise.all([stopJobs(), dbClient.close(), cache.close()])
         .then(() => logger.flush())
         .then(() => process.exit(0))
