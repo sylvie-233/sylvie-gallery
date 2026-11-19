@@ -31,6 +31,7 @@
 | `gallery-monorepo/packages/types` | API 响应、DTO、枚举常量；Web 与 API 共用。 |
 | `gallery-monorepo/packages/db` | Drizzle schema（24 张表，`src/schema/`）、mysql2 连接池、事务与参数化查询封装。 |
 | `gallery-monorepo/packages/logger` | 基于 pino 的共享日志层：统一接口、敏感字段脱敏、开发彩色输出、`child` / `scope` 子日志。 |
+| `gallery-monorepo/packages/storage` | S3 / RustFS 共享对象存储层：建桶、健康检查、上传/读取/探测/删除，配置与 URL 规则由调用方注入。 |
 | `gallery-monorepo/packages/utils` | 日期、计数、价格、文本格式化等纯函数。 |
 
 ## 本地开发
@@ -79,6 +80,7 @@ MySQL 8 / InnoDB / `utf8mb4_unicode_ci`；主键统一 `BIGINT UNSIGNED AUTO_INC
 - API 数据库访问使用参数化 SQL，语句统一放在 `apps/api/src/sql/*.sql.ts` 并以 `{ sql, params }` 返回；列表计数与冗余字段需事务内同步。Drizzle schema 仅作为表结构的类型化映射（`db.db` 查询构建器），服务层仍以参数化 SQL 为主。
 - OpenAPI 文档由 `createRoute` 的路由声明自动生成（`@hono/zod-openapi`），不要再手写 spec 文件。新增接口时在 `routes/` 声明请求与响应模型（`validators/` 放请求 schema，`openapi/models/` 放响应模型），handler 放 `controllers/`。
 - 日志统一使用 `@sylvie/logger`：API 侧从 `apps/api/src/utils/logger.ts` 取实例，按模块用 `moduleLogger('模块名')` 派生；不要直接使用 `console.*`（`config/env.ts` 在日志初始化前的校验失败除外）。
+- 对象存储统一使用 `@sylvie/storage`：API 侧实例在 `apps/api/src/services/storage.service.ts`，配置从 env 注入；不要再直接使用 `@aws-sdk/client-s3`。图片压缩/水印等业务处理仍留在 API。
 - 原型仅作视觉与交互参考，实际页面以 Web/Admin 实现为准；三者视觉语言一致：深色背景、玫红 `#ff2d55`、渐变「希」字 Logo。
 
 ## Git 工作流

@@ -16,12 +16,12 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.750.0",
     "@hono/node-server": "^1.13.7",
     "@hono/zod-openapi": "^1.6.3",
     "@scalar/hono-api-reference": "^0.12.22",
     "@sylvie/db": "workspace:*",
     "@sylvie/logger": "workspace:*",
+    "@sylvie/storage": "workspace:*",
     "@sylvie/types": "workspace:*",
     "@sylvie/utils": "workspace:*",
     "archiver": "^7.0.1",
