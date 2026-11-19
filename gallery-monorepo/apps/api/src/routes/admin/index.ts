@@ -1,5 +1,6 @@
 import { authenticate, requireAdmin } from '../../middleware/auth.js';
 import { createApiRouter } from '../../openapi/router.js';
+import agentTokenRoutes from './agent-tokens.js';
 import albumRoutes from './albums.js';
 import announcementRoutes from './announcements.js';
 import authorRoutes from './authors.js';
@@ -27,5 +28,6 @@ router.route('/users', userRoutes);
 router.route('/config', configRoutes);
 router.route('/logs', logRoutes);
 router.route('/upload', uploadRoutes);
+router.route('/agent-tokens', agentTokenRoutes);
 
 export default router;

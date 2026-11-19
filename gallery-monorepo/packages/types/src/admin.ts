@@ -315,6 +315,30 @@ export interface AdminUploadResult {
   height?: number | null;
 }
 
+/** Agent 访问令牌权限范围。 */
+export type AgentTokenScope = 'read' | 'write';
+
+/** 后台 Agent 令牌行（不含明文令牌）。 */
+export interface AdminAgentTokenRow {
+  id: number;
+  name: string;
+  tokenPrefix: string;
+  scope: AgentTokenScope;
+  status: number;
+  adminId: number;
+  adminName: string;
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+}
+
+/** 创建 Agent 令牌结果：明文 token 仅此处返回一次。 */
+export interface AdminAgentTokenCreateResult {
+  token: string;
+  item: AdminAgentTokenRow;
+}
+
 /** 操作动作中文映射；后台日志筛选与详情共用。 */
 export const ADMIN_ACTION_LABELS: Record<string, string> = {
   'album.create': '发布图集',
@@ -352,6 +376,8 @@ export const ADMIN_ACTION_LABELS: Record<string, string> = {
   'friend.delete': '删除友链',
   'order.refund': '订单退款',
   'pay.export': '导出支付流水',
+  'agent_token.create': '创建 Agent 令牌',
+  'agent_token.revoke': '吊销 Agent 令牌',
 };
 
 /** 日志动作分组（后台筛选下拉）。 */

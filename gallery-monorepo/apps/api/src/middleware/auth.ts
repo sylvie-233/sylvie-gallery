@@ -18,7 +18,7 @@ interface AuthUserRow {
 }
 
 /** 按用户 ID 回查账号状态：停用/删除后 token 立即失效。 */
-async function loadUser(userId: number): Promise<AuthUser | null> {
+export async function loadUser(userId: number): Promise<AuthUser | null> {
   const row = await dbClient.queryOne<AuthUserRow>(
     `SELECT id, email, nickname, role, status, is_deleted AS isDeleted, vip_expire_at AS vipExpireAt
        FROM \`user\`
@@ -40,7 +40,7 @@ async function loadUser(userId: number): Promise<AuthUser | null> {
   };
 }
 
-function readBearer(header: string | undefined): string | null {
+export function readBearer(header: string | undefined): string | null {
   if (!header) {
     return null;
   }

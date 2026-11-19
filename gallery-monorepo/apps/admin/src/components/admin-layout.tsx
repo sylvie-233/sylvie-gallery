@@ -7,6 +7,7 @@ import {
   ChevronRight,
   CreditCard,
   Images,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   MessageSquare,
@@ -81,6 +82,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: '系统',
     items: [
       { to: '/config', label: '友链与配置', icon: Settings },
+      { to: '/agent-tokens', label: 'Agent 令牌', icon: KeyRound },
       { to: '/logs', label: '操作日志', icon: ScrollText },
     ],
   },
@@ -98,6 +100,7 @@ const TITLE_MAP: Record<string, string> = {
   '/users': '用户管理',
   '/config': '友链与配置',
   '/logs': '操作日志',
+  '/agent-tokens': 'Agent 令牌',
 };
 
 function pageTitle(pathname: string): string {

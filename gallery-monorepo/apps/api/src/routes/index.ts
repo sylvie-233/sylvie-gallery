@@ -8,6 +8,7 @@ import authorRoutes from './authors.js';
 import commentRoutes from './comments.js';
 import feedRoutes from './feed.js';
 import fileRoutes from './files.js';
+import mcpRoutes from './mcp.js';
 import meRoutes from './me.js';
 import notificationRoutes from './notifications.js';
 import orderRoutes from './orders.js';
@@ -37,6 +38,7 @@ router.route('/me', meRoutes);
 router.route('/notifications', notificationRoutes);
 router.route('/comments', commentRoutes);
 router.route('/files', fileRoutes);
+router.route('/mcp', mcpRoutes);
 
 router.doc31('/openapi.json', {
   openapi: '3.1.0',
@@ -64,6 +66,7 @@ router.doc31('/openapi.json', {
     { name: '个人中心', description: '我的收藏与已订阅作者' },
     { name: '通知', description: '我的通知与已读状态' },
     { name: '文件', description: '对象存储代理读取' },
+    { name: 'MCP', description: '面向 agent 的 MCP Streamable HTTP 端点' },
     { name: '后台 · 认证', description: '管理后台独立登录' },
     { name: '后台 · 看板', description: '数据看板与趋势' },
     { name: '后台 · 图集', description: '图集发布、上下架、推荐与删除' },
@@ -75,6 +78,7 @@ router.doc31('/openapi.json', {
     { name: '后台 · 用户', description: '用户列表、积分调整、赠送会员、重置密码与封禁' },
     { name: '后台 · 配置', description: '站点配置、会员套餐与友情链接' },
     { name: '后台 · 日志', description: '管理操作日志' },
+    { name: '后台 · 令牌', description: 'Agent 访问令牌的创建、列表与吊销' },
     { name: '后台 · 上传', description: '图片 / 视频 / 头像上传' },
   ],
   security: [{ BearerAuth: [] }],

@@ -377,3 +377,28 @@ export const AdminUploadResultSchema = z
     height: z.number().int().nullable().optional(),
   })
   .openapi('AdminUploadResult');
+
+/** Agent 令牌行（不含明文）。 */
+export const AdminAgentTokenRowSchema = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+    tokenPrefix: z.string(),
+    scope: z.enum(['read', 'write']),
+    status: z.number().int(),
+    adminId: z.number().int(),
+    adminName: z.string(),
+    lastUsedAt: z.string().nullable(),
+    expiresAt: z.string().nullable(),
+    revokedAt: z.string().nullable(),
+    createdAt: z.string(),
+  })
+  .openapi('AdminAgentTokenRow');
+
+/** 创建令牌结果：token 仅此一次返回。 */
+export const AdminAgentTokenCreateResultSchema = z
+  .object({
+    token: z.string().openapi({ description: '明文令牌，仅创建时返回一次' }),
+    item: AdminAgentTokenRowSchema,
+  })
+  .openapi('AdminAgentTokenCreateResult');

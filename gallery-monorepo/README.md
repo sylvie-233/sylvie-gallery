@@ -36,7 +36,7 @@ pwsh ./manage.ps1 reset -Force
 docker compose -f scripts/docker-compose.yml up -d
 
 # 首次启动会自动执行建表与演示数据
-# 24 张表、40 套图集（37 已发布 / 1 草稿 / 2 已下架）、1176 条媒体
+# 25 张表、40 套图集（37 已发布 / 1 草稿 / 2 已下架）、1176 条媒体
 docker compose -f scripts/docker-compose.yml ps
 ```
 

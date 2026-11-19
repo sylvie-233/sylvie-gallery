@@ -16,8 +16,10 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
+    "@hono/mcp": "^0.3.5",
     "@hono/node-server": "^1.13.7",
     "@hono/zod-openapi": "^1.6.3",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@scalar/hono-api-reference": "^0.12.22",
     "@sylvie/db": "workspace:*",
     "@sylvie/logger": "workspace:*",

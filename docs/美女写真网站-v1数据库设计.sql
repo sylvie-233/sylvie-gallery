@@ -14,7 +14,7 @@
 --   5) 角色即权限：guest=游客(不落库) member=注册会员 vip=付费会员 admin=管理员(唯一可发布)
 --   6) 支付渠道 v1 仅支付宝；管理员赠送会员走 pay_type='admin' 的 0 元单留痕
 --
--- 表清单（24 张）：
+-- 表清单（25 张）：
 --   user              用户                  → 注册/登录/个人中心/头像昵称编辑
 --   user_checkin      每日签到              → 签到领积分（每日 +2，sys_config 可配）
 --   author            作者                  → 首页个人写真/作者列表/作者主页（后台可隐藏/排序）
@@ -39,6 +39,7 @@
 --   search_log        搜索日志              → 搜索词热度统计（后台看板热搜词 TOP N）
 --   verify_code       验证码                → 邮箱验证（注册/找回密码）
 --   admin_op_log      管理操作日志          → 发布/上下架/推荐/标签/评论审核/积分调整/赠送会员等留痕
+--   agent_token       Agent 访问令牌        → 后台生成，供 MCP / WorkBuddy 等 agent 工具连接 API
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS `sylvie_gallery`
@@ -544,6 +545,30 @@ CREATE TABLE `admin_op_log` (
   KEY `idx_admin_time` (`admin_id`, `created_at`),
   KEY `idx_target` (`target_type`, `target_id`)
 ) ENGINE=InnoDB COMMENT='管理操作日志';
+
+-- ---------------------------------------------------------------------
+-- 25. Agent 访问令牌表
+--     覆盖：后台「Agent 令牌」菜单生成 / 吊销 MCP 等 agent 工具使用的访问令牌
+--     安全约定：明文令牌只在创建时返回一次；库中仅存 SHA-256 哈希与展示前缀。
+--     令牌以创建管理员的身份执行，scope 控制只读 / 读写。
+-- ---------------------------------------------------------------------
+CREATE TABLE `agent_token` (
+  `id`           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name`         VARCHAR(64)     NOT NULL                COMMENT '令牌名称（用途说明）',
+  `token_hash`   CHAR(64)        NOT NULL                COMMENT '令牌 SHA-256 哈希（明文不落库）',
+  `token_prefix` VARCHAR(16)     NOT NULL                COMMENT '展示前缀（如 svt_ab12…）',
+  `scope`        ENUM('read','write') NOT NULL DEFAULT 'read' COMMENT '权限范围：只读 / 读写',
+  `status`       TINYINT UNSIGNED NOT NULL DEFAULT 1     COMMENT '1=启用 0=已吊销',
+  `admin_id`     BIGINT UNSIGNED NOT NULL                COMMENT '创建管理员（令牌以该身份执行）',
+  `last_used_at` DATETIME        NULL                    COMMENT '最近使用时间',
+  `expires_at`   DATETIME        NULL                    COMMENT '过期时间（NULL=永久）',
+  `revoked_at`   DATETIME        NULL                    COMMENT '吊销时间',
+  `created_at`   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_token_hash` (`token_hash`),
+  KEY `idx_admin` (`admin_id`),
+  KEY `idx_status` (`status`, `expires_at`)
+) ENGINE=InnoDB COMMENT='Agent 访问令牌（MCP 等）';
 
 -- =====================================================================
 -- 初始化数据

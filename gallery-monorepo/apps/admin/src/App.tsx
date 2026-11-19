@@ -1,5 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 
+import { AgentTokensPage } from './pages/agent-tokens';
+
 import { AdminLayout } from '@/components/admin-layout';
 import { useAdminAuth } from '@/lib/auth';
 import { AlbumEditorPage } from '@/pages/album-editor';
@@ -59,6 +61,7 @@ export function App() {
         <Route path="/users" element={<UsersPage />} />
         <Route path="/config" element={<ConfigPage />} />
         <Route path="/logs" element={<LogsPage />} />
+        <Route path="/agent-tokens" element={<AgentTokensPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

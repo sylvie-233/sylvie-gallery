@@ -12,7 +12,7 @@
 |---|---|
 | `docs/美女写真网站-v1功能清单.md` | 前台功能与交互规格，按页面组织。文首 YAML frontmatter 用于 markmap 思维导图视图。 |
 | `docs/美女写真网站-v1原型设计.html` | 前台交互原型：单文件自包含 HTML（内联 CSS/JS、演示数据，状态存 `localStorage`），浏览器直接打开即可。 |
-| `docs/美女写真网站-v1数据库设计.sql` | MySQL 8 数据库设计：24 张表，文首为设计约定，文末为种子数据。 |
+| `docs/美女写真网站-v1数据库设计.sql` | MySQL 8 数据库设计：25 张表，文首为设计约定，文末为种子数据。 |
 | `docs/美女写真网站-v1管理后台功能清单.md` | 管理后台规格。后台为独立应用，仅面向桌面端（≥1280px），与前台只共用数据库。 |
 | `docs/美女写真网站-v1管理后台原型.html` | 管理后台原型，同样是单文件；登录层与前台独立。 |
 
@@ -27,9 +27,9 @@
 | `scripts/init/02-demo-data.sql` | 演示数据（37 套图集 / 1140 条媒体 / 公告 / 评论 / 收藏 / 订单），由 `scripts/generate-demo-data.mjs` 生成。 |
 | `gallery-monorepo/apps/web` | Next.js 15 App Router 前台，Tailwind CSS v4 + SWR；通过 rewrites 代理 `/api`。 |
 | `gallery-monorepo/apps/admin` | React + Vite + React Router 管理后台，Tailwind CSS v4 + SWR；开发端口 3002。 |
-| `gallery-monorepo/apps/api` | Hono API：JWT、MySQL 参数化查询、RustFS 对象存储、Sharp 图片处理、ZIP 下载。分层：`routes/` 用 `@hono/zod-openapi` 的 `createRoute` 声明接口 → `controllers/` 处理请求 → `services/` 编排业务 → `sql/` 构建参数化 SQL。`/api/docs` 为 Scalar 文档页，`/api/openapi.json` 由路由声明自动生成。 |
+| `gallery-monorepo/apps/api` | Hono API：JWT、Agent 令牌、MySQL 参数化查询、RustFS 对象存储、Sharp 图片处理、ZIP 下载、MCP。分层：`routes/` 用 `@hono/zod-openapi` 的 `createRoute` 声明接口 → `controllers/` 处理请求 → `services/` 编排业务 → `sql/` 构建参数化 SQL。`/api/docs` 为 Scalar 文档页，`/api/openapi.json` 由路由声明自动生成；`/api/mcp` 为 MCP Streamable HTTP 端点（见 `apps/api/MCP.md`）。 |
 | `gallery-monorepo/packages/types` | API 响应、DTO、枚举常量；Web 与 API 共用。 |
-| `gallery-monorepo/packages/db` | Drizzle schema（24 张表，`src/schema/`）、mysql2 连接池、事务与参数化查询封装。 |
+| `gallery-monorepo/packages/db` | Drizzle schema（25 张表，`src/schema/`）、mysql2 连接池、事务与参数化查询封装。 |
 | `gallery-monorepo/packages/logger` | 基于 pino 的共享日志层：统一接口、敏感字段脱敏、开发彩色输出、`child` / `scope` 子日志。 |
 | `gallery-monorepo/packages/storage` | S3 / RustFS 共享对象存储层：建桶、健康检查、上传/读取/探测/删除，配置与 URL 规则由调用方注入。 |
 | `gallery-monorepo/packages/utils` | 日期、计数、价格、文本格式化等纯函数。 |
@@ -81,6 +81,7 @@ MySQL 8 / InnoDB / `utf8mb4_unicode_ci`；主键统一 `BIGINT UNSIGNED AUTO_INC
 - OpenAPI 文档由 `createRoute` 的路由声明自动生成（`@hono/zod-openapi`），不要再手写 spec 文件。新增接口时在 `routes/` 声明请求与响应模型（`validators/` 放请求 schema，`openapi/models/` 放响应模型），handler 放 `controllers/`。
 - 日志统一使用 `@sylvie/logger`：API 侧从 `apps/api/src/utils/logger.ts` 取实例，按模块用 `moduleLogger('模块名')` 派生；不要直接使用 `console.*`（`config/env.ts` 在日志初始化前的校验失败除外）。
 - 对象存储统一使用 `@sylvie/storage`：API 侧实例在 `apps/api/src/services/storage.service.ts`，配置从 env 注入；不要再直接使用 `@aws-sdk/client-s3`。图片压缩/水印等业务处理仍留在 API。
+- Agent / MCP 接入使用独立 `agent_token`，不要复用登录 JWT：令牌分 `read` / `write` scope、可设有效期并支持吊销，明文只在创建时返回一次。MCP 端点 `/api/mcp` 由 `authenticateMcp + requireAdmin` 保护，写工具需同时满足 `MCP_ALLOW_WRITE=true` 与令牌 `scope=write`。
 - 原型仅作视觉与交互参考，实际页面以 Web/Admin 实现为准；三者视觉语言一致：深色背景、玫红 `#ff2d55`、渐变「希」字 Logo。
 
 ## Git 工作流

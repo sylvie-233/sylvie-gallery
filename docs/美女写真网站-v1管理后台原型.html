@@ -502,6 +502,7 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
       <a data-k="users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1.2-3.2 3.6-5 6.5-5s5.3 1.8 6.5 5"/><circle cx="17.5" cy="9.5" r="2.5"/><path d="M16 15.5c2.8.2 4.7 1.8 5.5 4.5"/></svg>用户管理</a>
       <div class="g">系统</div>
       <a data-k="config"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1 1.55V21a2 2 0 11-4 0v-.09a1.7 1.7 0 00-1-1.55 1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.7 1.7 0 00.34-1.87 1.7 1.7 0 00-1.55-1H3a2 2 0 110-4h.09a1.7 1.7 0 001.55-1 1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06a1.7 1.7 0 001.87.34h0a1.7 1.7 0 001-1.55V3a2 2 0 114 0v.09a1.7 1.7 0 001 1.55h0a1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06a1.7 1.7 0 00-.34 1.87v0a1.7 1.7 0 001.55 1H21a2 2 0 110 4h-.09a1.7 1.7 0 00-1.55 1z"/></svg>友链与配置</a>
+      <a data-k="tokens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg>Agent 令牌</a>
       <a data-k="logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>操作日志</a>
     </nav>
     <div class="side-foot">
@@ -924,6 +925,20 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
         </div>
       </div>
 
+      <!-- ========= Agent 令牌 ========= -->
+      <div class="sec" id="sec-tokens">
+        <div class="p-head"><h1>Agent 令牌</h1><span class="sub">供 WorkBuddy 等 agent 工具连接 MCP · 明文仅创建时展示一次</span><div class="sp"></div><button class="btn btn-red" onclick="toast('演示环境：正式后台创建令牌后会展示一次明文，请立即复制')">新建令牌</button></div>
+        <div class="panel">
+          <table class="tb">
+            <thead><tr><th>名称</th><th>令牌前缀</th><th>权限</th><th>状态</th><th class="hide-m">最近使用</th><th class="hide-m">有效期</th><th>创建人</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td>WorkBuddy 只读</td><td style="font-variant-numeric:tabular-nums;letter-spacing:.2px">svt_ab12cd34…</td><td><span class="badge bg-draft">只读</span></td><td><span class="badge bg-pub">启用中</span></td><td class="hide-m">2026-11-19 10:30</td><td class="hide-m">2026-12-19 10:30</td><td>admin</td><td><a onclick="toast('演示环境：吊销后令牌立即失效')" style="color:var(--t3);cursor:pointer">吊销</a></td></tr>
+              <tr><td>CI 发布</td><td style="font-variant-numeric:tabular-nums;letter-spacing:.2px">svt_cd34ef56…</td><td><span class="badge bg-adm">读写</span></td><td><span class="badge bg-off">已吊销</span></td><td class="hide-m">2026-11-18 20:12</td><td class="hide-m">永久</td><td>admin</td><td><span style="color:var(--t3)">已失效</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- ========= 操作日志 ========= -->
       <div class="sec" id="sec-logs">
         <div class="p-head"><h1>操作日志</h1><span class="sub" id="lgSub">管理员操作留痕 · 最新在前</span></div>
@@ -1277,7 +1292,7 @@ const ROLE={admin:['bg-adm','管理员'],vip:['bg-vip','付费会员'],member:['
 const AVA_COLORS=['#ff2d55','#3a8ef0','#f5a623','#3fbf62','#8e7cff','#ff7a45','#0ea5a5'];
 
 /* ================= 导航 ================= */
-const CRUMB={dash:'数据看板',albums:'图集管理',publish:'图集编辑器',comments:'评论审核',notices:'公告管理',tags:'标签管理',authors:'作者管理',pay:'支付流水',users:'用户管理',config:'友链与配置',logs:'操作日志'};
+const CRUMB={dash:'数据看板',albums:'图集管理',publish:'图集编辑器',comments:'评论审核',notices:'公告管理',tags:'标签管理',authors:'作者管理',pay:'支付流水',users:'用户管理',config:'友链与配置',tokens:'Agent 令牌',logs:'操作日志'};
 function go(k,after){
   $$('.sec').forEach(s=>s.classList.remove('on'));
   $('#sec-'+k).classList.add('on');
