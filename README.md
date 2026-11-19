@@ -11,7 +11,7 @@
 - **积分解锁**：每日签到获得解锁积分；注册会员消耗 `album.points` 永久解锁单套图集，解锁后重复下载不再扣分，`user.points` 不会为负。
 - **会员体系**：付费会员全站畅看与下载，不消耗积分；支持支付宝沙箱 / 生产支付（异步通知经 RabbitMQ 幂等履约），本地默认 `ALIPAY_MOCK=true` 模拟支付，续费在剩余有效期上叠加 30 天。
 - **水印预览**：未解锁时只返回前 3 张带水印预览，解锁后及付费会员一律返回原图；全局开关 `image.watermark_on` 只控制未解锁预览。
-- **互动与下载**：收藏、作者订阅、评论审核；解锁后可在线查看全部图片并打包 ZIP 下载。
+- **互动与下载**：收藏、作者订阅、评论审核；订阅的作者首次发布图集时自动收到「更新」通知；解锁后可在线查看全部图片并打包 ZIP 下载。
 - **独立管理后台**：数据看板、图集编辑 / 发布 / 推荐 / 下架、标签与作者、评论审核、公告、支付流水与退款、用户管理、操作日志与 CSV 导出。
 - **Agent / MCP 接入**：后台可生成只读 / 读写 Agent 令牌，WorkBuddy 等工具通过 `/api/mcp` 直接查询与操作图集、评论、订单等数据，令牌支持有效期与吊销。
 - **缓存与限流**：Redis 7.4 承载站点数据缓存与接口限流（登录、验证码、评论、下载等），多实例共享计数；本地可切换为进程内存。
@@ -108,10 +108,10 @@ pwsh ./manage.ps1 reset                         # 删除数据卷后重建（清
 sylvie-gallery/
 ├── gallery-monorepo/
 │   ├── apps/
-│   │   ├── api/          # Hono API：JWT、MySQL、Redis、RustFS、Sharp、ZIP 下载
+│   │   ├── api/          # Hono API：JWT/Agent 令牌、MySQL、Redis、RabbitMQ、RustFS、Sharp、ZIP、MCP
 │   │   ├── web/          # Next.js 前台
 │   │   └── admin/        # React + Vite 管理后台
-│   └── packages/         # types、db、utils、eslint-config、tsconfig
+│   └── packages/         # types、db、utils、ui、logger、storage、cache、job、notify、mq、payment、eslint-config、tsconfig
 ├── docs/                 # 功能清单、数据库设计、原型与截图
 ├── scripts/              # Docker Compose、初始化 SQL、演示数据生成
 ├── manage.ps1            # 启动、构建、日志、重置等运维入口
@@ -126,8 +126,10 @@ sylvie-gallery/
 - [前台交互原型](docs/美女写真网站-v1原型设计.html)：单文件 HTML，浏览器直接打开
 - [管理后台原型](docs/美女写真网站-v1管理后台原型.html)：单文件 HTML，登录层与前台独立
 - [支付宝沙箱集成流程文档](docs/支付宝沙箱集成流程文档.md)：沙箱配置、支付链路、本地联调与排错
+- [API 支付接入说明](gallery-monorepo/apps/api/PAYMENT.md)：支付模式、异步通知、幂等履约与退款
+- [MCP 接入说明](gallery-monorepo/apps/api/MCP.md)：Agent 令牌、客户端配置与工具清单
 - [API 可观测性集成方案参考](docs/api模块可观测性集成方案参考文档.md)：OpenTelemetry + Alloy + Prometheus + Loki + Tempo + Grafana 参考方案
-- [scripts/docker-compose.yml](scripts/docker-compose.yml)：五端容器编排
+- [scripts/docker-compose.yml](scripts/docker-compose.yml)：八容器编排（MySQL / Redis / RabbitMQ / Mailpit / RustFS / API / Web / Admin）
 
 ## License
 
