@@ -1,3 +1,9 @@
+/**
+ * 后台数据看板：今日经营指标、站点统计、待办、最近图集、热搜词与营收趋势。
+ *
+ * 营收类指标统一只统计「已支付、现金金额 > 0 的会员订单」，不含积分订单与 0 元赠送单。
+ * 所有查询均为只读，可并发执行。
+ */
 import type {
   AdminAlbumRow,
   AdminDashboard,
@@ -29,14 +35,17 @@ import {
   type TrendBucketRow,
 } from '../../sql/admin/dashboard.sql.js';
 
+/** 两位数补零，用于拼接日期字符串。 */
 function pad(value: number): string {
   return String(value).padStart(2, '0');
 }
 
+/** 将 Date 格式化为本地时区的 YYYY-MM-DD。 */
 function dateString(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+/** 将看板最近图集行映射为通用图集行，数字 / 布尔字段统一转换。 */
 function mapRecentAlbum(row: RecentAlbumRow): AdminAlbumRow {
   return {
     id: Number(row.id),
@@ -59,6 +68,12 @@ function mapRecentAlbum(row: RecentAlbumRow): AdminAlbumRow {
   };
 }
 
+/**
+ * 汇总后台首页看板数据。
+ *
+ * 8 条统计查询并发执行：今日现金营收 / 解锁、今日新增用户 / 访问、站点总量、
+ * 今日订单数、最近 6 套图集、近 7 天热搜词。待审评论数同时用于站点统计与待办。
+ */
 export async function getAdminDashboard(): Promise<AdminDashboard> {
   const todayStatement = selectTodayVipRevenue();
   const unlockStatement = selectTodayUnlocks();
@@ -124,7 +139,12 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
   };
 }
 
-/** 营收趋势：只统计已支付的现金会员订单，与支付流水页同口径。 */
+/**
+ * 营收趋势：只统计已支付、现金金额 > 0 的会员订单，与支付流水页同口径。
+ *
+ * @param mode '7d' / '30d' 按天分桶（含今天），'6m' 按月分桶（含当月）；
+ * 数据库缺失的日期 / 月份补 0，保证前端横轴连续。
+ */
 export async function getAdminTrend(mode: TrendMode): Promise<AdminTrend> {
   if (mode === '6m') {
     const now = new Date();
@@ -170,6 +190,7 @@ export async function getAdminTrend(mode: TrendMode): Promise<AdminTrend> {
   return summarizeTrend(mode, points);
 }
 
+/** 汇总趋势点：总额、均值（四舍五入到分）与峰值所在标签；空序列兜底为空点。 */
 function summarizeTrend(mode: TrendMode, points: TrendPoint[]): AdminTrend {
   const sumCents = points.reduce((sum, point) => sum + point.valueCents, 0);
   const maxPoint = points.reduce(

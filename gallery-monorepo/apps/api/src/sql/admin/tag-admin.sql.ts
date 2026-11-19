@@ -1,3 +1,9 @@
+/**
+ * 后台标签的参数化 SQL：筛选列表、同名检查（含软删除复用）、新建 / 恢复、改名、
+ * 显示隐藏、收录数校验与软删除。
+ *
+ * 标签名在库中应唯一，因此同名检查包含已软删除记录。
+ */
 import { type SqlFragment, type SqlStatement } from '../shared.js';
 
 /** 后台标签列表 / 详情行。 */
@@ -9,7 +15,13 @@ export interface TagDbRow {
   createdAt: string;
 }
 
-/** 后台标签列表筛选：状态 + 名称关键字。 */
+/**
+ * 构建标签列表 WHERE 片段。
+ *
+ * - 固定条件：is_deleted = 0；
+ * - status = 'on' 过滤启用，'off' 过滤隐藏；
+ * - keyword 去空白后按名称 LIKE 匹配。
+ */
 export function buildAdminTagWhere(query: { status?: string; keyword?: string }): SqlFragment {
   const conditions = ['is_deleted = 0'];
   const params: unknown[] = [];
@@ -36,7 +48,7 @@ export function countAdminTags(where: SqlFragment): SqlStatement {
   };
 }
 
-/** 后台标签分页列表。 */
+/** 标签分页列表：按收录数倒序、id 倒序；limit / offset 由调用方计算。 */
 export function selectAdminTags(
   where: SqlFragment,
   pageSize: number,
@@ -52,7 +64,10 @@ export function selectAdminTags(
   };
 }
 
-/** 按 ID 读取标签（含软删除标记，用于同名复用）。 */
+/**
+ * 按名称读取标签（不过滤软删除），同时返回 is_deleted。
+ * service 据此判断：未删除则冲突；已删除则复用原记录恢复。
+ */
 export function selectTagByName(name: string): SqlStatement {
   return {
     sql: `SELECT id, is_deleted AS isDeleted FROM tag WHERE name = ? LIMIT 1`,
@@ -60,7 +75,7 @@ export function selectTagByName(name: string): SqlStatement {
   };
 }
 
-/** 恢复已软删除标签。 */
+/** 恢复已软删除标签：清除删除标记、重新启用并更新创建人。 */
 export function restoreAdminTag(adminId: number, tagId: number): SqlStatement {
   return {
     sql: `UPDATE tag SET is_deleted = 0, status = 1, created_by = ? WHERE id = ?`,
@@ -93,7 +108,7 @@ export function selectTagForEdit(tagId: number): SqlStatement {
   };
 }
 
-/** 检查同名标签是否已被占用。 */
+/** 检查同名标签是否已被占用：排除自身，但包含软删除记录（唯一索引约束）。 */
 export function selectTagDuplicate(name: string, tagId: number): SqlStatement {
   return {
     sql: `SELECT id FROM tag WHERE name = ? AND id <> ? LIMIT 1`,
@@ -125,7 +140,10 @@ export function updateAdminTagStatus(status: number, tagId: number): SqlStatemen
   };
 }
 
-/** 标签被图集收录的数量。 */
+/**
+ * 标签被未删除图集收录的数量（不区分发布状态），用于删除保护：
+ * 大于 0 时只能隐藏，不能删除。
+ */
 export function countTagAlbumUsage(tagId: number): SqlStatement {
   return {
     sql: `SELECT COUNT(*) AS total
@@ -135,7 +153,7 @@ export function countTagAlbumUsage(tagId: number): SqlStatement {
   };
 }
 
-/** 软删除标签。 */
+/** 软删除标签：置 is_deleted = 1、status = 0，保留记录以便同名复用。 */
 export function softDeleteAdminTag(tagId: number): SqlStatement {
   return {
     sql: `UPDATE tag SET is_deleted = 1, status = 0 WHERE id = ?`,

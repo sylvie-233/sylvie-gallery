@@ -1,3 +1,7 @@
+/**
+ * 前台标签接口：标签云列表，按收录套数（useCount）排序。
+ * 只读、匿名可访问，标签的新建 / 改名 / 隐藏由管理后台维护。
+ */
 import { createRoute, z } from '@hono/zod-openapi';
 
 import * as tagController from '../controllers/tag.controller.js';
@@ -7,6 +11,10 @@ import { createApiRouter, routeHandler } from '../openapi/router.js';
 
 const router = createApiRouter();
 
+/**
+ * GET /api/tags —— 前台标签云。
+ * 鉴权：无；返回全部启用标签（含 useCount），`#` 前缀由前端展示时拼接。
+ */
 const listRoute = createRoute({
   method: 'get',
   path: '/',

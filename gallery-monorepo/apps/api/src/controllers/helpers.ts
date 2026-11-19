@@ -1,3 +1,7 @@
+/**
+ * 控制器公共助手：从 Hono Context 读取登录用户与客户端 IP。
+ * `currentUser` 由 authenticate / optionalAuth 中间件写入。
+ */
 import type { AppContext, AuthUser } from '../types/context.js';
 import { HttpError } from '../utils/http.js';
 
@@ -15,7 +19,7 @@ export function currentUser(c: AppContext): AuthUser | undefined {
   return c.get('currentUser');
 }
 
-/** 取客户端来源 IP（优先反代头）。 */
+/** 取客户端来源 IP：优先 X-Forwarded-For 的第一跳，其次 X-Real-IP。 */
 export function clientIp(c: AppContext): string | undefined {
   const forwarded = c.req.header('x-forwarded-for');
   if (forwarded) {

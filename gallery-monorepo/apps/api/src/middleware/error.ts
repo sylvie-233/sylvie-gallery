@@ -1,3 +1,7 @@
+/**
+ * 全局错误兜底：按异常类型映射 HTTP 状态与中文提示，
+ * 始终返回统一响应结构，不向客户端泄露 SQL 或堆栈。
+ */
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
@@ -27,6 +31,7 @@ export function errorHandler(error: Error, c: Context<AppEnv>): Response {
     status = error.status;
     message = error.message || '请求处理失败';
   } else {
+    // 常见 MySQL / 网络错误转成可读提示，其余异常保持 500 以隐藏实现细节。
     const code = (error as ErrorWithCode).code;
     if (code === 'ER_DUP_ENTRY') {
       status = 409;

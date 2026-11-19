@@ -1,3 +1,9 @@
+/**
+ * 后台图集管理：列表 / 详情、保存（新建或编辑）、上下架、推荐池开关与软删除。
+ *
+ * 写操作遵循「校验 → 事务内写主表与关联（标签、媒体、冗余计数）→ 事务提交后写操作日志」的顺序，
+ * 事务失败时主表、关联与冗余计数一并回滚。
+ */
 import type {
   AdminAlbumDetail,
   AdminAlbumRow,
@@ -45,6 +51,7 @@ import { normalizePage, toBool, toPageResult, toSqlDateTime } from '../../utils/
 import { getObjectSize } from '../storage.service.js';
 import { logAdminOp } from './log.service.js';
 
+/** 将数据库行转换为后台图集列表行，统一把 BIGINT / 0-1 值转成前端可用的数字与布尔值。 */
 function mapAlbumRow(row: AdminAlbumDbRow): AdminAlbumRow {
   return {
     id: Number(row.id),
@@ -67,6 +74,7 @@ function mapAlbumRow(row: AdminAlbumDbRow): AdminAlbumRow {
   };
 }
 
+/** 将媒体行映射为编辑表单使用的媒体输入；空尺寸 / 时长保持 null，避免前端误判为 0。 */
 function mapMedia(row: MediaDbRow): AdminMediaInput {
   return {
     id: Number(row.id),
@@ -79,6 +87,14 @@ function mapMedia(row: MediaDbRow): AdminMediaInput {
   };
 }
 
+/**
+ * 分页查询后台图集列表。
+ *
+ * @param query.status 仅接受 published / draft / offline，其他值视为不筛选
+ * @param query.keyword 在标题与作者名中模糊匹配
+ * @param query.page / query.pageSize 未传时默认每页 6 条
+ * 只返回 is_deleted = 0 的图集，按发布时间（缺失时回退创建时间）倒序。
+ */
 export async function getAdminAlbums(query: {
   status?: string;
   keyword?: string;
@@ -99,6 +115,12 @@ export async function getAdminAlbums(query: {
   return toPageResult(rows.map(mapAlbumRow), Number(countRow?.total ?? 0), page, pageSize);
 }
 
+/**
+ * 读取图集详情，包含作者、标签、图片与视频。
+ *
+ * 详情、标签、媒体三次查询并发执行；图集不存在或已软删除时抛 404。
+ * 标签按收录数倒序，媒体按 sort_order 升序，并按 mediaType 拆分为 images / videos。
+ */
 export async function getAdminAlbumDetail(albumId: number): Promise<AdminAlbumDetail> {
   const detailStatement = selectAdminAlbumDetail(albumId);
   const row = await dbClient.queryOne<AdminAlbumDbRow>(
@@ -131,6 +153,12 @@ export async function getAdminAlbumDetail(albumId: number): Promise<AdminAlbumDe
   };
 }
 
+/**
+ * 估算图集压缩包大小（MB，保留两位小数），写入 album.package_size 供前台展示。
+ *
+ * 优先使用前端传入的 size；缺失时依次尝试：对象存储按 key 探测 → 对 http(s) 地址发 HEAD。
+ * 每批 8 个并发，失败或超时（2.5s）的单个媒体按 0 计，保证保存流程不被外部探测阻塞。
+ */
 async function estimatePackageSizeMb(images: AdminMediaInput[]): Promise<number> {
   if (images.length === 0) {
     return 0;
@@ -170,6 +198,7 @@ async function estimatePackageSizeMb(images: AdminMediaInput[]): Promise<number>
   return Math.round((total / 1024 / 1024) * 100) / 100;
 }
 
+/** 在事务连接上重算标签收录数；去重后批量更新，空列表直接跳过。 */
 async function recalcTags(conn: TransactionConnection, tagIds: number[]): Promise<void> {
   const unique = [...new Set(tagIds)];
   if (unique.length === 0) {
@@ -179,6 +208,7 @@ async function recalcTags(conn: TransactionConnection, tagIds: number[]): Promis
   await conn.query(statement.sql, statement.params);
 }
 
+/** 在事务连接上逐个重算作者图集数与最近更新时间；传入新旧作者以覆盖归属变更场景。 */
 async function recalcAuthors(conn: TransactionConnection, authorIds: number[]): Promise<void> {
   const unique = [...new Set(authorIds)];
   for (const authorId of unique) {
@@ -187,6 +217,12 @@ async function recalcAuthors(conn: TransactionConnection, authorIds: number[]): 
   }
 }
 
+/**
+ * 同步图集媒体：保留的既有媒体执行更新（并把 is_deleted 复位为 0），新增的插入，
+ * 表单中已移除的既有媒体按 ID 软删除。sortOrder 取表单内下标 + 1，图片与视频分别计数。
+ *
+ * 必须与保存图集的主表更新在同一事务中执行。
+ */
 async function syncMedia(
   conn: TransactionConnection,
   albumId: number,
@@ -245,6 +281,18 @@ async function syncMedia(
   }
 }
 
+/**
+ * 新建或编辑图集（albumId 为 null 时新建）。
+ *
+ * 流程与事务边界：
+ * 1. 事务外校验标题长度、媒体数量、归属作者、标签有效性，并估算压缩包大小；
+ * 2. 事务内写 album 主表（新建时生成 ID），全量重建 album_tag，按表单同步媒体，
+ *    最后重算新旧标签的收录数与新旧作者的图集数——这些写入必须同事务，避免计数与关联不一致；
+ * 3. 事务提交后再写 admin_op_log（分别记为 album.create / album.draft / album.edit），
+ *    日志不参与回滚，也不阻塞主流程。
+ *
+ * 副作用：首次发布会写入 published_at；编辑时保留原发布时间。返回最新详情。
+ */
 export async function saveAdminAlbum(
   adminId: number,
   input: AdminAlbumSaveInput,
@@ -319,9 +367,11 @@ export async function saveAdminAlbum(
   const targetId = await dbClient.transaction(async (conn) => {
     let currentId = albumId;
     let publishedAt = existing?.publishedAt ?? null;
+    // 首次进入 published 时记录发布时间；重复发布保留原值。
     if (status === 'published' && existing?.status !== 'published') {
       publishedAt = toSqlDateTime();
     }
+    // 新建且非发布状态不写发布时间。
     if (status !== 'published' && !existing) {
       publishedAt = null;
     }
@@ -359,6 +409,7 @@ export async function saveAdminAlbum(
       await conn.query(statement.sql, statement.params);
     }
 
+    // 标签关联采用全量重建：先清空再按表单插入。
     const deleteTagsStatement = deleteAlbumTags(currentId);
     await conn.query(deleteTagsStatement.sql, deleteTagsStatement.params);
     for (const tagId of tagIds) {
@@ -380,6 +431,7 @@ export async function saveAdminAlbum(
     return currentId;
   });
 
+  // 事务提交后再记日志；按新建 / 草稿 / 编辑区分动作。
   const action = existing
     ? 'album.edit'
     : status === 'published'
@@ -406,6 +458,13 @@ export async function saveAdminAlbum(
   return getAdminAlbumDetail(targetId);
 }
 
+/**
+ * 发布或下架图集。
+ *
+ * 事务内更新 album.status，并重算该图集关联标签的收录数与作者图集数
+ * （二者只统计 published 且未删除的图集，因此状态变化必须同步刷新）。
+ * 重复发布保留首次发布时间；下架不移除 published_at。事务后写 album.publish / album.offline 日志。
+ */
 export async function updateAdminAlbumStatus(
   adminId: number,
   albumId: number,
@@ -446,6 +505,11 @@ export async function updateAdminAlbumStatus(
   return getAdminAlbumDetail(albumId);
 }
 
+/**
+ * 切换图集是否进入瀑布流推荐池（album.is_recommended）。
+ *
+ * 读取当前值后取反并直接更新；操作日志按结果记为 album.recommend / album.unrecommend。
+ */
 export async function toggleAdminAlbumRecommend(
   adminId: number,
   albumId: number,
@@ -473,6 +537,11 @@ export async function toggleAdminAlbumRecommend(
   return { isRecommended: next };
 }
 
+/**
+ * 软删除图集：album 与其全部媒体置 is_deleted = 1，并在同一事务内重算关联标签收录数与作者图集数。
+ *
+ * 不做物理删除；事务提交后写 album.delete 操作日志。删除不清理已解锁记录、收藏等关联数据。
+ */
 export async function deleteAdminAlbum(
   adminId: number,
   albumId: number,

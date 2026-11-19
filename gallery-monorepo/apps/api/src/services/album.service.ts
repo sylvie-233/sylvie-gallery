@@ -1,3 +1,8 @@
+/**
+ * 前台图集业务：列表 / 瀑布流、详情与权限判定、收藏、评论与整包下载。
+ * 访问规则：游客与注册会员未解锁时只能看前 3 张预览（可加水印），
+ * 注册会员用积分解锁后、付费会员与管理员可查看全部并下载原图。
+ */
 import { Readable } from 'node:stream';
 
 import archiver from 'archiver';
@@ -74,6 +79,7 @@ import { isVipUser } from './user.service.js';
 
 const log = moduleLogger('album');
 
+/** 图集行映射为卡片 DTO：附加标签、作者摘要与当前用户收藏状态。 */
 function mapAlbumCard(row: AlbumRow, tags: AlbumTagRow[], favorited: boolean): AlbumCardDto {
   return {
     id: Number(row.id),
@@ -104,6 +110,7 @@ function mapAlbumCard(row: AlbumRow, tags: AlbumTagRow[], favorited: boolean): A
   };
 }
 
+/** 批量加载图集标签并按图集 id 分组，避免逐条查询。 */
 async function loadTags(albumIds: number[]): Promise<Map<number, AlbumTagRow[]>> {
   const map = new Map<number, AlbumTagRow[]>();
   if (albumIds.length === 0) {
@@ -119,6 +126,7 @@ async function loadTags(albumIds: number[]): Promise<Map<number, AlbumTagRow[]>>
   return map;
 }
 
+/** 批量加载当前用户已收藏的图集 id；游客返回空集合。 */
 async function loadFavorites(userId: number | undefined, albumIds: number[]): Promise<Set<number>> {
   if (!userId || albumIds.length === 0) {
     return new Set();
@@ -128,6 +136,7 @@ async function loadFavorites(userId: number | undefined, albumIds: number[]): Pr
   return new Set(rows.map((row) => Number(row.albumId)));
 }
 
+/** 批量组装图集卡片（标签与收藏状态并发加载）。 */
 async function buildAlbumCards(rows: AlbumRow[], userId?: number): Promise<AlbumCardDto[]> {
   const ids = rows.map((row) => Number(row.id));
   const [tagMap, favoriteSet] = await Promise.all([loadTags(ids), loadFavorites(userId, ids)]);
@@ -145,7 +154,11 @@ async function logAlbumSearch(keyword: string, resultCount: number, userId?: num
   }
 }
 
-/** 图集列表：支持最新 / 热门 / 收藏排序、标签筛选、关键词检索与分页。 */
+/**
+ * 图集列表：支持最新 / 热门 / 收藏排序、标签筛选、关键词检索与分页。
+ * 默认每页 24 套；关键词截断 64 字符、标签去掉前缀 `#`；
+ * 关键词非空时异步写搜索日志（失败不影响返回）。`userId` 用于叠加收藏状态。
+ */
 export async function listAlbums(
   query: {
     page?: number;
@@ -181,7 +194,10 @@ export async function listAlbums(
   return toPageResult(await buildAlbumCards(rows, userId), total, page, pageSize);
 }
 
-/** 瀑布流：推荐池优先，登录用户叠加最近浏览标签的偏好分。 */
+/**
+ * 瀑布流：推荐池优先，登录用户叠加最近浏览标签的偏好分。
+ * 默认每页 24 套；`userId` 为空时按推荐位 + 浏览量排序。
+ */
 export async function getFeed(
   page: number,
   pageSize: number,
@@ -207,7 +223,12 @@ export async function getFeed(
   );
 }
 
+/**
+ * 媒体行映射：未解锁且全局水印开启时优先返回水印图，
+ * 否则返回原图；`watermarkUrl` 始终保留在 DTO 中供前端展示。
+ */
 function mapImage(row: AlbumImageRow, useWatermark: boolean): AlbumImageDto {
+  // 只有水印图存在时才替换，避免水印缺失导致预览无图。
   const url = useWatermark && row.watermarkUrl ? row.watermarkUrl : row.url;
   return {
     id: Number(row.id),
@@ -222,6 +243,7 @@ function mapImage(row: AlbumImageRow, useWatermark: boolean): AlbumImageDto {
   };
 }
 
+/** 评论用户映射：按会员到期时间计算有效角色（过期 VIP 显示为 member）。 */
 function mapCommentUser(row: AlbumCommentRow): CommentUserDto {
   const role: EffectiveRole = effectiveRole(row.role, row.vipExpireAt);
   return {
@@ -234,6 +256,11 @@ function mapCommentUser(row: AlbumCommentRow): CommentUserDto {
   };
 }
 
+/**
+ * 加载并组装评论树：顶层评论 + 一层回复。
+ * 只返回已审核评论（或当前用户自己的待审核 / 被拒评论），
+ * `total` 与展示口径一致，仅统计已审核数量。
+ */
 async function loadComments(
   albumId: number,
   userId: number | undefined,
@@ -275,13 +302,19 @@ async function loadComments(
   return { comments: roots, total: Number(totalRow?.total ?? 0) };
 }
 
+/** 全局水印开关：缺省视为开启，仅显式配置为 `0` 时关闭。 */
 async function getWatermarkOn(): Promise<boolean> {
   const statement = selectWatermarkConfig();
   const row = await dbClient.queryOne<{ value: string }>(statement.sql, statement.params);
   return row?.value !== '0';
 }
 
-/** 图集详情：按角色与解锁状态返回前 3 张预览或全部媒体。 */
+/**
+ * 图集详情：按角色与解锁状态返回前 3 张预览或全部媒体。
+ * 权限判定：有效付费会员 / 管理员或已积分解锁 → 全部媒体、无水印、可下载；
+ * 否则只返回前 `FREE_PREVIEW_COUNT`（3）张预览，且全局水印开启时使用水印图。
+ * 浏览量与浏览日志异步维护，失败只记日志，不影响详情返回。
+ */
 export async function getAlbumDetail(
   albumId: number,
   user: AuthUser | undefined,
@@ -396,7 +429,11 @@ export async function getAlbumDetail(
   };
 }
 
-/** 收藏 / 取消收藏，同时维护 album.fav_count。 */
+/**
+ * 收藏 / 取消收藏，同时维护 `album.fav_count`。
+ * 事务内 `FOR UPDATE` 读取收藏记录：存在则删除并 -1、否则插入并 +1，
+ * 计数增减与收藏关系变更同事务提交，避免冗余计数漂移。
+ */
 export async function toggleFavorite(
   albumId: number,
   userId: number,
@@ -443,7 +480,11 @@ export async function toggleFavorite(
   });
 }
 
-/** 发表评论：先审后发，返回待审核评论。 */
+/**
+ * 发表评论：先审后发，返回待审核评论。
+ * 校验图集已发布、回复目标属于同一图集；新评论 `status='pending'`，
+ * 因此发表时不增加 `album.comment_count`，并写入待审核通知。
+ */
 export async function createComment(
   albumId: number,
   userId: number,
@@ -510,7 +551,11 @@ export async function createComment(
   };
 }
 
-/** 删除本人评论（连同其下回复），同步 comment_count。 */
+/**
+ * 删除本人评论（连同其下回复），同步 comment_count。
+ * 事务内 `FOR UPDATE` 锁定评论，校验归属后软删除父评论与回复；
+ * 仅将其中「已审核」的评论数从 `album.comment_count` 扣减，且不会被扣成负数。
+ */
 export async function deleteComment(commentId: number, userId: number): Promise<void> {
   await dbClient.transaction(async (conn) => {
     const commentStatement = selectCommentForUpdate(commentId);
@@ -546,13 +591,18 @@ export async function deleteComment(commentId: number, userId: number): Promise<
   });
 }
 
+/** 在同一事务连接上查询某评论的回复 id 列表。 */
 async function queryOnIds(conn: TransactionConnection, parentId: number): Promise<number[]> {
   const statement = selectReplyCommentIds(parentId);
   const rows = await queryOn<{ id: number }>(conn, statement.sql, statement.params);
   return rows.map((row) => Number(row.id));
 }
 
-/** 按 ID 批量取图集卡片（用于收藏 / 解锁 / 购买列表）。 */
+/**
+ * 按 ID 批量取图集卡片（用于收藏 / 解锁 / 购买列表）。
+ * 先去重，再一次性查询并组装；返回以图集 id 为键的 Map，
+ * 已下架 / 软删除的图集不会出现在结果中。
+ */
 export async function getAlbumCardsByIds(
   albumIds: number[],
   userId?: number,
@@ -571,6 +621,7 @@ export async function getAlbumCardsByIds(
   return result;
 }
 
+/** 按 id 取单个图集卡片；不可见或不存在时返回 null。 */
 export async function getAlbumCardById(
   albumId: number,
   userId?: number,
@@ -579,7 +630,10 @@ export async function getAlbumCardById(
   return map.get(albumId) ?? null;
 }
 
-/** 我的收藏：按收藏时间倒序，每页 12 套。 */
+/**
+ * 我的收藏：按收藏时间倒序，每页 12 套。
+ * 只返回仍公开可见的图集；total 与列表口径一致。
+ */
 export async function listFavoriteAlbums(
   userId: number,
   page = 1,
@@ -614,11 +668,17 @@ export async function listFavoriteAlbums(
   return toPageResult(list, total, normalized.page, normalized.pageSize);
 }
 
+/** 清理 ZIP 文件名中的非法字符并截断，空结果回退为默认名。 */
 function sanitizeFilename(name: string): string {
   return name.replace(/[\\/:*?"<>|\r\n]+/g, ' ').trim().slice(0, 80) || 'sylvie-album';
 }
 
-/** 已解锁 / 付费会员下载整包原图；返回 ZIP 流。 */
+/**
+ * 已解锁 / 付费会员下载整包原图；返回 ZIP 流。
+ * 权限：管理员 / 有效付费会员直接通过，其余用户必须已有 `album_unlock` 记录，
+ * 否则 403。图片逐张拉取并流式写入 ZIP（单张失败跳过），
+ * 下载次数与下载日志在开始下载后维护，写入失败不阻断下载。
+ */
 export async function createAlbumZip(
   albumId: number,
   user: AuthUser,

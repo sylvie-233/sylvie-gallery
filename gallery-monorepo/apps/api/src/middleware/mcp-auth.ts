@@ -1,3 +1,7 @@
+/**
+ * MCP 鉴权中间件：Agent 令牌优先、管理员 JWT 兼容；
+ * Agent 令牌以创建者身份执行，并刷新最近使用时间。
+ */
 import { createMiddleware } from 'hono/factory';
 
 import {
@@ -9,6 +13,7 @@ import { HttpError } from '../utils/http.js';
 import { verifyToken } from '../utils/jwt.js';
 import { loadUser, readBearer } from './auth.js';
 
+/** Agent 令牌固定前缀，用于与普通登录 JWT 区分。 */
 const AGENT_TOKEN_PREFIX = 'svt_';
 
 /**
@@ -18,6 +23,7 @@ const AGENT_TOKEN_PREFIX = 'svt_';
 export const authenticateMcp = createMiddleware<AppEnv>(async (c, next) => {
   const apiKey = c.req.header('x-api-key')?.trim();
   const bearer = readBearer(c.req.header('authorization'));
+  // 优先从 X-API-Key 识别 Agent 令牌，其次兼容放进 Bearer 的写法。
   const agentToken =
     apiKey?.startsWith(AGENT_TOKEN_PREFIX) === true
       ? apiKey

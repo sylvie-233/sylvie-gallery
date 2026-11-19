@@ -1,3 +1,7 @@
+/**
+ * 后台看板接口：概览统计与营收趋势。
+ * 均为只读查询，不产生缓存失效与操作日志副作用。
+ */
 import { createRoute } from '@hono/zod-openapi';
 
 import * as dashboardController from '../../controllers/admin/dashboard.controller.js';
@@ -8,6 +12,7 @@ import { trendSchema } from '../../validators/admin/system.js';
 
 const router = createApiRouter();
 
+/** GET /api/admin/dashboard —— 概览统计（用户、图集、订单、营收等）。 */
 const dashboardRoute = createRoute({
   method: 'get',
   path: '/',
@@ -16,6 +21,7 @@ const dashboardRoute = createRoute({
   responses: { 200: successResponse(AdminDashboardSchema, '看板数据'), ...errorResponses },
 });
 
+/** GET /api/admin/dashboard/trend —— 营收趋势，query.mode 支持 7d/30d/6m。 */
 const trendRoute = createRoute({
   method: 'get',
   path: '/trend',

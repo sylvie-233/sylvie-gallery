@@ -1,3 +1,8 @@
+/**
+ * 后台订单与支付流水：分页列表、汇总指标、退款（含真实支付宝退款与权益收回）、CSV 导出。
+ *
+ * 退款是唯一会改动用户权益的写操作：先外部退款成功，再在本地事务中标记订单并收回会员。
+ */
 import type {
   AdminOrderPage,
   AdminOrderRow,
@@ -34,6 +39,7 @@ import {
 } from '../../sql/admin/order-admin.sql.js';
 import { logAdminOp } from './log.service.js';
 
+/** 将订单行映射为后台 DTO，聚合用户信息并把金额 / 积分等字段转为 number。 */
 function mapOrder(row: OrderRow): AdminOrderRow {
   return {
     id: Number(row.id),
@@ -55,6 +61,11 @@ function mapOrder(row: OrderRow): AdminOrderRow {
   };
 }
 
+/**
+ * 计算支付汇总：累计 / 今日现金营收与订单数、会员订单数 / 现金、解锁次数 / 消耗积分。
+ *
+ * 四类统计并发查询；营收只计 amount_cents > 0 的已支付订单。
+ */
 async function getPaymentSummary(): Promise<AdminPaymentSummary> {
   const totalStatement = selectOrderTotalRevenue();
   const todayStatement = selectOrderTodayRevenue();
@@ -79,6 +90,16 @@ async function getPaymentSummary(): Promise<AdminPaymentSummary> {
   };
 }
 
+/**
+ * 分页查询订单列表，并附带全量支付汇总。
+ *
+ * @param filter.biz vip / unlock
+ * @param filter.status created / paid / refunded / closed
+ * @param filter.keyword 模糊匹配订单号、用户昵称、邮箱
+ * @param filter.from / filter.to 按支付日期区间过滤（仅统计已支付时间非空的订单）
+ * @param filter.page / filter.pageSize 未传默认每页 8 条
+ * 列表计数、行数据与汇总并发执行；排序按支付时间（缺失回退创建时间）倒序。
+ */
 export async function getAdminOrders(
   filter: OrderFilter & { page?: number; pageSize?: number },
 ): Promise<AdminOrderPage> {
@@ -101,11 +122,14 @@ export async function getAdminOrders(
 
 /**
  * 后台退款：
- * 1. 预读订单并校验；
- * 2. 真实支付模式下先调用支付宝退款（幂等号 = 订单号，可安全重试）；
- * 3. 退款成功后才在本地事务中标记退款并收回会员权益。
+ * 1. 预读订单并校验（仅会员订单、仅已支付）；
+ * 2. 真实支付模式下先调用支付宝退款（幂等号 = 订单号，可安全重试；优先使用交易流水号）；
+ * 3. 退款成功后才在本地事务中 FOR UPDATE 重新读取订单、标记 refunded，并收回会员权益。
  *
+ * 权益收回：user.role 降为 member、vip_expire_at 置空；同时写入退款站内通知。
  * 支付宝退款失败时本地状态保持不变，管理员可修复配置后重试。
+ * 预读与加锁之间若已被他人退款，因支付宝退款幂等，直接返回当前结果。
+ * 事务提交后记录 order.refund 日志（含是否真实退款、是否已退款）。
  */
 export async function refundAdminOrder(
   adminId: number,
@@ -215,6 +239,7 @@ export async function refundAdminOrder(
   return mapOrder(row);
 }
 
+/** CSV 字段转义：包含逗号、双引号或换行的值用双引号包裹，内部双引号翻倍。 */
 function csvEscape(value: unknown): string {
   const text = value === null || value === undefined ? '' : String(value);
   if (/[",\n\r]/.test(text)) {
@@ -223,7 +248,13 @@ function csvEscape(value: unknown): string {
   return text;
 }
 
-/** 按当前筛选条件导出全部订单，写入操作日志。 */
+/**
+ * 按当前筛选条件导出全部订单为 CSV（不分页）。
+ *
+ * 业务字段转换为中文展示（业务类型、支付方式、状态、金额 / 积分）；
+ * 文件名为 sylvie-pay-YYYYMMDD-HHmm.csv，内容带 UTF-8 BOM 以便 Excel 正确识别中文。
+ * 导出前记录 pay.export 日志，包含导出条数与时间范围。
+ */
 export async function exportAdminOrders(
   adminId: number,
   filter: OrderFilter,

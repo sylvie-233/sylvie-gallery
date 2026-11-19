@@ -1,3 +1,7 @@
+/**
+ * 格式化与分页纯函数：VIP 有效状态、分页参数归一化、
+ * 数据库时间 / 订单号格式化及类型转换。
+ */
 import type { EffectiveRole, PageResult, Role } from '@sylvie/types';
 
 /** 付费会员是否仍在有效期内。 */
@@ -5,6 +9,7 @@ export function isVipActive(vipExpireAt: string | null | undefined, now = new Da
   if (!vipExpireAt) {
     return false;
   }
+  // MySQL DATETIME 以空格分隔日期与时间，替换为 T 以兼容各运行时的解析。
   return new Date(vipExpireAt.replace(' ', 'T')).getTime() > now.getTime();
 }
 
@@ -39,6 +44,7 @@ export function normalizePage(
   return { page: safePage, pageSize: safeSize, offset: (safePage - 1) * safeSize };
 }
 
+/** 组装统一分页结构；total 为 0 时 totalPages 仍返回 1。 */
 export function toPageResult<T>(
   list: T[],
   total: number,

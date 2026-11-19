@@ -1,3 +1,9 @@
+/**
+ * 后台图集的参数化 SQL：列表 / 详情、保存所需的标签与媒体读写、发布状态、推荐开关、软删除，
+ * 以及标签收录数、作者图集数的冗余字段重算。
+ *
+ * 所有函数返回 { sql, params }，不在此层开启事务，由 service 决定事务边界。
+ */
 import type { AdminAlbumStatus } from '@sylvie/types';
 
 import { placeholders, type SqlFragment, type SqlStatement } from '../shared.js';
@@ -59,7 +65,13 @@ const ALBUM_SELECT = `a.id, a.title, a.description, a.cover_url AS coverUrl,
   au.color AS authorColor, au.avatar_url AS authorAvatarUrl`;
 const ALBUM_FROM = `FROM album a JOIN author au ON au.id = a.author_id`;
 
-/** 后台图集列表筛选：状态 + 标题/作者关键字。 */
+/**
+ * 构建后台图集列表的 WHERE 片段。
+ *
+ * - 固定条件：`a.is_deleted = 0`（软删除图集不参与列表）；
+ * - status 仅接受 published / draft / offline，其他值忽略；
+ * - keyword 去空白并截断到 64 字符，在标题与作者名中做 LIKE 匹配（% 通配）。
+ */
 export function buildAdminAlbumWhere(query: {
   status?: string;
   keyword?: string;
@@ -90,7 +102,12 @@ export function countAdminAlbums(where: SqlFragment): SqlStatement {
   };
 }
 
-/** 后台图集分页列表。 */
+/**
+ * 后台图集分页列表。
+ *
+ * 按 COALESCE(published_at, created_at) 倒序（未发布图集按创建时间参与排序），同时间再按 id 倒序；
+ * pageSize / offset 由调用方计算。
+ */
 export function selectAdminAlbums(
   where: SqlFragment,
   pageSize: number,
@@ -164,7 +181,10 @@ export function selectAuthorForAlbum(authorId: number): SqlStatement {
   };
 }
 
-/** 保存图集时校验标签有效性。 */
+/**
+ * 校验标签有效性：仅返回未软删除且 ID 命中传入列表的记录。
+ * IN 占位符按 tagIds.length 动态生成；调用方比对返回行数与入参数量是否一致。
+ */
 export function selectValidTagIds(tagIds: number[]): SqlStatement {
   return {
     sql: `SELECT id FROM tag WHERE id IN (${placeholders(tagIds.length)}) AND is_deleted = 0`,
@@ -318,7 +338,10 @@ export function insertAlbumImage(values: AlbumMediaValues & { albumId: number })
   };
 }
 
-/** 软删除已移除的媒体。 */
+/**
+ * 软删除表单中已移除的既有媒体：限定 album_id 且 id 命中 staleIds。
+ * IN 占位符按数量动态生成，空列表不会进入此处（由 service 判断）。
+ */
 export function softDeleteStaleAlbumImages(albumId: number, staleIds: number[]): SqlStatement {
   return {
     sql: `UPDATE album_image SET is_deleted = 1 WHERE album_id = ? AND id IN (${placeholders(
@@ -328,7 +351,12 @@ export function softDeleteStaleAlbumImages(albumId: number, staleIds: number[]):
   };
 }
 
-/** 重算标签收录数（仅统计已发布且未删除图集）。 */
+/**
+ * 重算标签收录数（冗余字段 tag.use_count）。
+ *
+ * 只统计关联图集中 status = 'published' 且未软删除的数量，因此图集发布 / 下架 / 删除、
+ * 标签关联变更后都必须调用。批量限定 tagIds，IN 占位符按数量生成。
+ */
 export function recalcTagUseCount(tagIds: number[]): SqlStatement {
   return {
     sql: `UPDATE tag t SET use_count = (
@@ -340,7 +368,12 @@ export function recalcTagUseCount(tagIds: number[]): SqlStatement {
   };
 }
 
-/** 重算作者图集数与最近更新时间。 */
+/**
+ * 重算作者图集数（author.album_count）与最近更新时间（last_update_at）。
+ *
+ * 两者都只统计该作者 status = 'published' 且未软删除的图集；无已发布图集时
+ * last_update_at 会被置为 NULL。
+ */
 export function recalcAuthorStats(authorId: number): SqlStatement {
   return {
     sql: `UPDATE author a SET
@@ -353,7 +386,7 @@ export function recalcAuthorStats(authorId: number): SqlStatement {
   };
 }
 
-/** 发布图集。 */
+/** 发布图集：写入 published（发布时间由 service 决定，首次发布为新时间，重复发布保留原值）。 */
 export function publishAdminAlbum(publishedAt: string | null, albumId: number): SqlStatement {
   return {
     sql: `UPDATE album SET status = 'published', published_at = ? WHERE id = ?`,
@@ -361,7 +394,7 @@ export function publishAdminAlbum(publishedAt: string | null, albumId: number): 
   };
 }
 
-/** 下架图集。 */
+/** 下架图集：status 置 offline，保留 published_at 以便重新发布时沿用。 */
 export function offlineAdminAlbum(albumId: number): SqlStatement {
   return {
     sql: `UPDATE album SET status = 'offline' WHERE id = ?`,
@@ -378,7 +411,7 @@ export function selectAdminAlbumRecommend(albumId: number): SqlStatement {
   };
 }
 
-/** 设置推荐状态。 */
+/** 设置推荐状态：value 为 1 进入推荐池，0 移出推荐池。 */
 export function updateAdminAlbumRecommend(value: number, albumId: number): SqlStatement {
   return {
     sql: `UPDATE album SET is_recommended = ? WHERE id = ?`,

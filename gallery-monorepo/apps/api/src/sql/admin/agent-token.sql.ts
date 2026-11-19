@@ -1,3 +1,8 @@
+/**
+ * Agent / MCP 令牌的参数化 SQL：列表、创建、按哈希校验、吊销、最近使用时间与删除。
+ *
+ * 数据库只保存令牌哈希；校验时同时约束令牌状态、有效期与创建管理员身份。
+ */
 import type { SqlStatement } from '../shared.js';
 
 /** 后台令牌行。 */
@@ -52,7 +57,12 @@ export function selectAgentTokenById(id: number): SqlStatement {
   };
 }
 
-/** 新增令牌。 */
+/**
+ * 新增令牌，status 直接置 1。
+ *
+ * expiresInDays 为空时 expires_at 写 NULL（长期有效），否则用 DATE_ADD(NOW(), INTERVAL ? DAY)
+ * 计算；SQL 片段随是否传入有效期而切换，占位符数量同步变化。
+ */
 export function insertAgentToken(input: {
   name: string;
   tokenHash: string;
@@ -79,7 +89,12 @@ export function insertAgentToken(input: {
   };
 }
 
-/** 按哈希校验令牌：令牌启用、未过期、创建管理员仍为正常管理员。 */
+/**
+ * 按哈希校验令牌。
+ *
+ * 约束：令牌 status = 1、未设置过期或未过期，且创建者未删除、status = 1、role = 'admin'。
+ * 返回 scope 与创建管理员身份，供 MCP 鉴权与写权限判断。
+ */
 export function selectAgentTokenByHash(tokenHash: string): SqlStatement {
   return {
     sql: `SELECT t.id, t.scope, t.admin_id AS adminId,
@@ -97,7 +112,7 @@ export function selectAgentTokenByHash(tokenHash: string): SqlStatement {
   };
 }
 
-/** 吊销令牌。 */
+/** 吊销令牌：仅对启用中的令牌生效，置 status = 0 并记录 revoked_at。 */
 export function revokeAgentToken(id: number): SqlStatement {
   return {
     sql: `UPDATE agent_token
@@ -115,7 +130,7 @@ export function touchAgentToken(id: number): SqlStatement {
   };
 }
 
-/** 删除已吊销的令牌。 */
+/** 删除已吊销的令牌：附带 status = 0 条件，防止误删有效令牌。 */
 export function deleteAgentToken(id: number): SqlStatement {
   return {
     sql: `DELETE FROM agent_token WHERE id = ? AND status = 0`,

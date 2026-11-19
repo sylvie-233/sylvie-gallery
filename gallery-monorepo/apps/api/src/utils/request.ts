@@ -1,3 +1,6 @@
+/**
+ * 请求上下文工具：提取客户端来源 IP，以及获取当前登录管理员 ID。
+ */
 import type { Context } from 'hono';
 
 import type { AppEnv } from '../types/context.js';

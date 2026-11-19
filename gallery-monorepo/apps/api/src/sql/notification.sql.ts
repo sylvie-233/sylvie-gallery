@@ -2,6 +2,11 @@ import type { NotificationType } from '@sylvie/types';
 
 import type { SqlFragment, SqlStatement } from './shared.js';
 
+/**
+ * 前台站内通知 SQL：列表 / 未读数 / 已读标记。
+ * 所有查询都限定 `user_id`，防止越权读取他人通知；图集关联按未软删除过滤。
+ */
+
 /** 通知行：关联图集与作者摘要。 */
 export interface NotificationRow {
   id: number;
@@ -20,14 +25,17 @@ export interface NotificationRow {
   authorName: string | null;
 }
 
-/** 通知列表 WHERE 条件（全部 / 仅未读）。 */
+/**
+ * 通知列表 WHERE 条件。
+ * 始终限定当前用户；`unreadOnly` 为 true 时追加 `is_read = 0`（仅未读筛选）。
+ */
 export function buildNotificationWhere(userId: number, unreadOnly: boolean): SqlFragment {
   return unreadOnly
     ? { sql: 'n.user_id = ? AND n.is_read = 0', params: [userId] }
     : { sql: 'n.user_id = ?', params: [userId] };
 }
 
-/** 按筛选条件统计通知总数。 */
+/** 按筛选条件统计通知总数（分页 total）。 */
 export function countNotifications(where: SqlFragment): SqlStatement {
   return {
     sql: `SELECT COUNT(*) AS total FROM user_notification n WHERE ${where.sql}`,
@@ -35,7 +43,7 @@ export function countNotifications(where: SqlFragment): SqlStatement {
   };
 }
 
-/** 未读通知总数。 */
+/** 当前用户未读通知总数，用于红点角标。 */
 export function countUnreadNotifications(userId: number): SqlStatement {
   return {
     sql: `SELECT COUNT(*) AS total FROM user_notification WHERE user_id = ? AND is_read = 0`,
@@ -43,7 +51,10 @@ export function countUnreadNotifications(userId: number): SqlStatement {
   };
 }
 
-/** 分页通知列表，关联图集与作者。 */
+/**
+ * 分页通知列表，LEFT JOIN 图集与作者摘要。
+ * `where` 为筛选条件；按创建时间、id 倒序，`limit` / `offset` 由 service 归一化。
+ */
 export function selectNotifications(
   where: SqlFragment,
   limit: number,
@@ -64,7 +75,7 @@ export function selectNotifications(
   };
 }
 
-/** 查询归属当前用户的通知。 */
+/** 校验通知归属当前用户（用于标记已读前的越权检查）。 */
 export function selectNotificationForUser(
   notificationId: number,
   userId: number,
@@ -75,7 +86,10 @@ export function selectNotificationForUser(
   };
 }
 
-/** 单条通知标记已读。 */
+/**
+ * 单条通知标记已读。
+ * `COALESCE(read_at, NOW())` 保证首次已读时间不被后续重复标记覆盖。
+ */
 export function markNotificationRead(notificationId: number, userId: number): SqlStatement {
   return {
     sql: `UPDATE user_notification SET is_read = 1, read_at = COALESCE(read_at, NOW())
@@ -84,7 +98,7 @@ export function markNotificationRead(notificationId: number, userId: number): Sq
   };
 }
 
-/** 全部未读通知标记已读。 */
+/** 将当前用户全部未读通知标记已读，同样保留首次已读时间。 */
 export function markAllNotificationsRead(userId: number): SqlStatement {
   return {
     sql: `UPDATE user_notification SET is_read = 1, read_at = COALESCE(read_at, NOW())

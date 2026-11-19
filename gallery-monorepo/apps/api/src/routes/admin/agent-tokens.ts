@@ -1,3 +1,7 @@
+/**
+ * 后台 Agent 令牌接口：列表、创建、吊销与删除。
+ * 明文令牌只在创建时返回一次；scope 分 read/write，吊销后立即失效。
+ */
 import { createRoute, z } from '@hono/zod-openapi';
 
 import * as agentTokenController from '../../controllers/admin/agent-token.controller.js';
@@ -17,6 +21,7 @@ import { createAgentTokenSchema } from '../../validators/admin/agent-token.js';
 
 const router = createApiRouter();
 
+/** GET /api/admin/agent-tokens —— 不返回明文，仅展示前缀、权限、状态与使用情况。 */
 const listRoute = createRoute({
   method: 'get',
   path: '/',
@@ -29,6 +34,7 @@ const listRoute = createRoute({
   },
 });
 
+/** POST /api/admin/agent-tokens —— body 校验名称 ≤32、scope 与可选有效期；明文仅本次响应返回。 */
 const createRouteDef = createRoute({
   method: 'post',
   path: '/',
@@ -42,6 +48,7 @@ const createRouteDef = createRoute({
   },
 });
 
+/** POST /api/admin/agent-tokens/{id}/revoke —— 吊销令牌，立即失效且不可恢复。 */
 const revokeRoute = createRoute({
   method: 'post',
   path: '/{id}/revoke',
@@ -55,6 +62,7 @@ const revokeRoute = createRoute({
   },
 });
 
+/** DELETE /api/admin/agent-tokens/{id} —— 仅允许删除已吊销的令牌。 */
 const deleteRoute = createRoute({
   method: 'delete',
   path: '/{id}',

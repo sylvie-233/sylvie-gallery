@@ -1,3 +1,7 @@
+/**
+ * API 路由总入口：挂载前台 / 后台 / MCP 各子路由，注册 BearerAuth 安全方案，
+ * 并输出 `/api/openapi.json`（OpenAPI 3.1），供 Scalar 文档页渲染。
+ */
 import { createApiRouter } from '../openapi/router.js';
 import adminAuthRoutes from './admin/auth.js';
 import adminRoutes from './admin/index.js';
@@ -17,6 +21,7 @@ import tagRoutes from './tags.js';
 
 const router = createApiRouter();
 
+// 文档级默认安全方案；声明 `security: []` 的路由（如登录、列表页）会覆盖为匿名访问。
 router.openAPIRegistry.registerComponent('securitySchemes', 'BearerAuth', {
   type: 'http',
   scheme: 'bearer',
@@ -24,8 +29,10 @@ router.openAPIRegistry.registerComponent('securitySchemes', 'BearerAuth', {
   description: '登录成功后签发的 JWT；后台接口使用管理后台登录签发的令牌。',
 });
 
+// 后台路由优先挂载：`/admin/auth` 独立登录，其余 `/admin/*` 由 authenticate + requireAdmin 保护。
 router.route('/admin/auth', adminAuthRoutes);
 router.route('/admin', adminRoutes);
+// 前台路由：除登录、列表类接口外，均由各路由内部声明 authenticate。
 router.route('/auth', authRoutes);
 router.route('/site', siteRoutes);
 router.route('/albums', albumRoutes);
@@ -40,6 +47,7 @@ router.route('/comments', commentRoutes);
 router.route('/files', fileRoutes);
 router.route('/mcp', mcpRoutes);
 
+// 文档由各路由的 createRoute 声明自动汇总，禁止手写 spec；servers 固定为相对路径 `/api`。
 router.doc31('/openapi.json', {
   openapi: '3.1.0',
   info: {

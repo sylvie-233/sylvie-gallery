@@ -1,3 +1,7 @@
+/**
+ * HTTP 响应辅助：统一 `{ code, message, data }` 响应结构，
+ * 并提供由全局错误中间件消费的业务异常类型。
+ */
 import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 

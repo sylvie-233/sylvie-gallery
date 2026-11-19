@@ -1,3 +1,7 @@
+/**
+ * 文件代理接口：以 `/api/files/{key}` 读取对象存储内容。
+ * 仅放行 avatars/、albums/、authors/ 前缀，避免暴露桶内其他对象。
+ */
 import { z } from '@hono/zod-openapi';
 
 import * as fileController from '../controllers/file.controller.js';
@@ -30,6 +34,7 @@ router.openAPIRegistry.registerPath({
   },
 });
 
+// Hono 默认参数不跨 `/`，正则 `.+` 让 key 可以包含多级目录（如 albums/1/cover.webp）。
 router.get('/:key{.+}', (c) => fileController.proxy(c));
 
 export default router;

@@ -1,3 +1,7 @@
+/**
+ * 后台认证接口：管理员登录与当前管理员资料。
+ * 登录路由单独放行（security: []）并限流；/me 依赖 authenticate + requireAdmin。
+ */
 import { createRoute } from '@hono/zod-openapi';
 
 import * as adminAuthController from '../../controllers/admin/auth.controller.js';
@@ -10,6 +14,7 @@ import { adminLoginSchema } from '../../validators/admin/auth.js';
 
 const router = createApiRouter();
 
+/** POST /api/admin/auth/login —— 仅 admin 角色可登录；IP 与账号双维度限流，security 显式置空。 */
 const loginRoute = createRoute({
   method: 'post',
   path: '/login',
@@ -22,6 +27,7 @@ const loginRoute = createRoute({
   responses: { 200: successResponse(AuthResultSchema, '登录成功'), ...errorResponses },
 });
 
+/** GET /api/admin/auth/me —— 从 JWT 解析并返回当前管理员资料。 */
 const meRoute = createRoute({
   method: 'get',
   path: '/me',

@@ -1,3 +1,7 @@
+/**
+ * 服务启动入口：先确认数据库与对象存储可用，再启动定时任务与消息队列，
+ * 最后监听端口，并处理 SIGINT / SIGTERM 的优雅关闭。
+ */
 import { serve } from '@hono/node-server';
 
 import app from './app.js';
@@ -10,6 +14,7 @@ import { closeNotifier } from './services/notify.service.js';
 import { ensureBucket } from './services/storage.service.js';
 import { logger } from './utils/logger.js';
 
+/** 启动流程：依赖探测 → 启动后台组件 → 监听端口 → 注册关闭信号。 */
 async function bootstrap(): Promise<void> {
   // 启动前确认数据库与对象存储可用，避免「服务可访问但所有接口报错」
   await dbClient.ping();
@@ -52,6 +57,7 @@ async function bootstrap(): Promise<void> {
         });
     });
 
+    // 兜底超时：连接迟迟无法释放时强制退出，避免容器 stop 卡死。
     setTimeout(() => process.exit(1), 10_000).unref();
   };
 

@@ -1,3 +1,8 @@
+/**
+ * 应用级通知服务（邮件 / 短信）：
+ * 邮件通道按 SMTP 配置启用，开发环境由 Mailpit 捕获；
+ * 通道未配置或发送失败只记录日志，不阻断注册、找回密码等业务流程。
+ */
 import { createNotifier } from '@sylvie/notify';
 
 import { env } from '../config/env.js';
@@ -7,8 +12,9 @@ const log = moduleLogger('notify');
 
 /**
  * 应用级通知实例：
- * - 配置 SMTP_HOST 时启用邮件通道（开发环境为 Mailpit）；
- * - 短信通道暂未配置，接入服务商后在 `sms.send` 中注入实现即可。
+ * - 配置 `SMTP_HOST` 时启用邮件通道（开发环境为 Mailpit）；为空时邮件通道关闭，
+ *   发送返回 `skipped=true` 而不抛错，调用方无需特殊处理；
+ * - 短信通道暂未配置，接入服务商后在 `sms.send` 中注入 `SmsSender` 实现即可。
  */
 export const notifier = createNotifier({
   email: env.SMTP_HOST
@@ -29,7 +35,16 @@ export const notifier = createNotifier({
   },
 });
 
-/** 发送邮箱验证码；失败已被通道吞掉，这里只返回是否成功。 */
+/**
+ * 发送邮箱验证码（注册 / 找回密码）。
+ *
+ * @param email 收件邮箱。
+ * @param code 验证码明文。
+ * @param scene 场景，决定邮件文案（注册账号 / 重置密码）。
+ * @param ttlMinutes 有效期（分钟），仅用于文案展示。
+ * @returns 是否发送成功；通道未配置或发送失败均返回 false，
+ *          异常已被通道捕获，不会抛错阻断主流程。
+ */
 export async function sendVerifyCodeMail(
   email: string,
   code: string,
@@ -52,7 +67,7 @@ export async function sendVerifyCodeMail(
   return result.ok;
 }
 
-/** 关闭通知通道（进程退出时调用）。 */
+/** 关闭邮件连接池等底层资源（进程退出时调用）；未启用通道时为无操作。 */
 export function closeNotifier(): void {
   notifier.close();
 }

@@ -1,3 +1,7 @@
+/**
+ * 后台公告接口：列表、发布、更新、上下线与软删除。
+ * 路由挂载于 /api/admin/announcements，写操作后失效公告与站点缓存。
+ */
 import { createRoute } from '@hono/zod-openapi';
 
 import * as announcementController from '../../controllers/admin/announcement.controller.js';
@@ -17,6 +21,7 @@ import { announcementListSchema, announcementSaveSchema } from '../../validators
 
 const router = createApiRouter();
 
+/** GET /api/admin/announcements —— 公告分页，支持类型、状态、关键词与日期筛选。 */
 const listRoute = createRoute({
   method: 'get',
   path: '/',
@@ -26,6 +31,7 @@ const listRoute = createRoute({
   responses: { 200: successResponse(AdminAnnouncementPageSchema, '公告分页'), ...errorResponses },
 });
 
+/** POST /api/admin/announcements —— 发布公告，body 由 announcementSaveSchema 校验。 */
 const createRouteDef = createRoute({
   method: 'post',
   path: '/',
@@ -38,6 +44,7 @@ const createRouteDef = createRoute({
   },
 });
 
+/** PUT /api/admin/announcements/{id} —— 更新公告内容，id 取自路径参数。 */
 const updateRoute = createRoute({
   method: 'put',
   path: '/{id}',
@@ -47,6 +54,7 @@ const updateRoute = createRoute({
   responses: { 200: successResponse(AdminAnnouncementRowSchema, '公告已更新'), ...errorResponses },
 });
 
+/** POST /api/admin/announcements/{id}/toggle —— 在发布/下线之间切换，无请求体。 */
 const toggleRoute = createRoute({
   method: 'post',
   path: '/{id}/toggle',
@@ -56,6 +64,7 @@ const toggleRoute = createRoute({
   responses: { 200: successResponse(AdminAnnouncementRowSchema, '公告状态'), ...errorResponses },
 });
 
+/** DELETE /api/admin/announcements/{id} —— 软删除公告，不做物理删除。 */
 const deleteRoute = createRoute({
   method: 'delete',
   path: '/{id}',

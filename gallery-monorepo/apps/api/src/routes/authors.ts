@@ -1,3 +1,7 @@
+/**
+ * 前台作者接口：作者列表 / 详情与其图集分页、订阅切换。
+ * 列表与详情允许游客访问（optionalAuth），订阅需要登录；登录用户返回 subscribed 状态。
+ */
 import { createRoute, z } from '@hono/zod-openapi';
 
 import * as authorController from '../controllers/author.controller.js';
@@ -9,6 +13,11 @@ import { authorDetailSchema, authorListSchema } from '../validators/albums.js';
 
 const router = createApiRouter();
 
+/**
+ * GET /api/authors —— 作者列表（不分页）。
+ * 鉴权：optionalAuth；query 仅支持 keyword（姓名 / 别名 / 风格标签，≤32 字）。
+ * 响应：按 sort_weight 与更新时间排序的完整作者数组。
+ */
 const listRoute = createRoute({
   method: 'get',
   path: '/',
@@ -21,6 +30,11 @@ const listRoute = createRoute({
   responses: { 200: successResponse(z.array(AuthorSchema), '作者列表'), ...errorResponses },
 });
 
+/**
+ * GET /api/authors/{id} —— 作者详情 + 其图集分页。
+ * 鉴权：optionalAuth；query 校验页码与每页条数（≤36）。
+ * 响应：作者本体、图集分页字段与订阅状态。
+ */
 const detailRoute = createRoute({
   method: 'get',
   path: '/{id}',
@@ -32,6 +46,10 @@ const detailRoute = createRoute({
   responses: { 200: successResponse(AuthorDetailSchema, '作者详情'), ...errorResponses },
 });
 
+/**
+ * POST /api/authors/{id}/subscribe —— 切换作者订阅（订阅 / 取消订阅）。
+ * 鉴权：authenticate；副作用是新增或删除 author_subscription 记录。
+ */
 const subscribeRoute = createRoute({
   method: 'post',
   path: '/{id}/subscribe',

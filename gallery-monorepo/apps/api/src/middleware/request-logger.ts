@@ -1,3 +1,7 @@
+/**
+ * 请求日志中间件：生成或透传 requestId，注入请求级子日志，
+ * 并按时长与状态码级别记录请求完成情况。
+ */
 import { randomUUID } from 'node:crypto';
 
 import { createMiddleware } from 'hono/factory';
@@ -25,6 +29,7 @@ function inferStatus(error: unknown): number {
 
 /** 请求日志：注入 requestId 子日志，记录耗时、状态与来源 IP。 */
 export const requestLogger = createMiddleware<AppEnv>(async (c, next) => {
+  // 上游已带 requestId 时沿用，便于跨服务串联链路。
   const requestId = c.req.header('x-request-id')?.trim() || randomUUID();
   const startedAt = performance.now();
   const reqLogger = logger.child({

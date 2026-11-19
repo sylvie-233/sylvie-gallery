@@ -1,3 +1,7 @@
+/**
+ * 前台订单业务：会员套餐、支付宝会员订单履约、积分解锁与「我的购买」。
+ * 金额统一以「分」为单位；付费会员订单履约按订单状态幂等，解锁在事务内加锁扣分。
+ */
 import type {
   MembershipPlanDto,
   OrderDto,
@@ -44,6 +48,7 @@ import { createOrderNo, effectiveRole, normalizePage, toNumber, toPageResult } f
 import { getAlbumCardsByIds } from './album.service.js';
 import { createAlipayPagePayment, realPaymentEnabled } from './payment.service.js';
 
+/** 订单行映射为 DTO；`albumId` / 金额等数值统一转 Number。 */
 function mapOrder(row: OrderRow): OrderDto {
   return {
     id: Number(row.id),
@@ -63,6 +68,10 @@ function mapOrder(row: OrderRow): OrderDto {
   };
 }
 
+/**
+ * 会员套餐列表：仅启用套餐，按价格升序。
+ * `benefits` 以 JSON 字符串存储，解析失败或非数组时降级为空数组。
+ */
 export async function listPlans(): Promise<MembershipPlanDto[]> {
   const statement = selectPlans();
   const rows = await dbClient.query<PlanRow>(statement.sql, statement.params);
@@ -89,13 +98,18 @@ export async function listPlans(): Promise<MembershipPlanDto[]> {
   });
 }
 
+/** 按订单号读取订单 DTO；传入 `userId` 时限制归属，避免越权查询。 */
 async function getOrderByNo(orderNo: string, userId?: number): Promise<OrderDto | null> {
   const statement = selectOrderByNo(orderNo, userId);
   const row = await dbClient.queryOne<OrderRow>(statement.sql, statement.params);
   return row ? mapOrder(row) : null;
 }
 
-/** 创建付费会员订单（v1 仅支付宝；本地开发可用模拟支付确认）。 */
+/**
+ * 创建付费会员订单（v1 仅支付宝；本地开发可用模拟支付确认）。
+ * 以套餐价格快照写入金额（分）；`ALIPAY_MOCK=true` 返回模拟收银台地址，
+ * 否则生成真实支付宝网页支付链接，支付渠道未配置时返回 503。
+ */
 export async function createVipOrder(
   userId: number,
   planCode: string,
@@ -149,17 +163,21 @@ export async function createVipOrder(
   return { order: mapOrder(order), payment };
 }
 
-/** 支付履约结果。 */
+/** 支付履约结果：订单、归属用户，以及是否属于重复通知（此前已支付）。 */
 export interface FulfillVipOrderResult {
   order: OrderDto;
   userId: number;
-  /** 订单此前已支付（重复通知）时为 true。 */
+  /** 订单此前已支付（重复通知）时为 true，调用方据此跳过后续副作用。 */
   already: boolean;
 }
 
 /**
  * 会员订单履约：加锁、校验金额、标记已支付、开通会员、写入通知。
- * 支付宝异步通知、MQ 消费与模拟支付都走这里，保证幂等。
+ * 支付宝异步通知、MQ 消费与模拟支付都走这里，保证幂等：
+ * - 事务内 `FOR UPDATE` 锁订单，同一订单并发 / 重复通知串行化；
+ * - `status='paid'` 直接返回 `already=true`，不重复开通；
+ * - 仅 `created` 可支付；可选校验订单归属与金额（分）；
+ * - 标记已支付、按剩余有效期叠加会员天数、写权益通知在同一事务提交。
  */
 export async function fulfillVipOrder(
   orderNo: string,
@@ -224,7 +242,10 @@ export async function fulfillVipOrder(
   return { order, userId, already };
 }
 
-/** 模拟支付回调：仅开发/演示环境可用。 */
+/**
+ * 模拟支付回调：仅 `ALIPAY_MOCK=true` 时可用，直接走统一履约流程，
+ * 生成以 `MOCK` 开头的交易流水号；真实支付模式下拒绝调用。
+ */
 export async function payOrder(orderNo: string, userId: number): Promise<OrderDto> {
   if (!env.ALIPAY_MOCK) {
     throw new HttpError(400, '真实支付模式下请通过支付宝完成支付');
@@ -233,7 +254,7 @@ export async function payOrder(orderNo: string, userId: number): Promise<OrderDt
   return result.order;
 }
 
-/** 查询本人订单状态，供支付回跳后轮询。 */
+/** 查询本人订单状态（限制归属），供支付回跳后轮询。 */
 export async function getOrderStatus(orderNo: string, userId: number): Promise<OrderDto> {
   const order = await getOrderByNo(orderNo, userId);
   if (!order) {
@@ -242,7 +263,13 @@ export async function getOrderStatus(orderNo: string, userId: number): Promise<O
   return order;
 }
 
-/** 使用积分解锁单套图集；付费会员与管理员无需解锁。 */
+/**
+ * 使用积分解锁单套图集；付费会员与管理员无需解锁。
+ * 整个流程在同一事务内完成，并对用户与图集 `FOR UPDATE` 加锁：
+ * - 有效角色为 vip / admin 或已解锁时直接返回 `already=true`，不扣积分；
+ * - 图集未开放积分解锁或余额不足时抛错，绝不把 `points` 扣成负数；
+ * - 创建 0 元已支付订单、写解锁记录、扣减积分、写通知原子提交。
+ */
 export async function unlockAlbum(
   userId: number,
   albumId: number,
@@ -325,7 +352,11 @@ export async function unlockAlbum(
   });
 }
 
-/** 我的购买：概览 + 会员订单 + 图集解锁（各自分页）。 */
+/**
+ * 我的购买：概览 + 会员订单 + 图集解锁（各自分页）。
+ * `ordersPage` / `unlocksPage` 分别归一化；累计消费单位为分。
+ * 解锁记录仅保留仍公开可见的图集卡片，避免下架内容出现在购买列表。
+ */
 export async function getPurchases(
   userId: number,
   ordersPage = 1,
@@ -395,7 +426,10 @@ export async function getPurchases(
   };
 }
 
-/** 仅内部使用：判断用户是否为有效付费会员。 */
+/**
+ * 仅内部使用：判断用户是否为有效付费会员。
+ * 管理员同样返回 true；普通用户需 `role='vip'` 且 `vip_expire_at` 未过期。
+ */
 export function isEffectiveVip(user: AuthUser | undefined): boolean {
   if (!user) {
     return false;

@@ -1,5 +1,10 @@
 import type { SqlStatement } from './shared.js';
 
+/**
+ * 前台作者 SQL：作者列表 / 详情、作者首页封面兜底与订阅关系。
+ * 作者与订阅列表均只读取启用且未软删除的作者；订阅切换在事务内加锁。
+ */
+
 /** 作者行：列表 / 详情共用。 */
 export interface AuthorRow {
   id: number;
@@ -16,6 +21,7 @@ export interface AuthorRow {
   sortWeight: number;
 }
 
+// 作者封面缺失时回退到其最新已发布图集的封面；albumCount 为冗余计数。
 const AUTHOR_COLUMNS = `a.id, a.name, a.alias, a.initial, a.avatar_url AS avatarUrl,
   COALESCE(a.cover_url, (SELECT al.cover_url FROM album al
     WHERE al.author_id = a.id AND al.status = 'published' AND al.is_deleted = 0
@@ -23,7 +29,7 @@ const AUTHOR_COLUMNS = `a.id, a.name, a.alias, a.initial, a.avatar_url AS avatar
   a.color, a.bio, a.style_tags AS styleTags, a.album_count AS albumCount,
   a.last_update_at AS lastUpdateAt, a.sort_weight AS sortWeight`;
 
-/** 当前用户订阅的作者 ID。 */
+/** 当前用户订阅的作者 ID 集合，用于列表标记 `subscribed`。 */
 export function selectSubscribedAuthorIds(userId: number): SqlStatement {
   return {
     sql: `SELECT author_id AS authorId FROM subscription WHERE user_id = ?`,
@@ -31,7 +37,11 @@ export function selectSubscribedAuthorIds(userId: number): SqlStatement {
   };
 }
 
-/** 作者列表：支持姓名 / 别名 / 风格标签搜索。 */
+/**
+ * 作者列表：启用且未软删除。
+ * `term` 非空时对姓名 / 别名 / 风格标签做 LIKE 模糊匹配；
+ * 按排序权重、图集数倒序，id 升序保证稳定。
+ */
 export function selectAuthors(term: string): SqlStatement {
   const params: unknown[] = [];
   let search = '';
@@ -50,7 +60,7 @@ export function selectAuthors(term: string): SqlStatement {
   };
 }
 
-/** 作者详情。 */
+/** 作者详情：仅返回启用且未软删除的作者。 */
 export function selectAuthorById(authorId: number): SqlStatement {
   return {
     sql: `SELECT ${AUTHOR_COLUMNS}
@@ -61,7 +71,7 @@ export function selectAuthorById(authorId: number): SqlStatement {
   };
 }
 
-/** 已订阅作者总数。 */
+/** 已订阅作者总数（仅统计仍启用且未软删除的作者，供分页 total）。 */
 export function countSubscribedAuthors(userId: number): SqlStatement {
   return {
     sql: `SELECT COUNT(*) AS total
@@ -71,7 +81,7 @@ export function countSubscribedAuthors(userId: number): SqlStatement {
   };
 }
 
-/** 已订阅作者分页。 */
+/** 已订阅作者分页：按订阅时间、订阅 id 倒序，`limit` / `offset` 由 service 归一化。 */
 export function selectSubscribedAuthors(
   userId: number,
   pageSize: number,
@@ -87,7 +97,7 @@ export function selectSubscribedAuthors(
   };
 }
 
-/** 可订阅的启用作者。 */
+/** 校验作者可订阅（存在、启用且未软删除）。 */
 export function selectActiveAuthorId(authorId: number): SqlStatement {
   return {
     sql: `SELECT id FROM author WHERE id = ? AND status = 1 AND is_deleted = 0 LIMIT 1`,
@@ -95,6 +105,10 @@ export function selectActiveAuthorId(authorId: number): SqlStatement {
   };
 }
 
+/**
+ * 订阅事务内 `FOR UPDATE` 读取订阅记录。
+ * 加锁后据此决定插入或删除，避免并发点击产生重复订阅 / 重复取消。
+ */
 export function selectSubscriptionForUpdate(
   userId: number,
   authorId: number,
@@ -105,6 +119,7 @@ export function selectSubscriptionForUpdate(
   };
 }
 
+/** 取消订阅：按订阅记录主键物理删除（订阅关系无软删除语义）。 */
 export function deleteSubscription(subscriptionId: number): SqlStatement {
   return {
     sql: `DELETE FROM subscription WHERE id = ?`,
@@ -112,6 +127,7 @@ export function deleteSubscription(subscriptionId: number): SqlStatement {
   };
 }
 
+/** 新增订阅关系（同一事务内已加锁确认不存在）。 */
 export function insertSubscription(userId: number, authorId: number): SqlStatement {
   return {
     sql: `INSERT INTO subscription (user_id, author_id) VALUES (?, ?)`,

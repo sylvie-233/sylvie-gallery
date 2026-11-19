@@ -1,3 +1,9 @@
+/**
+ * 后台订单 / 支付流水的参数化 SQL：筛选列表与汇总、退款预读 / 加锁读取、退款标记、
+ * 会员权益收回、退款通知与 CSV 导出查询。
+ *
+ * 退款相关读取（selectOrderForRefund）使用 FOR UPDATE，必须运行在 service 的事务中。
+ */
 import type { OrderStatus, PayType } from '@sylvie/types';
 
 import type { SqlFragment, SqlStatement } from '../shared.js';
@@ -37,6 +43,7 @@ export interface RefundOrderRow {
   amountCents: number;
 }
 
+/** 订单列表筛选参数：业务类型、状态、关键字与支付日期区间。 */
 export interface OrderFilter {
   biz?: string;
   status?: string;
@@ -45,20 +52,24 @@ export interface OrderFilter {
   to?: string;
 }
 
+/** 累计现金营收行：revenue 为金额（分）。 */
 export interface PaymentRevenueRow {
   revenue: string | number;
 }
 
+/** 今日现金营收行：revenue 为金额（分），cnt 为订单数。 */
 export interface PaymentTodayRow {
   revenue: string | number;
   cnt: number;
 }
 
+/** 会员订单统计行：cnt 为订单数，cash 为现金金额合计。 */
 export interface VipOrderStatsRow {
   cnt: number;
   cash: string | number;
 }
 
+/** 解锁订单统计行：cnt 为解锁订单数，points 为消耗积分合计。 */
 export interface UnlockOrderStatsRow {
   cnt: number;
   points: string | number;
@@ -76,7 +87,15 @@ const ORDER_FROM = `FROM pay_order o
   LEFT JOIN membership_plan p ON p.id = o.plan_id
   LEFT JOIN album a ON a.id = o.album_id`;
 
-/** 订单列表筛选条件。 */
+/**
+ * 构建订单列表 WHERE 片段。
+ *
+ * - 以 `1 = 1` 占位便于追加条件；
+ * - biz 仅接受 vip / unlock；
+ * - status 仅接受 created / paid / refunded / closed；
+ * - keyword 去空白后匹配订单号、用户昵称、邮箱；
+ * - from / to 要求 paid_at 非空（即按支付时间筛选，未支付订单不会落入区间）。
+ */
 export function buildOrderWhere(filter: OrderFilter): SqlFragment {
   const conditions = ['1 = 1'];
   const params: unknown[] = [];
@@ -112,6 +131,7 @@ export function buildOrderWhere(filter: OrderFilter): SqlFragment {
   return { sql: conditions.join(' AND '), params };
 }
 
+/** 统计当前筛选条件下的订单总数（与列表共用 FROM / JOIN）。 */
 export function countAdminOrders(where: SqlFragment): SqlStatement {
   return {
     sql: `SELECT COUNT(*) AS total ${ORDER_FROM} WHERE ${where.sql}`,
@@ -119,6 +139,7 @@ export function countAdminOrders(where: SqlFragment): SqlStatement {
   };
 }
 
+/** 订单分页列表：按支付时间（缺失回退创建时间）倒序、id 倒序。 */
 export function selectAdminOrders(
   where: SqlFragment,
   limit: number,
@@ -133,6 +154,7 @@ export function selectAdminOrders(
   };
 }
 
+/** 累计现金营收：已支付且金额 > 0 的订单合计（不限业务）。 */
 export function selectOrderTotalRevenue(): SqlStatement {
   return {
     sql: `SELECT COALESCE(SUM(amount_cents), 0) AS revenue
@@ -141,6 +163,7 @@ export function selectOrderTotalRevenue(): SqlStatement {
   };
 }
 
+/** 今日现金营收与订单数：按 paid_at 归入今天。 */
 export function selectOrderTodayRevenue(): SqlStatement {
   return {
     sql: `SELECT COALESCE(SUM(amount_cents), 0) AS revenue, COUNT(*) AS cnt
@@ -150,6 +173,7 @@ export function selectOrderTodayRevenue(): SqlStatement {
   };
 }
 
+/** 会员订单统计：已支付的 vip 业务订单数与现金合计（含 0 元赠送单，金额为 0）。 */
 export function selectVipOrderStats(): SqlStatement {
   return {
     sql: `SELECT COUNT(*) AS cnt, COALESCE(SUM(amount_cents), 0) AS cash
@@ -158,6 +182,7 @@ export function selectVipOrderStats(): SqlStatement {
   };
 }
 
+/** 解锁订单统计：已支付 unlock 业务的订单数与消耗积分合计。 */
 export function selectUnlockOrderStats(): SqlStatement {
   return {
     sql: `SELECT COUNT(*) AS cnt, COALESCE(SUM(points_cost), 0) AS points
@@ -176,6 +201,10 @@ export function selectOrderForRefundPreview(orderId: number): SqlStatement {
   };
 }
 
+/**
+ * 退款事务内加锁读取订单（FOR UPDATE），避免并发退款重复收回权益。
+ * 与预读不同，这里必须放在事务中执行。
+ */
 export function selectOrderForRefund(orderId: number): SqlStatement {
   return {
     sql: `SELECT id, order_no AS orderNo, trade_no AS tradeNo, user_id AS userId,
@@ -185,6 +214,7 @@ export function selectOrderForRefund(orderId: number): SqlStatement {
   };
 }
 
+/** 标记订单已退款：status = 'refunded'，记录退款时间与原因。 */
 export function updateOrderRefund(refundReason: string, orderId: number): SqlStatement {
   return {
     sql: `UPDATE pay_order SET status = 'refunded', refund_at = NOW(), refund_reason = ?
@@ -193,6 +223,10 @@ export function updateOrderRefund(refundReason: string, orderId: number): SqlSta
   };
 }
 
+/**
+ * 退款后收回会员权益：role 降为 member、清空 vip_expire_at。
+ * 通过 role <> 'admin' 保护管理员账号，不会被误降级。
+ */
 export function revokeVipPrivilege(userId: number): SqlStatement {
   return {
     sql: `UPDATE \`user\` SET role = 'member', vip_expire_at = NULL
@@ -201,6 +235,7 @@ export function revokeVipPrivilege(userId: number): SqlStatement {
   };
 }
 
+/** 写入退款站内通知（type = 'benefit'）。 */
 export function insertRefundNotification(userId: number, content: string): SqlStatement {
   return {
     sql: `INSERT INTO user_notification (user_id, type, title, content)
@@ -209,6 +244,7 @@ export function insertRefundNotification(userId: number, content: string): SqlSt
   };
 }
 
+/** 退款完成后按 ID 读取订单详情（含用户、套餐、图集信息）。 */
 export function selectOrderById(orderId: number): SqlStatement {
   return {
     sql: `SELECT ${ORDER_SELECT} ${ORDER_FROM} WHERE o.id = ? LIMIT 1`,
@@ -216,6 +252,10 @@ export function selectOrderById(orderId: number): SqlStatement {
   };
 }
 
+/**
+ * CSV 导出查询：按与列表相同的筛选条件取全部订单（不分页），
+ * 排序与列表一致，由 service 负责转义与拼接。
+ */
 export function selectOrdersForExport(where: SqlFragment): SqlStatement {
   return {
     sql: `SELECT ${ORDER_SELECT} ${ORDER_FROM}

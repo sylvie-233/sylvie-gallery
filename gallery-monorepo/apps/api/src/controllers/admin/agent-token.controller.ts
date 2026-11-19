@@ -1,3 +1,7 @@
+/**
+ * 后台 Agent 令牌控制器：列表、创建、吊销与删除。
+ * 写操作传入操作管理员与 IP，由 service 统一写管理日志。
+ */
 import {
   createAgentToken,
   deleteAgentToken,
@@ -9,12 +13,12 @@ import { success } from '../../utils/http.js';
 import type { CreateAgentTokenInput } from '../../validators/admin/agent-token.js';
 import { adminOperator } from './helpers.js';
 
-/** GET /api/admin/agent-tokens */
+/** GET /api/admin/agent-tokens —— 返回令牌列表，不包含明文令牌。 */
 export async function list(c: AppContext): Promise<Response> {
   return success(c, await listAgentTokens());
 }
 
-/** POST /api/admin/agent-tokens */
+/** POST /api/admin/agent-tokens —— 入参来自校验后的 body；明文令牌只在本次响应返回。 */
 export async function create(c: AppContext, input: CreateAgentTokenInput): Promise<Response> {
   const operator = adminOperator(c);
   return success(
@@ -25,7 +29,7 @@ export async function create(c: AppContext, input: CreateAgentTokenInput): Promi
   );
 }
 
-/** POST /api/admin/agent-tokens/:id/revoke */
+/** POST /api/admin/agent-tokens/:id/revoke —— 吊销后令牌立即失效，service 写入管理日志。 */
 export async function revoke(c: AppContext, id: number): Promise<Response> {
   const operator = adminOperator(c);
   return success(
@@ -35,7 +39,7 @@ export async function revoke(c: AppContext, id: number): Promise<Response> {
   );
 }
 
-/** DELETE /api/admin/agent-tokens/:id */
+/** DELETE /api/admin/agent-tokens/:id —— 仅允许删除已吊销令牌，删除操作写管理日志。 */
 export async function remove(c: AppContext, id: number): Promise<Response> {
   const operator = adminOperator(c);
   await deleteAgentToken(operator.adminId, id, operator.ip);

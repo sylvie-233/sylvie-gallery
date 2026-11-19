@@ -1,3 +1,7 @@
+/**
+ * 后台评论接口：列表、审核（通过/拒绝）与删除。
+ * 评论变更会影响图集评论数与站点聚合缓存，写操作后统一失效。
+ */
 import { createRoute } from '@hono/zod-openapi';
 
 import * as commentController from '../../controllers/admin/comment.controller.js';
@@ -14,6 +18,7 @@ import { commentListSchema, commentReviewSchema } from '../../validators/admin/c
 
 const router = createApiRouter();
 
+/** GET /api/admin/comments —— 评论分页，支持审核状态、关键词与日期筛选。 */
 const listRoute = createRoute({
   method: 'get',
   path: '/',
@@ -23,6 +28,7 @@ const listRoute = createRoute({
   responses: { 200: successResponse(AdminCommentPageSchema, '评论分页'), ...errorResponses },
 });
 
+/** POST /api/admin/comments/{id}/review —— body 仅接受 approved/rejected。 */
 const reviewRoute = createRoute({
   method: 'post',
   path: '/{id}/review',
@@ -32,6 +38,7 @@ const reviewRoute = createRoute({
   responses: { 200: successResponse(AdminCommentRowSchema, '评论审核结果'), ...errorResponses },
 });
 
+/** DELETE /api/admin/comments/{id} —— 删除评论并同步图集评论数。 */
 const deleteRoute = createRoute({
   method: 'delete',
   path: '/{id}',

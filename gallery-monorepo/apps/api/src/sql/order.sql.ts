@@ -2,7 +2,13 @@ import type { OrderStatus, PayType } from '@sylvie/types';
 
 import type { SqlStatement } from './shared.js';
 
-/** 会员套餐行。 */
+/**
+ * 前台订单 / 会员 SQL：套餐、支付宝会员订单、积分解锁与「我的购买」。
+ * 金额字段统一以「分」为单位存储；支付与解锁的关键读写均在事务内 `FOR UPDATE`
+ * 加锁，履约按订单状态幂等处理。
+ */
+
+/** 会员套餐行：`priceCents` 为分，`durationDays` 为开通 / 续费天数。 */
 export interface PlanRow {
   id: number;
   code: string;
@@ -13,7 +19,7 @@ export interface PlanRow {
   status: number;
 }
 
-/** 订单行：关联套餐名称与图集标题。 */
+/** 订单行：关联套餐名称与图集标题；`amountCents` 为分，解锁订单为 0。 */
 export interface OrderRow {
   id: number;
   orderNo: string;
@@ -31,7 +37,7 @@ export interface OrderRow {
   createdAt: string;
 }
 
-/** 支付事务内加锁读取的订单行。 */
+/** 支付事务内 `FOR UPDATE` 加锁读取的订单行，用于幂等履约与金额校验。 */
 export interface PayOrderLockRow {
   id: number;
   userId: number;
@@ -42,14 +48,14 @@ export interface PayOrderLockRow {
   planName: string | null;
 }
 
-/** 解锁事务内加锁读取的用户行。 */
+/** 解锁事务内 `FOR UPDATE` 加锁读取的用户行（积分、角色、会员到期）。 */
 export interface UnlockUserRow {
   points: number;
   role: 'member' | 'vip' | 'admin';
   vipExpireAt: string | null;
 }
 
-/** 解锁事务内加锁读取的图集行。 */
+/** 解锁事务内 `FOR UPDATE` 加锁读取的图集行（所需解锁积分）。 */
 export interface UnlockAlbumRow {
   id: number;
   title: string;
@@ -64,7 +70,7 @@ export interface UnlockRow {
   createdAt: string;
 }
 
-/** 我的购买概览行。 */
+/** 我的购买概览行：累计消费（分）与已支付会员订单数。 */
 export interface PurchaseOverviewRow {
   totalSpent: number;
   vipOrders: number;
@@ -78,7 +84,7 @@ const ORDER_FROM = `FROM pay_order o
   LEFT JOIN membership_plan p ON p.id = o.plan_id
   LEFT JOIN album a ON a.id = o.album_id`;
 
-/** 会员套餐列表：仅启用套餐，按价格升序。 */
+/** 会员套餐列表：仅启用套餐，按价格（分）升序、id 升序。 */
 export function selectPlans(): SqlStatement {
   return {
     sql: `SELECT id, code, name, price_cents AS priceCents, duration_days AS durationDays,
@@ -100,7 +106,10 @@ export function selectPlanByCode(planCode: string): SqlStatement {
   };
 }
 
-/** 按订单号查询订单，可选限制归属用户。 */
+/**
+ * 按订单号查询订单。
+ * 传入 `userId` 时追加归属条件，用于支付回跳轮询等用户侧查询，防止越权。
+ */
 export function selectOrderByNo(orderNo: string, userId?: number): SqlStatement {
   const params: unknown[] = [orderNo];
   let owner = '';
@@ -122,7 +131,10 @@ export function selectOrderById(orderId: number): SqlStatement {
   };
 }
 
-/** 创建待支付会员订单。 */
+/**
+ * 创建待支付会员订单：`biz_type='vip'`、支付宝、状态 `created`。
+ * `amountCents` 为分，由套餐价格快照写入，避免后续套餐改价影响已创建订单。
+ */
 export function insertVipOrder(input: {
   orderNo: string;
   userId: number;
@@ -137,7 +149,10 @@ export function insertVipOrder(input: {
   };
 }
 
-/** 支付事务：按订单号加锁读取订单。 */
+/**
+ * 支付履约事务：按订单号 `FOR UPDATE` 加锁读取订单。
+ * 同一订单的异步通知、MQ 消费与模拟支付因此串行化，配合状态判断实现幂等。
+ */
 export function selectPayOrderForUpdate(orderNo: string): SqlStatement {
   return {
     sql: `SELECT o.id, o.user_id AS userId, o.biz_type AS bizType, o.status,
@@ -150,7 +165,10 @@ export function selectPayOrderForUpdate(orderNo: string): SqlStatement {
   };
 }
 
-/** 支付事务：标记订单已支付。 */
+/**
+ * 支付履约事务：标记订单已支付并记录支付宝交易流水号与支付时间。
+ * 仅在状态校验通过后由 service 调用，重复通知不会再次执行。
+ */
 export function markOrderPaid(tradeNo: string, orderId: number): SqlStatement {
   return {
     sql: `UPDATE pay_order SET status = 'paid', trade_no = ?, paid_at = NOW() WHERE id = ?`,
@@ -158,7 +176,11 @@ export function markOrderPaid(tradeNo: string, orderId: number): SqlStatement {
   };
 }
 
-/** 支付事务：付费会员订单开通/续费。 */
+/**
+ * 支付履约事务：开通 / 续费付费会员。
+ * 续费在剩余有效期上叠加：以 `GREATEST(COALESCE(vip_expire_at, NOW()), NOW())` 为基准
+ * 加 `vipDays` 天，会员已过期时从当前时间起算，不会回退；管理员角色保持不变。
+ */
 export function activateVipAfterPayment(vipDays: number, userId: number): SqlStatement {
   return {
     sql: `UPDATE \`user\`
@@ -169,7 +191,7 @@ export function activateVipAfterPayment(vipDays: number, userId: number): SqlSta
   };
 }
 
-/** 支付事务：写入权益通知。 */
+/** 支付履约事务：写入会员开通权益通知（`type='benefit'`）。 */
 export function insertOrderPaidNotification(
   userId: number,
   title: string,
@@ -182,7 +204,10 @@ export function insertOrderPaidNotification(
   };
 }
 
-/** 解锁事务：加锁读取用户。 */
+/**
+ * 解锁事务：`FOR UPDATE` 加锁读取用户积分、角色与会员到期时间。
+ * 加锁保证同一用户的并发解锁串行执行，避免积分被重复扣减或扣成负数。
+ */
 export function selectUserForUnlockForUpdate(userId: number): SqlStatement {
   return {
     sql: `SELECT points, role, vip_expire_at AS vipExpireAt
@@ -191,7 +216,7 @@ export function selectUserForUnlockForUpdate(userId: number): SqlStatement {
   };
 }
 
-/** 解锁事务：加锁读取已发布图集。 */
+/** 解锁事务：`FOR UPDATE` 加锁读取已发布且未软删除的图集及其所需积分。 */
 export function selectAlbumForUnlockForUpdate(albumId: number): SqlStatement {
   return {
     sql: `SELECT id, title, points FROM album
@@ -201,7 +226,7 @@ export function selectAlbumForUnlockForUpdate(albumId: number): SqlStatement {
   };
 }
 
-/** 解锁事务：查询是否已解锁。 */
+/** 解锁事务：查询该用户是否已解锁此图集，已解锁则直接返回无需扣分。 */
 export function selectAlbumUnlock(userId: number, albumId: number): SqlStatement {
   return {
     sql: `SELECT id FROM album_unlock WHERE user_id = ? AND album_id = ? LIMIT 1`,
@@ -209,7 +234,10 @@ export function selectAlbumUnlock(userId: number, albumId: number): SqlStatement
   };
 }
 
-/** 解锁事务：创建积分抵扣订单。 */
+/**
+ * 解锁事务：创建积分抵扣订单。
+ * `biz_type='unlock'`、支付方式 `points`、金额 0 分、状态直接为 `paid`。
+ */
 export function insertUnlockOrder(input: {
   orderNo: string;
   userId: number;
@@ -223,7 +251,7 @@ export function insertUnlockOrder(input: {
   };
 }
 
-/** 解锁事务：写入解锁记录。 */
+/** 解锁事务：写入 `album_unlock` 解锁记录，永久关联用户与图集。 */
 export function insertAlbumUnlock(input: {
   userId: number;
   albumId: number;
@@ -236,7 +264,10 @@ export function insertAlbumUnlock(input: {
   };
 }
 
-/** 解锁事务：扣除用户解锁积分。 */
+/**
+ * 解锁事务：扣除用户解锁积分。
+ * 只在同一事务已加锁并校验 `points >= pointsCost` 后调用，确保 `user.points` 不为负。
+ */
 export function deductUserPoints(pointsCost: number, userId: number): SqlStatement {
   return {
     sql: `UPDATE \`user\` SET points = points - ? WHERE id = ?`,
@@ -244,7 +275,7 @@ export function deductUserPoints(pointsCost: number, userId: number): SqlStateme
   };
 }
 
-/** 解锁事务：写入图集解锁成功通知。 */
+/** 解锁事务：写入图集解锁成功通知（关联 album_id，便于跳转）。 */
 export function insertAlbumUnlockedNotification(
   userId: number,
   content: string,
@@ -257,7 +288,10 @@ export function insertAlbumUnlockedNotification(
   };
 }
 
-/** 我的购买概览：累计消费与会员订单数。 */
+/**
+ * 我的购买概览：已支付订单累计金额（分）与会员订单数。
+ * `totalSpent` 用 `COALESCE(SUM(...), 0)` 兜底无订单；解锁订单金额为 0 不影响累计。
+ */
 export function selectPurchaseOverview(userId: number): SqlStatement {
   return {
     sql: `SELECT COALESCE(SUM(amount_cents), 0) AS totalSpent,
@@ -284,7 +318,7 @@ export function countAlbumUnlocks(userId: number): SqlStatement {
   };
 }
 
-/** 我的购买：分页会员订单。 */
+/** 我的购买：分页已支付会员订单，按支付时间、id 倒序。 */
 export function selectPaidVipOrders(userId: number, limit: number, offset: number): SqlStatement {
   return {
     sql: `SELECT ${ORDER_SELECT} ${ORDER_FROM}
@@ -295,7 +329,7 @@ export function selectPaidVipOrders(userId: number, limit: number, offset: numbe
   };
 }
 
-/** 我的购买：分页图集解锁记录。 */
+/** 我的购买：分页图集解锁记录，按解锁时间、id 倒序。 */
 export function selectAlbumUnlocks(userId: number, limit: number, offset: number): SqlStatement {
   return {
     sql: `SELECT id, album_id AS albumId, points_cost AS pointsCost, created_at AS createdAt

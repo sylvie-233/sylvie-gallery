@@ -1,3 +1,7 @@
+/**
+ * Hono 应用装配：注册请求日志、CORS、限流与请求体限制等全局中间件，
+ * 并挂载健康检查、API 文档与 `/api` 业务路由，统一 404 / 错误响应。
+ */
 import { Scalar } from '@scalar/hono-api-reference';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { bodyLimit } from 'hono/body-limit';
@@ -17,6 +21,7 @@ import type { AppEnv } from './types/context.js';
 import { failure, success } from './utils/http.js';
 import { logger } from './utils/logger.js';
 
+/** 应用实例：全局中间件与 `/api` 业务路由的统一挂载点。 */
 export const app = new OpenAPIHono<AppEnv>();
 
 app.use('*', requestLogger);
@@ -34,6 +39,7 @@ app.use(
 // 全局限流放在解析请求体之前，尽早拒绝异常流量。
 app.use('/api/*', globalRateLimit);
 
+// 普通接口请求体上限 24MB，覆盖常规 JSON 与图片数据。
 const normalBodyLimit = bodyLimit({
   maxSize: 24 * 1024 * 1024,
   onError: (c) => failure(c, 413, '请求体过大'),

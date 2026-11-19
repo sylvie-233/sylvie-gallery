@@ -1,3 +1,9 @@
+/**
+ * 后台站点配置：系统配置键值、月度会员套餐、友情链接的读取与更新。
+ *
+ * 配置项以 sys_config 键值存储；站点配置更新在单事务内逐项 upsert。
+ * 写操作均记录操作日志，并返回最新的完整配置包。
+ */
 import type {
   AdminConfigBundle,
   AdminFriendLinkRow,
@@ -23,6 +29,7 @@ import {
 } from '../../sql/admin/config-admin.sql.js';
 import { logAdminOp } from './log.service.js';
 
+/** 读取全部 sys_config，组装为「键 → 值」映射；空值归一为空字符串。 */
 async function getConfigRows(): Promise<Record<string, string>> {
   const statement = selectConfigRows();
   const rows = await dbClient.query<ConfigRow>(statement.sql, statement.params);
@@ -33,6 +40,12 @@ async function getConfigRows(): Promise<Record<string, string>> {
   return map;
 }
 
+/**
+ * 读取 code = 'monthly' 的会员套餐。
+ *
+ * benefits 以 JSON 数组字符串存储，解析失败或非字符串项会被忽略并降级为空数组；
+ * 套餐未初始化时抛 500。
+ */
 async function getPlan(): Promise<AdminPlanConfig> {
   const statement = selectMonthlyPlan();
   const row = await dbClient.queryOne<PlanRow>(statement.sql, statement.params);
@@ -59,6 +72,7 @@ async function getPlan(): Promise<AdminPlanConfig> {
   };
 }
 
+/** 读取启用中的友情链接，按 sort_order 升序。 */
 async function getFriendLinks(): Promise<AdminFriendLinkRow[]> {
   const statement = selectFriendLinks();
   const rows = await dbClient.query<{
@@ -77,6 +91,11 @@ async function getFriendLinks(): Promise<AdminFriendLinkRow[]> {
   }));
 }
 
+/**
+ * 读取后台配置包（站点文案、签到积分、水印开关、会员套餐、友链）。
+ *
+ * 三个数据源并发查询；签到积分缺省为 2，水印开关缺省为开启（仅值为 '0' 时关闭）。
+ */
 export async function getAdminConfigBundle(): Promise<AdminConfigBundle> {
   const [config, plan, friendLinks] = await Promise.all([
     getConfigRows(),
@@ -94,6 +113,7 @@ export async function getAdminConfigBundle(): Promise<AdminConfigBundle> {
   return { site, plan, friendLinks };
 }
 
+/** 在事务连接上按键 upsert 单个配置项，并记录最后修改人。 */
 async function upsertConfigValue(
   conn: TransactionConnection,
   key: string,
@@ -104,6 +124,13 @@ async function upsertConfigValue(
   await conn.query(statement.sql, statement.params);
 }
 
+/**
+ * 更新站点配置。
+ *
+ * 签到积分夹取到 1-99；六个配置项在同一事务内逐项 upsert，避免部分成功。
+ * 事务提交后记录 config.update 日志（不记录完整正文，仅关键项），返回最新配置包。
+ * 水印开关只控制未解锁预览是否使用水印图，不影响已解锁原图。
+ */
 export async function updateAdminSiteConfig(
   adminId: number,
   input: {
@@ -142,6 +169,12 @@ export async function updateAdminSiteConfig(
   return getAdminConfigBundle();
 }
 
+/**
+ * 更新月度会员套餐的价格、时长与权益文案。
+ *
+ * 价格至少 1 分，时长夹取到 1-365 天；权益文案去空白后序列化为 JSON 存储，至少保留一条。
+ * 成功后记录 config.plan 日志并返回最新配置包。
+ */
 export async function updateAdminPlan(
   adminId: number,
   input: { priceCents: number; durationDays: number; benefits: string[] },
@@ -173,6 +206,7 @@ export async function updateAdminPlan(
   return getAdminConfigBundle();
 }
 
+/** 校验并返回友链地址：仅允许 http/https 且必须含主机名。 */
 function validateUrl(input: string): string {
   const url = input.trim();
   try {
@@ -186,6 +220,12 @@ function validateUrl(input: string): string {
   }
 }
 
+/**
+ * 新增友情链接。
+ *
+ * 校验站名 1-32 字符、简介最多 64 字符、URL 合法；sort_order 取当前最大值 + 1 追加到末尾。
+ * 新链接默认启用，记录 friend.create 日志。
+ */
 export async function createAdminFriendLink(
   adminId: number,
   input: { name: string; slogan?: string; url: string },
@@ -213,6 +253,10 @@ export async function createAdminFriendLink(
   return { id, name, slogan, url, sortOrder };
 }
 
+/**
+ * 删除友情链接：将 status 置 0（软删除），记录 friend.delete 日志。
+ * 列表只展示 status = 1 的链接，因此删除后不再出现。
+ */
 export async function deleteAdminFriendLink(
   adminId: number,
   id: number,
@@ -231,12 +275,16 @@ export async function deleteAdminFriendLink(
   await logAdminOp(adminId, 'friend.delete', 'friend_link', id, row, ip);
 }
 
-/** 供内部检查配置值。 */
+/**
+ * 供内部检查水印开关：仅当配置值为 '0' 时视为关闭，缺失或其他值都视为开启。
+ * 注意这里服务于未解锁预览，不影响已解锁原图。
+ */
 export async function isWatermarkOn(): Promise<boolean> {
   const config = await getConfigRows();
   return toBool(config['image.watermark_on'] !== '0');
 }
 
+/** 读取每日签到奖励积分；未配置时默认 2 分。 */
 export async function getCheckinPoints(): Promise<number> {
   const config = await getConfigRows();
   return toNumber(config['checkin.points'], 2);

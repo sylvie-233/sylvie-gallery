@@ -1,3 +1,7 @@
+/**
+ * OpenAPI 路由工具：创建带统一校验错误响应的路由实例，
+ * 并提供放宽控制器返回类型的处理器绑定辅助函数。
+ */
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { RouteConfig, RouteHandler } from '@hono/zod-openapi';
 

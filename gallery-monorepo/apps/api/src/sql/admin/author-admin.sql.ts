@@ -1,3 +1,9 @@
+/**
+ * 后台作者的参数化 SQL：筛选列表、详情、新建、编辑、显示 / 隐藏、删除前校验与软删除。
+ *
+ * 列表中的 albumCount 为未删除图集数（含草稿 / 下架），用于删除保护；
+ * 作者冗余字段 album_count 的重算在 album-admin.sql.ts 中完成。
+ */
 import { type SqlFragment, type SqlStatement } from '../shared.js';
 
 /** 后台作者列表 / 详情行。 */
@@ -35,7 +41,13 @@ const AUTHOR_SELECT = `a.id, a.name, a.alias, a.initial, a.color, a.avatar_url A
   a.status, a.last_update_at AS lastUpdateAt, a.created_at AS createdAt,
   (SELECT COUNT(*) FROM album al WHERE al.author_id = a.id AND al.is_deleted = 0) AS albumCount`;
 
-/** 后台作者列表筛选：状态 + 名称/别名/风格关键字。 */
+/**
+ * 构建作者列表 WHERE 片段。
+ *
+ * - 固定条件：a.is_deleted = 0；
+ * - status = 'on' 过滤启用，'off' 过滤隐藏；
+ * - keyword 去空白后在名称、别名、风格标签中 LIKE 匹配。
+ */
 export function buildAdminAuthorWhere(query: {
   status?: string;
   keyword?: string;
@@ -66,7 +78,7 @@ export function countAdminAuthors(where: SqlFragment): SqlStatement {
   };
 }
 
-/** 后台作者分页列表。 */
+/** 作者分页列表：按排序权重倒序、id 倒序；limit / offset 由调用方计算。 */
 export function selectAdminAuthors(
   where: SqlFragment,
   pageSize: number,
@@ -91,7 +103,7 @@ export function selectAdminAuthorById(authorId: number): SqlStatement {
   };
 }
 
-/** 新增前检查同名作者。 */
+/** 新增前检查同名作者（排除已软删除记录）。 */
 export function selectAuthorByName(name: string): SqlStatement {
   return {
     sql: `SELECT id FROM author WHERE name = ? AND is_deleted = 0 LIMIT 1`,
@@ -126,7 +138,7 @@ export function selectAuthorForEdit(authorId: number): SqlStatement {
   };
 }
 
-/** 编辑时检查同名作者。 */
+/** 编辑时检查同名作者：排除自身与已软删除记录。 */
 export function selectAuthorDuplicate(name: string, authorId: number): SqlStatement {
   return {
     sql: `SELECT id FROM author WHERE name = ? AND id <> ? AND is_deleted = 0 LIMIT 1`,

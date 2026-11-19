@@ -1,5 +1,9 @@
+/**
+ * 后台订单、用户、积分与站点/套餐配置的请求参数校验。
+ */
 import { z } from '@hono/zod-openapi';
 
+/** 订单筛选：biz 业务类型、status 支付状态、from/to 为 YYYY-MM-DD 日期。 */
 export const orderListSchema = z.object({
   biz: z.enum(['all', 'vip', 'unlock']).optional(),
   status: z.enum(['all', 'created', 'paid', 'refunded', 'closed']).optional(),
@@ -10,10 +14,12 @@ export const orderListSchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(48).optional(),
 });
 
+/** 退款原因可选，最长 255 字。 */
 export const refundSchema = z.object({
   reason: z.string().trim().max(255).optional(),
 });
 
+/** 用户筛选：role 角色枚举；status 用字符串 '0'/'1' 表示封禁/正常。 */
 export const userListSchema = z.object({
   role: z.enum(['all', 'admin', 'vip', 'member']).optional(),
   status: z.enum(['all', '0', '1']).optional(),
@@ -22,11 +28,13 @@ export const userListSchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(48).optional(),
 });
 
+/** 积分调整：delta 正负均可（±99999），reason 必填且 ≤64 字。 */
 export const pointsSchema = z.object({
   delta: z.coerce.number().int().min(-99999).max(99999),
   reason: z.string().trim().min(1, '请填写调整原因').max(64),
 });
 
+/** 站点配置：每日签到积分 1-99、水印开关默认开启；文本项未传时存空串。 */
 export const siteConfigSchema = z.object({
   copyright: z.string().max(255).default(''),
   icpNo: z.string().max(64).default(''),
@@ -36,12 +44,14 @@ export const siteConfigSchema = z.object({
   watermarkOn: z.coerce.boolean().default(true),
 });
 
+/** 会员套餐：价格以分为单位（1-1000000），时长 1-365 天，权益 1-12 条。 */
 export const planConfigSchema = z.object({
   priceCents: z.coerce.number().int().min(1).max(1000000),
   durationDays: z.coerce.number().int().min(1).max(365),
   benefits: z.array(z.string().trim().max(100)).min(1).max(12),
 });
 
+/** 友情链接：站名 1-32 字，标语可选，URL 最长 255。 */
 export const friendLinkSchema = z.object({
   name: z.string().trim().min(1, '请输入站名').max(32),
   slogan: z.string().trim().max(64).optional(),

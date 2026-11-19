@@ -1,3 +1,7 @@
+/**
+ * 管理后台路由总入口：把 /api/admin 下各业务子路由挂载到统一前缀。
+ * 所有子路由共享 authenticate + requireAdmin，仅管理员可访问。
+ */
 import { authenticate, requireAdmin } from '../../middleware/auth.js';
 import { createApiRouter } from '../../openapi/router.js';
 import agentTokenRoutes from './agent-tokens.js';
@@ -15,6 +19,7 @@ import userRoutes from './users.js';
 
 const router = createApiRouter();
 
+// 全量后台路由统一鉴权：先解析 JWT，再校验角色必须是 admin。
 router.use('*', authenticate, requireAdmin);
 
 router.route('/dashboard', dashboardRoutes);

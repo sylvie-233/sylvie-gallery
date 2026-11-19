@@ -1,3 +1,7 @@
+/**
+ * 日志实例装配：统一服务名、日志级别与开发彩色输出，
+ * 并提供按模块派生子日志的入口。
+ */
 import { createLogger, type Logger } from '@sylvie/logger';
 
 import { env } from '../config/env.js';

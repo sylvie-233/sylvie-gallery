@@ -1,9 +1,13 @@
+/**
+ * 前台标签业务：标签云读取。
+ * 只返回启用、未软删除且收录数大于 0 的标签。
+ */
 import type { TagDto } from '@sylvie/types';
 
 import { dbClient } from '../db/index.js';
 import { selectTags, type TagRow } from '../sql/tag.sql.js';
 
-/** 前台标签云：仅展示启用且未删除的标签，按收录数倒序。 */
+/** 前台标签云：仅展示启用且未删除的标签，按收录数倒序（count 来自冗余字段）。 */
 export async function listTags(): Promise<TagDto[]> {
   const statement = selectTags();
   const rows = await dbClient.query<TagRow>(statement.sql, statement.params);

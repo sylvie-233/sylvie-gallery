@@ -1,3 +1,7 @@
+/**
+ * 限流规则集中定义：基于缓存的固定窗口计数，按 IP / 账号 / 用户等维度限制；
+ * 缓存不可用时放行请求，避免限流组件故障导致整站不可用。
+ */
 import { createHash } from 'node:crypto';
 
 import { createMiddleware } from 'hono/factory';
@@ -32,6 +36,7 @@ export async function readJsonField(c: AppContext, field: string): Promise<strin
   }
 }
 
+/** 单条限流规则的配置：规则名、阈值、时间窗口与标识提取方式。 */
 export interface RateLimitOptions {
   /** 规则名，参与缓存键，便于区分不同接口。 */
   name: string;
@@ -94,7 +99,7 @@ export function rateLimit(options: RateLimitOptions) {
   });
 }
 
-/** 全局接口限流：静态资源、文档与 MCP 长连接不计入。 */
+/** 全局接口限流：每 IP 每分钟 300 次；静态资源、文档与 MCP 长连接不计入。 */
 export const globalRateLimit = rateLimit({
   name: 'global',
   limit: 300,
@@ -108,12 +113,14 @@ export const globalRateLimit = rateLimit({
 });
 
 /** 前台登录：IP 与账号双维度限制。 */
+/** 同 IP 登录：5 分钟内最多 10 次。 */
 export const loginIpLimit = rateLimit({
   name: 'login:ip',
   limit: 10,
   windowSeconds: 300,
   key: (c) => requestIp(c),
 });
+/** 同账号登录：15 分钟内最多 5 次，key 用邮箱哈希避免明文入缓存。 */
 export const loginAccountLimit = rateLimit({
   name: 'login:account',
   limit: 5,
@@ -125,12 +132,14 @@ export const loginAccountLimit = rateLimit({
 });
 
 /** 后台登录：单独计数，避免与前台登录互相挤占。 */
+/** 后台登录同 IP：5 分钟内最多 10 次。 */
 export const adminLoginIpLimit = rateLimit({
   name: 'admin-login:ip',
   limit: 10,
   windowSeconds: 300,
   key: (c) => requestIp(c),
 });
+/** 后台登录同账号：15 分钟内最多 5 次。 */
 export const adminLoginAccountLimit = rateLimit({
   name: 'admin-login:account',
   limit: 5,
@@ -142,12 +151,14 @@ export const adminLoginAccountLimit = rateLimit({
 });
 
 /** 发送验证码：IP 宽松、单邮箱严格。 */
+/** 同 IP 发送验证码：10 分钟内最多 5 次。 */
 export const sendCodeIpLimit = rateLimit({
   name: 'send-code:ip',
   limit: 5,
   windowSeconds: 600,
   key: (c) => requestIp(c),
 });
+/** 同邮箱发送验证码：60 秒内最多 1 次，防止邮件轰炸。 */
 export const sendCodeEmailLimit = rateLimit({
   name: 'send-code:email',
   limit: 1,
@@ -168,11 +179,13 @@ export const registerIpLimit = rateLimit({
 });
 
 /** 需要登录的写操作：按用户限制。 */
+/** 以当前登录用户 ID 作为限流标识；未登录时返回 null 跳过限流。 */
 function userKey(c: AppContext): string | null {
   const user = c.get('currentUser');
   return user ? String(user.id) : null;
 }
 
+/** 发表评论：同一用户 10 分钟内最多 5 次。 */
 export const commentLimit = rateLimit({
   name: 'comment:user',
   limit: 5,
@@ -181,6 +194,7 @@ export const commentLimit = rateLimit({
   message: '评论过于频繁，请稍后再试',
 });
 
+/** 解锁图集：同一用户 10 分钟内最多 10 次。 */
 export const unlockLimit = rateLimit({
   name: 'unlock:user',
   limit: 10,
@@ -189,6 +203,7 @@ export const unlockLimit = rateLimit({
   message: '解锁操作过于频繁，请稍后再试',
 });
 
+/** 下载图集：同一用户 10 分钟内最多 10 次。 */
 export const downloadLimit = rateLimit({
   name: 'download:user',
   limit: 10,

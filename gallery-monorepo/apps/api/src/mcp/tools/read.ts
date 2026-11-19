@@ -1,3 +1,8 @@
+/**
+ * MCP 只读工具集：前台与后台的列表 / 详情 / 看板查询。
+ * 所有工具都要求已完成 MCP 鉴权（管理员 JWT 或 Agent 令牌的 read / write scope），
+ * 除 `get_album` 会记录浏览外不修改业务数据。
+ */
 import { z } from 'zod';
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -41,8 +46,15 @@ import { jsonResult } from '../result.js';
 
 const idInput = { id: z.number().int().positive().describe('ID') };
 
-/** 注册只读工具：查询图集、作者、标签、公告与后台数据。 */
+/**
+ * 注册只读工具：查询图集、作者、标签、公告与后台数据。
+ *
+ * 权限要求：管理员 JWT 或具备 read / write scope 的 Agent 令牌。
+ * 写操作影响：除 `get_album` 会以当前管理员身份记录浏览（浏览量 +1）外，
+ * 其余工具均不写库、不产生管理操作日志。
+ */
 export function registerReadTools(server: McpServer, admin: AuthUser): void {
+  // 读工具（read scope）：前台图集分页列表，不修改数据。
   server.registerTool(
     'list_albums',
     {
@@ -55,6 +67,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
     async (input) => jsonResult(await listAlbums(input, admin.id)),
   );
 
+  // 读工具（read scope）：图集详情；副作用是记录一次浏览，可能使浏览量 +1。
   server.registerTool(
     'get_album',
     {
@@ -67,6 +80,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
     async ({ id }) => jsonResult(await getAlbumDetail(id, admin)),
   );
 
+  // 读工具（read scope）：作者列表，不修改数据。
   server.registerTool(
     'list_authors',
     {
@@ -78,6 +92,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
     async (input) => jsonResult(await listAuthors(input.keyword, admin.id)),
   );
 
+  // 读工具（read scope）：作者详情与其图集分页，不修改数据。
   server.registerTool(
     'get_author',
     {
@@ -90,6 +105,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
       jsonResult(await getAuthorDetail(id, admin.id, page, pageSize)),
   );
 
+  // 读工具（read scope）：前台标签云，不修改数据。
   server.registerTool(
     'list_tags',
     {
@@ -101,6 +117,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
     async () => jsonResult(await listTags()),
   );
 
+  // 读工具（read scope）：前台公告列表，不修改数据。
   server.registerTool(
     'list_announcements',
     {
@@ -112,6 +129,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
     async (input) => jsonResult(await listAnnouncements(input, admin.id)),
   );
 
+  // 读工具（read scope）：后台看板聚合数据，不修改数据。
   server.registerTool(
     'admin_dashboard',
     {
@@ -123,6 +141,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
     async () => jsonResult(await getAdminDashboard()),
   );
 
+  // 读工具（read scope）：营收趋势查询，不修改数据。
   server.registerTool(
     'admin_trend',
     {
@@ -134,6 +153,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
     async ({ mode }) => jsonResult(await getAdminTrend(mode)),
   );
 
+  // 读工具（read scope）：后台图集列表（含草稿 / 下架），不修改数据。
   server.registerTool(
     'admin_list_albums',
     {
@@ -145,6 +165,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
     async (input) => jsonResult(await getAdminAlbums(input)),
   );
 
+  // 读工具（read scope）：后台图集详情，不修改数据。
   server.registerTool(
     'admin_get_album',
     {
@@ -156,6 +177,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
     async ({ id }) => jsonResult(await getAdminAlbumDetail(id)),
   );
 
+  // 读工具（read scope）：后台标签列表，不修改数据。
   server.registerTool(
     'admin_list_tags',
     {
@@ -167,6 +189,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
     async (input) => jsonResult(await getAdminTags(input)),
   );
 
+  // 读工具（read scope）：后台作者列表，不修改数据。
   server.registerTool(
     'admin_list_authors',
     {
@@ -178,6 +201,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
     async (input) => jsonResult(await getAdminAuthors(input)),
   );
 
+  // 读工具（read scope）：后台评论列表，不修改数据。
   server.registerTool(
     'admin_list_comments',
     {
@@ -189,6 +213,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
     async (input) => jsonResult(await getAdminComments(input)),
   );
 
+  // 读工具（read scope）：后台公告列表，不修改数据。
   server.registerTool(
     'admin_list_announcements',
     {
@@ -200,6 +225,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
     async (input) => jsonResult(await getAdminAnnouncements(input)),
   );
 
+  // 读工具（read scope）：后台订单 / 支付流水，不修改数据。
   server.registerTool(
     'admin_list_orders',
     {
@@ -211,6 +237,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
     async (input) => jsonResult(await getAdminOrders(input)),
   );
 
+  // 读工具（read scope）：后台用户列表，不修改数据。
   server.registerTool(
     'admin_list_users',
     {
@@ -222,6 +249,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
     async (input) => jsonResult(await getAdminUsers(input)),
   );
 
+  // 读工具（read scope）：站点配置、会员套餐与友情链接聚合，不修改数据。
   server.registerTool(
     'admin_get_config',
     {
@@ -233,6 +261,7 @@ export function registerReadTools(server: McpServer, admin: AuthUser): void {
     async () => jsonResult(await getAdminConfigBundle()),
   );
 
+  // 读工具（read scope）：后台管理操作日志，不修改数据。
   server.registerTool(
     'admin_list_logs',
     {

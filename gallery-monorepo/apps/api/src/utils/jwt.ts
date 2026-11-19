@@ -1,7 +1,11 @@
+/**
+ * JWT 签发与校验：固定 HS256，载荷仅携带用户 ID 与秒级时间戳。
+ */
 import { sign, verify } from 'hono/jwt';
 
 import { env } from '../config/env.js';
 
+/** JWT 载荷：iat / exp 均为秒级时间戳。 */
 export interface TokenPayload {
   userId: number;
   iat?: number;

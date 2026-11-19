@@ -1,3 +1,7 @@
+/**
+ * 前台图集接口：列表 / 详情、发表评论、收藏切换、积分解锁与 ZIP 打包下载。
+ * 列表与详情对游客开放（optionalAuth），评论 / 收藏 / 解锁 / 下载需要登录 JWT 并按接口限流。
+ */
 import { createRoute } from '@hono/zod-openapi';
 
 import * as albumController from '../controllers/album.controller.js';
@@ -22,6 +26,11 @@ import { albumListSchema, commentSchema } from '../validators/albums.js';
 
 const router = createApiRouter();
 
+/**
+ * GET /api/albums —— 图集分页列表。
+ * 鉴权：optionalAuth，游客可访问；携带 JWT 时卡片附带收藏状态。
+ * 校验：query 经 albumListSchema（页码、每页 ≤48、new/hot/fav 排序、标签、关键词、作者）。
+ */
 const listRoute = createRoute({
   method: 'get',
   path: '/',
@@ -34,6 +43,11 @@ const listRoute = createRoute({
   responses: { 200: successResponse(AlbumPageResultSchema, '图集分页列表'), ...errorResponses },
 });
 
+/**
+ * GET /api/albums/{id} —— 图集详情。
+ * 鉴权：optionalAuth；未解锁仅返回前 3 张预览（水印图），已解锁或付费会员返回全部原图。
+ * 校验：路径 id 为正整数；不存在或已下架时走通用错误响应。
+ */
 const detailRoute = createRoute({
   method: 'get',
   path: '/{id}',
@@ -46,6 +60,12 @@ const detailRoute = createRoute({
   responses: { 200: successResponse(AlbumDetailSchema, '图集详情'), ...errorResponses },
 });
 
+/**
+ * POST /api/albums/{id}/comments —— 发表评论。
+ * 鉴权：authenticate + commentLimit（按用户限流）。
+ * 校验：id 路径参数与 commentSchema 请求体（1-500 字，可选父评论与回复对象）。
+ * 语义：先审后发，固定返回 201，评论状态为 pending，审核通过后才在前台展示。
+ */
 const commentRoute = createRoute({
   method: 'post',
   path: '/{id}/comments',
@@ -60,6 +80,10 @@ const commentRoute = createRoute({
   },
 });
 
+/**
+ * POST /api/albums/{id}/favorite —— 切换收藏状态（收藏 / 取消收藏）。
+ * 鉴权：authenticate；副作用是同步维护 album.fav_count 冗余计数。
+ */
 const favoriteRoute = createRoute({
   method: 'post',
   path: '/{id}/favorite',
@@ -70,6 +94,11 @@ const favoriteRoute = createRoute({
   responses: { 200: successResponse(FavoriteResultSchema, '收藏状态'), ...errorResponses },
 });
 
+/**
+ * POST /api/albums/{id}/unlock —— 消耗「解锁积分」永久解锁图集。
+ * 鉴权：authenticate + unlockLimit；付费会员或已解锁时返回 already=true 且不重复扣分。
+ * 副作用：扣减 user.points 并写解锁记录，积分不得为负。
+ */
 const unlockRoute = createRoute({
   method: 'post',
   path: '/{id}/unlock',
@@ -80,6 +109,11 @@ const unlockRoute = createRoute({
   responses: { 200: successResponse(UnlockResultSchema, '解锁结果'), ...errorResponses },
 });
 
+/**
+ * GET /api/albums/{id}/download —— 打包下载原图 ZIP。
+ * 鉴权：authenticate + downloadLimit；需已解锁或付费会员，下载不扣积分。
+ * 响应：流式 ZIP，Content-Disposition 使用 RFC 5987 的 filename* 传递中文文件名。
+ */
 const downloadRoute = createRoute({
   method: 'get',
   path: '/{id}/download',

@@ -1,3 +1,6 @@
+/**
+ * 前台内容类响应模型：公告、通知、会员套餐、友情链接与站点初始化聚合数据。
+ */
 import { z } from '@hono/zod-openapi';
 
 import { AlbumCardSchema, AuthorSchema, TagDtoSchema } from './album.js';
@@ -8,10 +11,12 @@ export const AnnouncementSchema = z
   .object({
     id: z.number().int(),
     type: announcementTypeSchema,
+    // 类型的中文展示名，由后端映射，前端无需维护枚举文案。
     typeLabel: z.string(),
     title: z.string(),
     summary: z.string().nullable(),
     content: z.string().nullable(),
+    // 置顶公告在列表中优先展示。
     isTop: z.boolean(),
     publishedAt: z.string(),
   })
@@ -43,6 +48,7 @@ export const NotificationSchema = z
     typeLabel: z.string(),
     title: z.string(),
     content: z.string(),
+    // 部分通知关联具体图集（如审核结果 / 图集更新），系统通知为 null。
     album: NotificationAlbumSchema.nullable(),
     isRead: z.boolean(),
     readAt: z.string().nullable(),
@@ -61,9 +67,12 @@ export const MembershipPlanSchema = z
     id: z.number().int(),
     code: z.string(),
     name: z.string(),
+    // 套餐价格，单位：分。
     priceCents: z.number().int(),
+    // 会员有效天数，续费时在剩余到期时间上叠加。
     durationDays: z.number().int(),
     benefits: z.array(z.string()),
+    // 1=上架，0=下架。
     status: z.number().int(),
   })
   .openapi('MembershipPlan');
@@ -88,6 +97,7 @@ export const SiteBootstrapSchema = z
     authors: z.array(AuthorSchema),
     latestAlbums: z.array(AlbumCardSchema),
     announcements: z.array(AnnouncementSchema),
+    // 今日新增图集数、最近一次更新时间（用于「今日更新」角标）。
     todayAdded: z.number().int(),
     latestDate: z.string().nullable(),
     stats: z.object({

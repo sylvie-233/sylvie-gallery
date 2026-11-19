@@ -1,3 +1,8 @@
+/**
+ * MCP 写工具集：图集、标签、作者、评论、公告、用户、配置与会员套餐的写操作。
+ * 注册条件：服务端 `MCP_ALLOW_WRITE=true`，且使用 Agent 令牌时 scope=write；
+ * 每个工具都会以当前管理员身份写入 `admin_op_log`，并按需刷新缓存 / 冗余计数。
+ */
 import { z } from 'zod';
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -34,8 +39,14 @@ const siteConfigInput = {
   watermarkOn: z.boolean().optional(),
 };
 
-/** 注册写操作工具：仅在 MCP_ALLOW_WRITE 开启时可用。 */
+/**
+ * 注册写操作工具：仅在 `MCP_ALLOW_WRITE=true`（Agent 令牌还需 scope=write）时可用。
+ *
+ * 所有工具都会修改业务数据并写入管理操作日志，可能触发缓存失效；
+ * agent 调用前应先用只读工具确认目标对象。
+ */
 export function registerWriteTools(server: McpServer, admin: AuthUser): void {
+  // 写工具（write scope）：上架 / 下架图集，更新状态与发布时间并写操作日志。
   server.registerTool(
     'admin_update_album_status',
     {
@@ -48,6 +59,7 @@ export function registerWriteTools(server: McpServer, admin: AuthUser): void {
       jsonResult(await updateAdminAlbumStatus(admin.id, id, status, undefined)),
   );
 
+  // 写工具（write scope）：切换图集推荐标记，影响前台瀑布流推荐池。
   server.registerTool(
     'admin_toggle_album_recommend',
     {
@@ -59,6 +71,7 @@ export function registerWriteTools(server: McpServer, admin: AuthUser): void {
     async ({ id }) => jsonResult(await toggleAdminAlbumRecommend(admin.id, id, undefined)),
   );
 
+  // 写工具（write scope）：审核评论，变更状态并维护图集评论数。
   server.registerTool(
     'admin_review_comment',
     {
@@ -71,6 +84,7 @@ export function registerWriteTools(server: McpServer, admin: AuthUser): void {
       jsonResult(await reviewAdminComment(admin.id, id, status, undefined)),
   );
 
+  // 写工具（write scope）：增减用户解锁积分，要求原因且积分不得为负。
   server.registerTool(
     'admin_adjust_user_points',
     {
@@ -87,6 +101,7 @@ export function registerWriteTools(server: McpServer, admin: AuthUser): void {
       jsonResult(await adjustAdminUserPoints(admin.id, userId, { delta, reason }, undefined)),
   );
 
+  // 写工具（write scope）：赠送 30 天会员，生成 pay_type=admin 的 0 元订单。
   server.registerTool(
     'admin_grant_vip',
     {
@@ -98,6 +113,7 @@ export function registerWriteTools(server: McpServer, admin: AuthUser): void {
     async ({ userId }) => jsonResult(await grantAdminUserVip(admin.id, userId, undefined)),
   );
 
+  // 写工具（write scope）：封禁 / 解封用户，封禁后其 JWT 立即失效。
   server.registerTool(
     'admin_toggle_user_status',
     {
@@ -109,6 +125,7 @@ export function registerWriteTools(server: McpServer, admin: AuthUser): void {
     async ({ userId }) => jsonResult(await toggleAdminUserStatus(admin.id, userId, undefined)),
   );
 
+  // 写工具（write scope）：按字段增量更新站点配置，未传字段沿用当前值。
   server.registerTool(
     'admin_update_site_config',
     {
@@ -132,6 +149,7 @@ export function registerWriteTools(server: McpServer, admin: AuthUser): void {
     },
   );
 
+  // 写工具（write scope）：更新会员套餐，价格单位为分。
   server.registerTool(
     'admin_update_plan',
     {
@@ -147,6 +165,7 @@ export function registerWriteTools(server: McpServer, admin: AuthUser): void {
     async (input) => jsonResult(await updateAdminPlan(admin.id, input, undefined)),
   );
 
+  // 写工具（write scope）：新建标签，重名会被拒绝。
   server.registerTool(
     'admin_create_tag',
     {
@@ -158,6 +177,7 @@ export function registerWriteTools(server: McpServer, admin: AuthUser): void {
     async ({ name }) => jsonResult(await createAdminTag(admin.id, name, undefined)),
   );
 
+  // 写工具（write scope）：切换标签前台展示状态。
   server.registerTool(
     'admin_toggle_tag',
     {
@@ -169,6 +189,7 @@ export function registerWriteTools(server: McpServer, admin: AuthUser): void {
     async ({ id }) => jsonResult(await toggleAdminTag(admin.id, id, undefined)),
   );
 
+  // 写工具（write scope）：切换作者前台展示状态。
   server.registerTool(
     'admin_toggle_author',
     {
@@ -180,6 +201,7 @@ export function registerWriteTools(server: McpServer, admin: AuthUser): void {
     async ({ id }) => jsonResult(await toggleAdminAuthor(admin.id, id, undefined)),
   );
 
+  // 写工具（write scope）：发布 / 下线公告。
   server.registerTool(
     'admin_toggle_announcement',
     {

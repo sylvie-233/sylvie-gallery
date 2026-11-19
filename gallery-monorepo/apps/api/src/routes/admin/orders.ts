@@ -1,3 +1,7 @@
+/**
+ * 后台订单接口：支付流水列表、CSV 导出与退款。
+ * 导出直接返回文件流；退款会收回会员权益并取消到期通知。
+ */
 import { createRoute, z } from '@hono/zod-openapi';
 
 import * as orderController from '../../controllers/admin/order.controller.js';
@@ -17,6 +21,7 @@ import { orderListSchema, refundSchema } from '../../validators/admin/commerce.j
 
 const router = createApiRouter();
 
+/** GET /api/admin/orders —— 订单分页与汇总，支持业务类型、支付状态、关键词与日期筛选。 */
 const listRoute = createRoute({
   method: 'get',
   path: '/',
@@ -26,6 +31,7 @@ const listRoute = createRoute({
   responses: { 200: successResponse(AdminOrderPageSchema, '订单分页与汇总'), ...errorResponses },
 });
 
+/** GET /api/admin/orders/export —— 按同样筛选导出 CSV；结果为空时退回 JSON 统一响应。 */
 const exportRoute = createRoute({
   method: 'get',
   path: '/export',
@@ -49,6 +55,7 @@ const exportRoute = createRoute({
   },
 });
 
+/** POST /api/admin/orders/{id}/refund —— 退款并收回会员权益，退款原因可选（≤255 字）。 */
 const refundRoute = createRoute({
   method: 'post',
   path: '/{id}/refund',

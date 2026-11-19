@@ -1,3 +1,8 @@
+/**
+ * 后台作者管理：分页列表、新建、编辑、显示 / 隐藏切换与软删除。
+ *
+ * 作者名需唯一（含软删除过滤）；名下仍有未删除图集时禁止删除；写操作均记录操作日志。
+ */
 import type { AdminAuthorInput, AdminAuthorRow, PageResult } from '@sylvie/types';
 
 import { dbClient } from '../../db/index.js';
@@ -23,6 +28,7 @@ import { HttpError } from '../../utils/http.js';
 import { normalizePage, toPageResult } from '../../utils/format.js';
 import { logAdminOp } from './log.service.js';
 
+/** 将作者行映射为 DTO：style_tags 以逗号分隔存储，这里拆成数组并去掉空项。 */
 function mapAuthor(row: AdminAuthorDbRow): AdminAuthorRow {
   return {
     id: Number(row.id),
@@ -47,6 +53,12 @@ function mapAuthor(row: AdminAuthorDbRow): AdminAuthorRow {
   };
 }
 
+/**
+ * 校验并规范化作者入参。
+ *
+ * 名称 1-32 字符、别名最多 64、风格标签最多 8 个、简介最多 500；
+ * 未提供首字母时取名称首字，未提供颜色时使用默认色；风格标签以逗号合并写库。
+ */
 function validateAuthor(input: AdminAuthorInput): AuthorWriteValues {
   const name = input.name.trim();
   const nameLength = Array.from(name).length;
@@ -77,6 +89,14 @@ function validateAuthor(input: AdminAuthorInput): AuthorWriteValues {
   };
 }
 
+/**
+ * 分页查询作者列表。
+ *
+ * @param query.status on = 显示（status 1）/ off = 隐藏（status 0）
+ * @param query.keyword 模糊匹配名称、别名、风格标签
+ * @param query.page / query.pageSize 未传默认每页 6 条，上限 200
+ * 按 sort_weight 倒序；albumCount 为未删除图集数（含草稿 / 下架）。
+ */
 export async function getAdminAuthors(query: {
   status?: string;
   keyword?: string;
@@ -96,6 +116,11 @@ export async function getAdminAuthors(query: {
   return toPageResult(rows.map(mapAuthor), Number(countRow?.total ?? 0), page, pageSize);
 }
 
+/**
+ * 新建作者，默认 status = 1（显示）。
+ *
+ * 校验名称唯一（同名未删除作者已存在时抛 409）；插入后记录 author.create 日志并返回详情。
+ */
 export async function createAdminAuthor(
   adminId: number,
   input: AdminAuthorInput,
@@ -118,6 +143,11 @@ export async function createAdminAuthor(
   return getAdminAuthor(authorId);
 }
 
+/**
+ * 编辑作者资料（不改变 status）。
+ *
+ * 校验存在性与名称唯一（排除自身）；日志同时记录修改前名称 / 头像与修改后完整数据。
+ */
 export async function updateAdminAuthor(
   adminId: number,
   authorId: number,
@@ -159,6 +189,7 @@ export async function updateAdminAuthor(
   return getAdminAuthor(authorId);
 }
 
+/** 读取作者详情；不存在或已软删除时抛 404。 */
 async function getAdminAuthor(authorId: number): Promise<AdminAuthorRow> {
   const statement = selectAdminAuthorById(authorId);
   const row = await dbClient.queryOne<AdminAuthorDbRow>(statement.sql, statement.params);
@@ -168,6 +199,12 @@ async function getAdminAuthor(authorId: number): Promise<AdminAuthorRow> {
   return mapAuthor(row);
 }
 
+/**
+ * 切换作者显示状态（0 ↔ 1）。
+ *
+ * 隐藏作者不会自动下架其图集，但保存图集时不能再把隐藏作者用于新图集。
+ * 日志按结果记为 author.show / author.hide。
+ */
 export async function toggleAdminAuthor(
   adminId: number,
   authorId: number,
@@ -195,6 +232,12 @@ export async function toggleAdminAuthor(
   return getAdminAuthor(authorId);
 }
 
+/**
+ * 软删除作者。
+ *
+ * 删除前统计名下未删除图集数，大于 0 时拒绝删除，避免产生无归属图集（需先转移或删除）。
+ * 通过后置 is_deleted = 1、status = 0，并记录 author.delete 日志。
+ */
 export async function deleteAdminAuthor(
   adminId: number,
   authorId: number,

@@ -1,3 +1,7 @@
+/**
+ * 前台作者业务：作者列表 / 详情、订阅作者分页与订阅切换。
+ * 作者数据仅暴露启用且未软删除的记录；订阅状态按登录用户叠加。
+ */
 import type { AuthorDetailDto, AuthorDto, PageResult } from '@sylvie/types';
 
 import { dbClient, queryOneOn } from '../db/index.js';
@@ -17,6 +21,7 @@ import { HttpError } from '../utils/http.js';
 import { normalizePage, toPageResult } from '../utils/format.js';
 import { listAlbums } from './album.service.js';
 
+/** 将作者行映射为 DTO，风格标签按逗号拆分并去除空白。 */
 function mapAuthor(row: AuthorRow, subscribed: boolean): AuthorDto {
   return {
     id: Number(row.id),
@@ -40,6 +45,7 @@ function mapAuthor(row: AuthorRow, subscribed: boolean): AuthorDto {
   };
 }
 
+/** 加载当前用户订阅的作者 id 集合；游客返回空集合。 */
 async function loadSubscribedIds(userId: number | undefined): Promise<Set<number>> {
   if (!userId) {
     return new Set();
@@ -49,7 +55,10 @@ async function loadSubscribedIds(userId: number | undefined): Promise<Set<number
   return new Set(rows.map((row) => Number(row.authorId)));
 }
 
-/** 作者列表：按排序权重降序，支持姓名 / 别名 / 风格标签搜索。 */
+/**
+ * 作者列表：按排序权重、图集数降序，支持姓名 / 别名 / 风格标签搜索。
+ * 关键词截断为 32 字符；`userId` 用于标记订阅状态，游客不标记。
+ */
 export async function listAuthors(keyword?: string, userId?: number): Promise<AuthorDto[]> {
   const term = keyword?.trim().slice(0, 32) ?? '';
   const statement = selectAuthors(term);
@@ -58,7 +67,10 @@ export async function listAuthors(keyword?: string, userId?: number): Promise<Au
   return rows.map((row) => mapAuthor(row, subscribed.has(Number(row.id))));
 }
 
-/** 作者主页：作者信息 + 相关图集（每页 12 套，按发布时间倒序）。 */
+/**
+ * 作者主页：作者信息 + 相关图集（每页 12 套，按发布时间倒序）。
+ * 作者不存在或已隐藏返回 404；图集列表复用 `listAlbums`，继承其公开可见过滤。
+ */
 export async function getAuthorDetail(
   authorId: number,
   userId: number | undefined,
@@ -88,7 +100,7 @@ export async function getAuthorDetail(
   };
 }
 
-/** 已订阅作者：与个人中心卡片一致，每页 12 位。 */
+/** 已订阅作者分页：与个人中心卡片一致，每页 12 位、按订阅时间倒序。 */
 export async function listSubscribedAuthors(
   userId: number,
   page = 1,
@@ -118,7 +130,11 @@ export async function listSubscribedAuthors(
   );
 }
 
-/** 订阅 / 取消订阅作者。 */
+/**
+ * 订阅 / 取消订阅作者（切换）。
+ * 事务内 `FOR UPDATE` 读取现有订阅：存在则删除、否则插入，
+ * 避免并发点击造成重复订阅或重复取消。
+ */
 export async function toggleSubscription(
   authorId: number,
   userId: number,

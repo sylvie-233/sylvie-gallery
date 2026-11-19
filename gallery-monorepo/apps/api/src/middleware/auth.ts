@@ -1,3 +1,7 @@
+/**
+ * 登录鉴权中间件：解析 Bearer JWT 并回查账号状态，向请求上下文注入 currentUser；
+ * 提供强制登录、可选登录与管理员限定三种能力。
+ */
 import { createMiddleware } from 'hono/factory';
 
 import type { Role } from '@sylvie/types';
@@ -40,6 +44,7 @@ export async function loadUser(userId: number): Promise<AuthUser | null> {
   };
 }
 
+/** 从 Authorization 头解析 Bearer token；缺失或格式不符时返回 null。 */
 export function readBearer(header: string | undefined): string | null {
   if (!header) {
     return null;
@@ -87,6 +92,7 @@ export const optionalAuth = createMiddleware<AppEnv>(async (c, next) => {
   await next();
 });
 
+/** 读取当前登录用户；游客请求下返回 undefined。 */
 export function getCurrentUser(c: { get: (key: 'currentUser') => AuthUser | undefined }): AuthUser | undefined {
   return c.get('currentUser');
 }

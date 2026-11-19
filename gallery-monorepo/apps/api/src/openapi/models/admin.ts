@@ -1,3 +1,7 @@
+/**
+ * 管理后台响应模型：图集、标签、作者、评论、公告、订单、用户、配置、日志、
+ * 看板趋势、上传结果与 Agent 令牌。金额字段一律以「分」为单位。
+ */
 import { z } from '@hono/zod-openapi';
 
 import { TagDtoSchema } from './album.js';
@@ -174,6 +178,7 @@ export const AdminOrderRowSchema = z
     user: AdminOrderUserSchema,
     bizType: z.enum(['vip', 'unlock']),
     payType: payTypeSchema,
+    // 实付金额（分）；赠送会员订单为 0。
     amountCents: z.number().int(),
     pointsCost: z.number().int(),
     vipDays: z.number().int(),
@@ -191,12 +196,14 @@ export const AdminOrderRowSchema = z
 /** 后台支付汇总。 */
 export const AdminPaymentSummarySchema = z
   .object({
+    // 金额单位均为「分」：累计收入、今日收入、会员现金收入。
     totalRevenueCents: z.number().int(),
     todayRevenueCents: z.number().int(),
     todayOrderCount: z.number().int(),
     vipOrderCount: z.number().int(),
     vipCashCents: z.number().int(),
     unlockCount: z.number().int(),
+    // 积分解锁消耗的积分总量。
     unlockPoints: z.number().int(),
   })
   .openapi('AdminPaymentSummary');
@@ -223,6 +230,7 @@ export const AdminUserRowSchema = z
     role: roleSchema,
     points: z.number().int(),
     vipExpireAt: z.string().nullable(),
+    // 账号状态：1=正常，0=封禁。
     status: z.number().int(),
     emailVerified: z.boolean(),
     createdAt: z.string(),
@@ -260,6 +268,7 @@ export const AdminPlanConfigSchema = z
     id: z.number().int(),
     code: z.string(),
     name: z.string(),
+    // 价格单位：分；durationDays 为叠加的会员天数。
     priceCents: z.number().int(),
     durationDays: z.number().int(),
     benefits: z.array(z.string()),
@@ -309,6 +318,7 @@ export const AdminLogPageSchema = pageResult(AdminLogRowSchema).openapi('AdminLo
 /** 工作台看板。 */
 export const AdminDashboardSchema = z
   .object({
+    // date 为统计日期（北京时间）；today 为今日实时指标，site 为全站存量指标。
     date: z.string(),
     today: z.object({
       revenueCents: z.number().int(),
@@ -353,6 +363,7 @@ export const TrendPointSchema = z
 /** 趋势结果。 */
 export const AdminTrendSchema = z
   .object({
+    // 时间范围：近 7 天 / 近 30 天 / 近 6 个月；金额单位均为分。
     mode: z.enum(['7d', '30d', '6m']),
     points: z.array(TrendPointSchema),
     sumCents: z.number().int(),
@@ -383,7 +394,9 @@ export const AdminAgentTokenRowSchema = z
   .object({
     id: z.number().int(),
     name: z.string(),
+    // 只展示前缀，明文令牌不落库、仅在创建时返回一次。
     tokenPrefix: z.string(),
+    // read=只读工具，write=可调用写工具（还需 MCP_ALLOW_WRITE=true）。
     scope: z.enum(['read', 'write']),
     status: z.number().int(),
     adminId: z.number().int(),

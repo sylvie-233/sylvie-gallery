@@ -1,3 +1,7 @@
+/**
+ * 前台图集 / 作者相关响应模型：卡片、详情、评论、收藏、解锁、订阅与分页结果。
+ * 字段与 album.service / author.service 的输出一一对应，同时作为 OpenAPI 响应 schema。
+ */
 import { z } from '@hono/zod-openapi';
 
 import {
@@ -13,6 +17,7 @@ export const TagDtoSchema = z
   .object({
     id: z.number().int(),
     name: z.string(),
+    // 标签被引用的图集套数，用于标签云排序。
     useCount: z.number().int(),
   })
   .openapi('Tag');
@@ -37,6 +42,7 @@ export const AlbumCardSchema = z
     imageCount: z.number().int(),
     videoCount: z.number().int(),
     packageSize: z.number().openapi({ description: '压缩包大小（MB）' }),
+    // 解锁本套图集需要的「解锁积分」。
     points: z.number().int(),
     viewCount: z.number().int(),
     favCount: z.number().int(),
@@ -56,9 +62,11 @@ export const AlbumImageSchema = z
     mediaType: mediaTypeSchema,
     url: z.string(),
     thumbUrl: z.string().nullable(),
+    // 仅未解锁的前 3 张预览使用水印地址；解锁后返回原图 url。
     watermarkUrl: z.string().nullable(),
     width: z.number().int().nullable(),
     height: z.number().int().nullable(),
+    // 视频时长（秒），图片为 null。
     duration: z.number().int().nullable(),
     sortOrder: z.number().int(),
   })
@@ -86,6 +94,7 @@ export const CommentSchema: z.ZodType<unknown> = z
         replyToUserId: z.number().int().nullable(),
         replyToName: z.string().nullable(),
         content: z.string(),
+        // pending=待审核，approved=已展示，rejected=驳回，deleted=已软删除。
         status: commentStatusSchema,
         createdAt: z.string(),
         isMine: z.boolean(),
@@ -109,12 +118,15 @@ export const AlbumDetailSchema = AlbumCardSchema.extend({
   author: AlbumDetailAuthorSchema,
   images: z.array(AlbumImageSchema),
   totalImages: z.number().int(),
+  // locked=当前仍有内容未解锁；unlocked=已永久解锁（含付费会员）；isVip=当前用户是付费会员。
   locked: z.boolean(),
   unlocked: z.boolean(),
   isVip: z.boolean(),
   canDownload: z.boolean(),
+  // 未解锁时可看的前 3 张与剩余锁定张数，用于详情页提示。
   previewCount: z.number().int(),
   lockedCount: z.number().int(),
+  // 当前返回的预览图是否带水印（受 sys_config.image.watermark_on 控制）。
   watermark: z.boolean(),
   otherWorks: z.array(AlbumCardSchema),
   comments: z.array(CommentSchema),
@@ -135,6 +147,7 @@ export const AuthorSchema = z
     styleTags: z.array(z.string()),
     albumCount: z.number().int(),
     lastUpdateAt: z.string().nullable(),
+    // 后台手工排序权重，数值越大越靠前。
     sortWeight: z.number().int(),
     subscribed: z.boolean(),
   })
@@ -163,8 +176,11 @@ export const FavoriteResultSchema = z
 /** 图集解锁结果。 */
 export const UnlockResultSchema = z
   .object({
+    // access=true 表示当前已可查看全部内容（本次解锁或此前已解锁 / 会员）。
     access: z.boolean(),
+    // already=true 表示无需扣分（已解锁或付费会员）。
     already: z.boolean(),
+    // 本次实际消耗的解锁积分；points 为操作后的积分余额。
     pointsCost: z.number().int(),
     points: z.number().int(),
   })

@@ -1,3 +1,7 @@
+/**
+ * 个人中心接口：我的收藏图集与已订阅作者的分页列表。
+ * 两个接口都需要登录，且只返回当前 JWT 用户自己的数据。
+ */
 import { createRoute } from '@hono/zod-openapi';
 
 import * as albumController from '../controllers/album.controller.js';
@@ -10,6 +14,11 @@ import { pageQuerySchema } from '../validators/albums.js';
 
 const router = createApiRouter();
 
+/**
+ * GET /api/me/favorites —— 我的收藏图集。
+ * 鉴权：authenticate；query 经 pageQuerySchema（pageSize ≤36）。
+ * 响应：AlbumPageResult，按收藏时间倒序。
+ */
 const favoritesRoute = createRoute({
   method: 'get',
   path: '/favorites',
@@ -23,6 +32,10 @@ const favoritesRoute = createRoute({
   },
 });
 
+/**
+ * GET /api/me/subscriptions —— 我订阅的作者。
+ * 鉴权：authenticate；query 经 pageQuerySchema；响应 AuthorPageResult。
+ */
 const subscriptionsRoute = createRoute({
   method: 'get',
   path: '/subscriptions',

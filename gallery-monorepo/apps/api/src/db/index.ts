@@ -1,3 +1,7 @@
+/**
+ * 数据库实例装配：按环境变量创建应用级连接池，
+ * 并透传 `@sylvie/db` 的类型与查询工具。
+ */
 import { DatabaseClient } from '@sylvie/db';
 
 import { env } from '../config/env.js';

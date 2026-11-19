@@ -19,6 +19,7 @@ if (existsSync(localEnvFile)) {
   loadEnv({ path: localEnvFile, override: true, quiet: true });
 }
 
+/** 环境变量契约：集中声明默认值与类型转换；布尔开关统一用 'true' / 'false' 字符串表示。 */
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
@@ -79,7 +80,9 @@ const envSchema = z.object({
     .transform((value) => value !== 'false'),
   S3_PUBLIC_URL: z.string().default(''),
 
+  /** 开发环境固定验证码；接入真实邮件 / 短信后仍需保留用于本地联调。 */
   VERIFY_CODE_DEMO: z.string().default('123456'),
+  /** 本地默认模拟支付；对接沙箱或生产支付宝时置为 'false'。 */
   ALIPAY_MOCK: z
     .string()
     .default('true')
@@ -106,8 +109,10 @@ if (!parsed.success) {
   process.exit(1);
 }
 
+/** 校验并归一化后的环境变量；应用内统一从这里读取配置。 */
 export const env = parsed.data;
 
+/** CORS 白名单：将逗号分隔的配置拆成数组，并剔除空白项。 */
 export const corsOrigins = env.CORS_ORIGIN.split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);

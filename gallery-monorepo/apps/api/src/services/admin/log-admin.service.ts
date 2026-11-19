@@ -1,3 +1,8 @@
+/**
+ * 后台操作日志查询：分页读取 admin_op_log，并补充动作中文名与操作人昵称。
+ *
+ * 仅提供读取，写入统一走 log.service.ts 的 logAdminOp。
+ */
 import {
   ADMIN_ACTION_LABELS,
   type AdminLogRow,
@@ -13,6 +18,15 @@ import {
   type LogRow,
 } from '../../sql/admin/log-admin.sql.js';
 
+/**
+ * 分页查询管理操作日志。
+ *
+ * @param query.action 精确匹配动作标识（如 album.publish）
+ * @param query.keyword 模糊匹配动作、目标类型、详情
+ * @param query.from / query.to 按操作日期区间过滤
+ * @param query.page / query.pageSize 未传默认每页 8 条
+ * 关联 user 表取操作人昵称，按时间倒序；动作展示名取 ADMIN_ACTION_LABELS，缺失时回退原值。
+ */
 export async function getAdminLogs(query: {
   action?: string;
   keyword?: string;

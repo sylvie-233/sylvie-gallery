@@ -1,3 +1,7 @@
+/**
+ * 后台标签接口：列表、新建、重命名、显隐与删除。
+ * 标签被图集收录时禁止删除；写操作失效标签、图集与站点缓存。
+ */
 import { createRoute } from '@hono/zod-openapi';
 
 import * as tagController from '../../controllers/admin/tag.controller.js';
@@ -14,6 +18,7 @@ import { tagListSchema, tagNameSchema } from '../../validators/admin/catalog.js'
 
 const router = createApiRouter();
 
+/** GET /api/admin/tags —— 标签分页，支持显隐状态与关键词筛选。 */
 const listRoute = createRoute({
   method: 'get',
   path: '/',
@@ -23,6 +28,7 @@ const listRoute = createRoute({
   responses: { 200: successResponse(AdminTagPageSchema, '标签分页'), ...errorResponses },
 });
 
+/** POST /api/admin/tags —— 新建标签，名称 1-20 字。 */
 const createRouteDef = createRoute({
   method: 'post',
   path: '/',
@@ -32,6 +38,7 @@ const createRouteDef = createRoute({
   responses: { 201: successResponse(AdminTagRowSchema, '标签已创建'), ...errorResponses },
 });
 
+/** PUT /api/admin/tags/{id} —— 重命名标签，名称校验同新建。 */
 const updateRoute = createRoute({
   method: 'put',
   path: '/{id}',
@@ -41,6 +48,7 @@ const updateRoute = createRoute({
   responses: { 200: successResponse(AdminTagRowSchema, '标签已更新'), ...errorResponses },
 });
 
+/** POST /api/admin/tags/{id}/toggle —— 切换标签显示/隐藏，无请求体。 */
 const toggleRoute = createRoute({
   method: 'post',
   path: '/{id}/toggle',
@@ -50,6 +58,7 @@ const toggleRoute = createRoute({
   responses: { 200: successResponse(AdminTagRowSchema, '标签状态'), ...errorResponses },
 });
 
+/** DELETE /api/admin/tags/{id} —— 仅未被图集收录的标签可删除。 */
 const deleteRoute = createRoute({
   method: 'delete',
   path: '/{id}',

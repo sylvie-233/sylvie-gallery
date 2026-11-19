@@ -1,3 +1,7 @@
+/**
+ * 缓存实例装配：按环境选择 Redis / 进程内存后端，
+ * 并提供缓存键拼接、防击穿读取与按前缀失效的薄封装。
+ */
 import { createCache, type Cache } from '@sylvie/cache';
 
 import { env } from '../config/env.js';

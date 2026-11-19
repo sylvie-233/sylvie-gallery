@@ -1,3 +1,6 @@
+/**
+ * 请求上下文类型：声明 Hono 环境变量中的登录用户、请求级日志与 Agent 令牌。
+ */
 import type { Context } from 'hono';
 
 import type { Logger } from '@sylvie/logger';
@@ -23,4 +26,5 @@ export interface AppEnv {
   };
 }
 
+/** 业务处理器使用的 Hono 上下文类型别名。 */
 export type AppContext = Context<AppEnv>;

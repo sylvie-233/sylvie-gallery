@@ -1,3 +1,7 @@
+/**
+ * 前台通知业务：分页列表（全部 / 仅未读）、未读数与已读标记。
+ * 所有操作都限定当前用户，标记已读前先校验通知归属。
+ */
 import {
   NOTIFICATION_TYPE_LABELS,
   type NotificationDto,
@@ -18,6 +22,7 @@ import {
 import { HttpError } from '../utils/http.js';
 import { normalizePage, toBool, toPageResult } from '../utils/format.js';
 
+/** 映射通知 DTO：仅当图集仍存在时附带图集摘要，否则 `album` 为 null。 */
 function mapNotification(row: NotificationRow): NotificationDto {
   return {
     id: Number(row.id),
@@ -43,6 +48,10 @@ function mapNotification(row: NotificationRow): NotificationDto {
   };
 }
 
+/**
+ * 通知分页列表：`filter='unread'` 时仅未读，默认每页 5 条。
+ * 返回分页结果并附加当前用户未读总数；总数与未读数并发查询。
+ */
 export async function listNotifications(
   userId: number,
   query: { page?: number; pageSize?: number; filter?: 'all' | 'unread' },
@@ -65,6 +74,7 @@ export async function listNotifications(
   return { ...result, unread: Number(unreadRow?.total ?? 0) };
 }
 
+/** 单条通知标记已读：先校验归属，通知不存在或不属于当前用户返回 404。 */
 export async function markNotificationRead(userId: number, notificationId: number): Promise<void> {
   const ownerStatement = selectNotificationForUser(notificationId, userId);
   const row = await dbClient.queryOne<{ id: number }>(ownerStatement.sql, ownerStatement.params);
@@ -75,6 +85,7 @@ export async function markNotificationRead(userId: number, notificationId: numbe
   await dbClient.execute(statement.sql, statement.params);
 }
 
+/** 当前用户全部未读通知标记已读。 */
 export async function markAllNotificationsRead(userId: number): Promise<void> {
   const statement = markAllNotificationsReadStatement(userId);
   await dbClient.execute(statement.sql, statement.params);

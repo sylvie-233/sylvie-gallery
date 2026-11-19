@@ -1,3 +1,7 @@
+/**
+ * 后台用户接口：列表、积分调整、赠送会员、重置密码与封禁/解封。
+ * 写操作均记录管理日志；赠送会员会登记到期通知任务。
+ */
 import { createRoute } from '@hono/zod-openapi';
 
 import * as userController from '../../controllers/admin/user.controller.js';
@@ -17,6 +21,7 @@ import { pointsSchema, userListSchema } from '../../validators/admin/commerce.js
 
 const router = createApiRouter();
 
+/** GET /api/admin/users —— 用户分页，支持角色、状态与关键词筛选。 */
 const listRoute = createRoute({
   method: 'get',
   path: '/',
@@ -26,6 +31,7 @@ const listRoute = createRoute({
   responses: { 200: successResponse(AdminUserPageSchema, '用户分页'), ...errorResponses },
 });
 
+/** POST /api/admin/users/{id}/points —— 调整解锁积分，delta 可正可负，需填写原因。 */
 const pointsRoute = createRoute({
   method: 'post',
   path: '/{id}/points',
@@ -35,6 +41,7 @@ const pointsRoute = createRoute({
   responses: { 200: successResponse(AdminUserRowSchema, '积分已调整'), ...errorResponses },
 });
 
+/** POST /api/admin/users/{id}/grant-vip —— 赠送 30 天付费会员，无请求体。 */
 const grantVipRoute = createRoute({
   method: 'post',
   path: '/{id}/grant-vip',
@@ -44,6 +51,7 @@ const grantVipRoute = createRoute({
   responses: { 200: successResponse(AdminUserRowSchema, '会员已赠送'), ...errorResponses },
 });
 
+/** POST /api/admin/users/{id}/reset-password —— 重置为默认密码，返回一次性结果。 */
 const resetPasswordRoute = createRoute({
   method: 'post',
   path: '/{id}/reset-password',
@@ -56,6 +64,7 @@ const resetPasswordRoute = createRoute({
   },
 });
 
+/** POST /api/admin/users/{id}/toggle-status —— 在封禁/解封之间切换，无请求体。 */
 const toggleStatusRoute = createRoute({
   method: 'post',
   path: '/{id}/toggle-status',

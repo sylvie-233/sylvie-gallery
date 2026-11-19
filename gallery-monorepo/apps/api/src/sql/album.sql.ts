@@ -2,6 +2,13 @@ import type { SortType } from '@sylvie/types';
 
 import { placeholders, type SqlFragment, type SqlStatement } from './shared.js';
 
+/**
+ * 前台图集 SQL：列表 / 瀑布流 / 详情、媒体预览、收藏、评论与下载。
+ * 公开查询统一要求图集 `published` 且未软删除、作者启用且未软删除；
+ * 收藏 / 评论等写操作维护 `album.fav_count` / `comment_count` 冗余计数，
+ * 评论删除走软删除，关键更新在事务内配合 `FOR UPDATE`。
+ */
+
 /** 图集行：列表 / 详情共用。 */
 export interface AlbumRow {
   id: number;
@@ -67,6 +74,7 @@ export interface AlbumCommentRow {
   vipExpireAt: string | null;
 }
 
+// 列表 / 详情共用列：冗余计数字段（view/fav/comment/download）直接读取，避免实时聚合。
 const ALBUM_SELECT = `a.id, a.title, a.description, a.cover_url AS coverUrl, a.image_count AS imageCount,
   a.video_count AS videoCount, a.package_size AS packageSize, a.points,
   a.view_count AS viewCount, a.download_count AS downloadCount, a.fav_count AS favCount,
@@ -76,9 +84,13 @@ const ALBUM_SELECT = `a.id, a.title, a.description, a.cover_url AS coverUrl, a.i
   au.avatar_url AS authorAvatarUrl, au.bio AS authorBio, au.album_count AS authorAlbumCount`;
 
 const ALBUM_FROM = `FROM album a JOIN author au ON au.id = a.author_id`;
+// 公开可见条件：图集已发布且未软删除，同时其作者启用且未软删除。
 const PUBLIC_WHERE = `a.status = 'published' AND a.is_deleted = 0 AND au.status = 1 AND au.is_deleted = 0`;
 
-/** 批量加载图集标签。 */
+/**
+ * 批量加载图集标签，供卡片渲染。
+ * `albumIds` 生成 IN 占位符；仅返回启用、未软删除的标签，按收录数、id 排序。
+ */
 export function selectAlbumTags(albumIds: number[]): SqlStatement {
   return {
     sql: `SELECT at.album_id AS albumId, t.id, t.name, t.use_count AS useCount
@@ -90,7 +102,7 @@ export function selectAlbumTags(albumIds: number[]): SqlStatement {
   };
 }
 
-/** 批量加载当前用户已收藏的图集 ID。 */
+/** 批量加载当前用户在一组图集中的收藏记录，用于标记 `favorited`。 */
 export function selectFavoritesForAlbums(
   userId: number,
   albumIds: number[],
@@ -101,7 +113,10 @@ export function selectFavoritesForAlbums(
   };
 }
 
-/** 记录图集搜索日志。 */
+/**
+ * 记录图集搜索日志。
+ * `userId` 为 undefined（游客）时写 NULL；`resultCount` 为本次命中总数。
+ */
 export function insertAlbumSearchLog(
   keyword: string,
   userId: number | undefined,
@@ -114,7 +129,12 @@ export function insertAlbumSearchLog(
   };
 }
 
-/** 图集列表动态 WHERE：作者、标签、关键词筛选。 */
+/**
+ * 图集列表动态 WHERE：基础为公开可见条件。
+ * - `authorId` 有值时按作者过滤；
+ * - `tagName` 有值时要求存在同名启用标签（EXISTS，避免 JOIN 造成重复行）；
+ * - `keyword` 有值时匹配标题、作者名 / 别名，或标签名模糊命中。
+ */
 export function albumListFilter(input: {
   authorId?: number;
   tagName: string;
@@ -149,7 +169,10 @@ export function albumListFilter(input: {
   return { sql: conditions.join(' AND '), params };
 }
 
-/** 图集列表排序片段。 */
+/**
+ * 图集列表排序片段（拼接进 ORDER BY，不参与参数化）。
+ * `hot` 按浏览量、`fav` 按收藏数，其余按发布时间；都以 id 倒序兜底保证分页稳定。
+ */
 export function albumListOrder(sort: SortType): string {
   return sort === 'hot'
     ? 'a.view_count DESC, a.published_at DESC, a.id DESC'
@@ -158,6 +181,7 @@ export function albumListOrder(sort: SortType): string {
       : 'a.published_at DESC, a.id DESC';
 }
 
+/** 统计符合筛选条件的图集总数（分页 total）；`where` 来自 `albumListFilter`。 */
 export function countAlbums(where: SqlFragment): SqlStatement {
   return {
     sql: `SELECT COUNT(*) AS total ${ALBUM_FROM} WHERE ${where.sql}`,
@@ -165,6 +189,11 @@ export function countAlbums(where: SqlFragment): SqlStatement {
   };
 }
 
+/**
+ * 图集分页列表。
+ * `where` 为筛选条件、`order` 为 `albumListOrder` 产出的排序片段；
+ * `pageSize` / `offset` 由 service 归一化后传入。
+ */
 export function selectAlbumsPage(
   where: SqlFragment,
   order: string,
@@ -177,7 +206,7 @@ export function selectAlbumsPage(
   };
 }
 
-/** 瀑布流总数。 */
+/** 瀑布流总数（全部公开可见图集，不区分推荐池）。 */
 export function countFeedAlbums(): SqlStatement {
   return {
     sql: `SELECT COUNT(*) AS total ${ALBUM_FROM} WHERE ${PUBLIC_WHERE}`,
@@ -185,7 +214,11 @@ export function countFeedAlbums(): SqlStatement {
   };
 }
 
-/** 瀑布流分页：推荐池优先，登录用户叠加最近浏览标签的偏好分。 */
+/**
+ * 瀑布流分页：推荐池优先，登录用户叠加最近浏览标签的偏好分。
+ * `prefScore` 子查询取用户最近 100 条浏览记录涉及的标签，统计图集命中的标签数；
+ * 游客时固定为 0。排序依次为推荐位、偏好分、浏览量、发布时间。
+ */
 export function selectFeedAlbums(
   userId: number | undefined,
   pageSize: number,
@@ -214,7 +247,10 @@ export function selectFeedAlbums(
   };
 }
 
-/** 详情页评论列表：已审核或本人评论。 */
+/**
+ * 详情页评论列表：返回已审核或当前用户本人的评论（游客传 userId 为 undefined 时
+ * 仅返回已审核），未软删除；按创建时间、id 升序，供 service 组装回复树。
+ */
 export function selectAlbumComments(
   albumId: number,
   userId: number | undefined,
@@ -233,6 +269,7 @@ export function selectAlbumComments(
   };
 }
 
+/** 统计图集已审核评论数（与评论列表展示口径一致，排除软删除）。 */
 export function countApprovedAlbumComments(albumId: number): SqlStatement {
   return {
     sql: `SELECT COUNT(*) AS total FROM comment WHERE album_id = ? AND status = 'approved' AND is_deleted = 0`,
@@ -240,7 +277,7 @@ export function countApprovedAlbumComments(albumId: number): SqlStatement {
   };
 }
 
-/** 全局水印开关。 */
+/** 全局水印开关（`image.watermark_on`），只影响未解锁预览。 */
 export function selectWatermarkConfig(): SqlStatement {
   return {
     sql: `SELECT config_value AS value FROM sys_config WHERE config_key = 'image.watermark_on' LIMIT 1`,
@@ -256,6 +293,7 @@ export function selectPublishedAlbum(albumId: number): SqlStatement {
   };
 }
 
+/** 判断用户是否已永久解锁该图集（详情 / 下载权限判定）。 */
 export function countAlbumUnlock(userId: number, albumId: number): SqlStatement {
   return {
     sql: `SELECT COUNT(*) AS total FROM album_unlock WHERE user_id = ? AND album_id = ?`,
@@ -263,6 +301,7 @@ export function countAlbumUnlock(userId: number, albumId: number): SqlStatement 
   };
 }
 
+/** 判断当前用户是否已收藏该图集（详情返回 `favorited`）。 */
 export function countFavorite(userId: number, albumId: number): SqlStatement {
   return {
     sql: `SELECT COUNT(*) AS total FROM favorite WHERE user_id = ? AND album_id = ?`,
@@ -270,6 +309,7 @@ export function countFavorite(userId: number, albumId: number): SqlStatement {
   };
 }
 
+/** 判断当前用户是否已订阅该图集作者（详情返回 `subscribed`）。 */
 export function countSubscription(userId: number, authorId: number): SqlStatement {
   return {
     sql: `SELECT COUNT(*) AS total FROM subscription WHERE user_id = ? AND author_id = ?`,
@@ -277,7 +317,10 @@ export function countSubscription(userId: number, authorId: number): SqlStatemen
   };
 }
 
-/** 全部媒体：视频优先。 */
+/**
+ * 全部媒体（已解锁 / 付费会员可见）。
+ * 视频排在图片之前，再按 `sort_order`、id 升序；不含软删除媒体。
+ */
 export function selectAlbumImages(albumId: number): SqlStatement {
   return {
     sql: `SELECT id, media_type AS mediaType, url, thumb_url AS thumbUrl, watermark_url AS watermarkUrl,
@@ -289,7 +332,10 @@ export function selectAlbumImages(albumId: number): SqlStatement {
   };
 }
 
-/** 未解锁预览：仅前 N 张图片。 */
+/**
+ * 未解锁预览：仅前 `limit` 张图片（调用方传 `FREE_PREVIEW_COUNT`，即前 3 张），
+ * 只取 `media_type='image'`，按 sort_order、id 升序。
+ */
 export function selectPreviewAlbumImages(albumId: number, limit: number): SqlStatement {
   return {
     sql: `SELECT id, media_type AS mediaType, url, thumb_url AS thumbUrl, watermark_url AS watermarkUrl,
@@ -302,7 +348,7 @@ export function selectPreviewAlbumImages(albumId: number, limit: number): SqlSta
   };
 }
 
-/** 同作者的其他作品。 */
+/** 同作者的其他已发布作品（排除当前图集），按发布时间倒序取 5 套。 */
 export function selectOtherWorks(authorId: number, albumId: number): SqlStatement {
   return {
     sql: `SELECT ${ALBUM_SELECT} ${ALBUM_FROM}
@@ -313,6 +359,7 @@ export function selectOtherWorks(authorId: number, albumId: number): SqlStatemen
   };
 }
 
+/** 浏览量 +1（冗余计数，详情页访问时异步维护，失败不阻断详情）。 */
 export function incrementAlbumView(albumId: number): SqlStatement {
   return {
     sql: `UPDATE album SET view_count = view_count + 1 WHERE id = ?`,
@@ -320,6 +367,10 @@ export function incrementAlbumView(albumId: number): SqlStatement {
   };
 }
 
+/**
+ * 写入用户浏览日志，供瀑布流偏好分使用。
+ * 游客 `userId` 为 undefined 时写 NULL，`ip` 可为空。
+ */
 export function insertUserViewLog(
   userId: number | undefined,
   albumId: number,
@@ -331,7 +382,7 @@ export function insertUserViewLog(
   };
 }
 
-/** 可收藏的已发布图集。 */
+/** 校验图集可收藏（存在、已发布且未软删除）。 */
 export function selectPublishedAlbumId(albumId: number): SqlStatement {
   return {
     sql: `SELECT id FROM album WHERE id = ? AND status = 'published' AND is_deleted = 0 LIMIT 1`,
@@ -339,6 +390,10 @@ export function selectPublishedAlbumId(albumId: number): SqlStatement {
   };
 }
 
+/**
+ * 收藏事务内 `FOR UPDATE` 读取收藏记录。
+ * 加锁后据此插入或删除，避免并发切换收藏导致计数错乱。
+ */
 export function selectFavoriteForUpdate(userId: number, albumId: number): SqlStatement {
   return {
     sql: `SELECT id FROM favorite WHERE user_id = ? AND album_id = ? FOR UPDATE`,
@@ -346,6 +401,7 @@ export function selectFavoriteForUpdate(userId: number, albumId: number): SqlSta
   };
 }
 
+/** 取消收藏（物理删除收藏关系），须与 fav_count 扣减在同一事务。 */
 export function deleteFavorite(favoriteId: number): SqlStatement {
   return {
     sql: `DELETE FROM favorite WHERE id = ?`,
@@ -353,6 +409,7 @@ export function deleteFavorite(favoriteId: number): SqlStatement {
   };
 }
 
+/** 收藏数 -1；`GREATEST(..., 0)` 防止脏数据或并发把冗余计数扣成负数。 */
 export function decrementAlbumFavCount(albumId: number): SqlStatement {
   return {
     sql: `UPDATE album SET fav_count = GREATEST(CAST(fav_count AS SIGNED) - 1, 0) WHERE id = ?`,
@@ -360,6 +417,7 @@ export function decrementAlbumFavCount(albumId: number): SqlStatement {
   };
 }
 
+/** 新增收藏关系（同一事务内已加锁确认不存在）。 */
 export function insertFavorite(userId: number, albumId: number): SqlStatement {
   return {
     sql: `INSERT INTO favorite (user_id, album_id) VALUES (?, ?)`,
@@ -367,6 +425,7 @@ export function insertFavorite(userId: number, albumId: number): SqlStatement {
   };
 }
 
+/** 收藏数 +1（冗余计数，与插入收藏同事务）。 */
 export function incrementAlbumFavCount(albumId: number): SqlStatement {
   return {
     sql: `UPDATE album SET fav_count = fav_count + 1 WHERE id = ?`,
@@ -374,6 +433,7 @@ export function incrementAlbumFavCount(albumId: number): SqlStatement {
   };
 }
 
+/** 回读图集最新收藏数（切换收藏后返回给前端）。 */
 export function selectAlbumFavCount(albumId: number): SqlStatement {
   return {
     sql: `SELECT fav_count AS favCount FROM album WHERE id = ? LIMIT 1`,
@@ -381,7 +441,7 @@ export function selectAlbumFavCount(albumId: number): SqlStatement {
   };
 }
 
-/** 可评论的已发布图集（含标题）。 */
+/** 校验图集可评论（已发布且未软删除），同时返回标题用于通知文案。 */
 export function selectPublishedAlbumTitle(albumId: number): SqlStatement {
   return {
     sql: `SELECT id, title FROM album WHERE id = ? AND status = 'published' AND is_deleted = 0 LIMIT 1`,
@@ -389,6 +449,7 @@ export function selectPublishedAlbumTitle(albumId: number): SqlStatement {
   };
 }
 
+/** 校验回复目标评论存在且未软删除，返回其所属图集与作者。 */
 export function selectCommentParent(parentId: number): SqlStatement {
   return {
     sql: `SELECT id, album_id AS albumId, user_id AS userId
@@ -397,6 +458,9 @@ export function selectCommentParent(parentId: number): SqlStatement {
   };
 }
 
+/**
+ * 发表评论：新评论状态固定为 `pending`（先审后发），此时不计入 comment_count。
+ */
 export function insertComment(input: {
   albumId: number;
   userId: number;
@@ -417,6 +481,7 @@ export function insertComment(input: {
   };
 }
 
+/** 评论提交后写入待审核通知（`type='review'`，关联图集）。 */
 export function insertReviewNotification(
   userId: number,
   content: string,
@@ -429,6 +494,7 @@ export function insertReviewNotification(
   };
 }
 
+/** 按 id 读取单条评论及用户信息（发表成功后回填返回 DTO）。 */
 export function selectCommentById(commentId: number): SqlStatement {
   return {
     sql: `SELECT c.id, c.parent_id AS parentId, c.reply_to_user_id AS replyToUserId,
@@ -443,6 +509,9 @@ export function selectCommentById(commentId: number): SqlStatement {
   };
 }
 
+/**
+ * 删除事务内 `FOR UPDATE` 加锁读取评论，用于校验归属并计算需扣减的已审核评论数。
+ */
 export function selectCommentForUpdate(commentId: number): SqlStatement {
   return {
     sql: `SELECT id, user_id AS userId, album_id AS albumId, status, is_deleted AS isDeleted
@@ -451,6 +520,7 @@ export function selectCommentForUpdate(commentId: number): SqlStatement {
   };
 }
 
+/** 查询某条评论下未软删除的回复 id，删除父评论时一并软删除。 */
 export function selectReplyCommentIds(parentId: number): SqlStatement {
   return {
     sql: `SELECT id FROM comment WHERE parent_id = ? AND is_deleted = 0`,
@@ -458,6 +528,7 @@ export function selectReplyCommentIds(parentId: number): SqlStatement {
   };
 }
 
+/** 统计待删除评论集合中已审核的数量（只有已审核评论计入过 comment_count）。 */
 export function countApprovedCommentsByIds(ids: number[]): SqlStatement {
   return {
     sql: `SELECT COUNT(*) AS total FROM comment WHERE id IN (${placeholders(ids.length)}) AND status = 'approved'`,
@@ -465,6 +536,7 @@ export function countApprovedCommentsByIds(ids: number[]): SqlStatement {
   };
 }
 
+/** 软删除评论：状态置 `deleted` 且 `is_deleted = 1`，不做物理删除。 */
 export function softDeleteCommentsByIds(ids: number[]): SqlStatement {
   return {
     sql: `UPDATE comment SET status = 'deleted', is_deleted = 1 WHERE id IN (${placeholders(ids.length)})`,
@@ -472,6 +544,7 @@ export function softDeleteCommentsByIds(ids: number[]): SqlStatement {
   };
 }
 
+/** 评论数扣减 `count`；`GREATEST(..., 0)` 保证冗余计数不为负。 */
 export function decrementAlbumCommentCount(albumId: number, count: number): SqlStatement {
   return {
     sql: `UPDATE album SET comment_count = GREATEST(CAST(comment_count AS SIGNED) - ?, 0) WHERE id = ?`,
@@ -479,7 +552,7 @@ export function decrementAlbumCommentCount(albumId: number, count: number): SqlS
   };
 }
 
-/** 按 ID 批量取已发布图集。 */
+/** 按 ID 批量取公开可见图集，供收藏 / 解锁 / 购买列表复用卡片数据。 */
 export function selectAlbumsByIds(albumIds: number[]): SqlStatement {
   return {
     sql: `SELECT ${ALBUM_SELECT} ${ALBUM_FROM} WHERE a.id IN (${placeholders(albumIds.length)}) AND ${PUBLIC_WHERE}`,
@@ -487,7 +560,7 @@ export function selectAlbumsByIds(albumIds: number[]): SqlStatement {
   };
 }
 
-/** 我的收藏总数。 */
+/** 我的收藏总数（仅统计仍公开可见的图集，与列表口径一致）。 */
 export function countFavoriteAlbums(userId: number): SqlStatement {
   return {
     sql: `SELECT COUNT(*) AS total FROM favorite f
@@ -498,7 +571,7 @@ export function countFavoriteAlbums(userId: number): SqlStatement {
   };
 }
 
-/** 我的收藏分页：按收藏时间倒序。 */
+/** 我的收藏分页：仅返回公开可见图集 id，按收藏时间、收藏 id 倒序。 */
 export function selectFavoriteAlbumIds(
   userId: number,
   pageSize: number,
@@ -516,7 +589,7 @@ export function selectFavoriteAlbumIds(
   };
 }
 
-/** 可下载图集信息。 */
+/** 可下载图集信息（标题 + 作者名），用于生成 ZIP 文件名。 */
 export function selectAlbumForDownload(albumId: number): SqlStatement {
   return {
     sql: `SELECT a.id, a.title, au.name AS authorName
@@ -526,7 +599,7 @@ export function selectAlbumForDownload(albumId: number): SqlStatement {
   };
 }
 
-/** 下载用原图列表。 */
+/** 下载用原图 URL 列表（仅图片，不含视频，排除软删除，按 sort_order 排序）。 */
 export function selectDownloadImageUrls(albumId: number): SqlStatement {
   return {
     sql: `SELECT url FROM album_image
@@ -536,6 +609,7 @@ export function selectDownloadImageUrls(albumId: number): SqlStatement {
   };
 }
 
+/** 下载次数 +1（冗余计数，下载开始后维护，失败不阻断下载）。 */
 export function incrementAlbumDownloadCount(albumId: number): SqlStatement {
   return {
     sql: `UPDATE album SET download_count = download_count + 1 WHERE id = ?`,
@@ -543,6 +617,7 @@ export function incrementAlbumDownloadCount(albumId: number): SqlStatement {
   };
 }
 
+/** 写入下载日志（按日期归档），仅登录用户下载时记录。 */
 export function insertDownloadLog(userId: number, albumId: number): SqlStatement {
   return {
     sql: `INSERT INTO download_log (user_id, album_id, download_date) VALUES (?, ?, CURDATE())`,

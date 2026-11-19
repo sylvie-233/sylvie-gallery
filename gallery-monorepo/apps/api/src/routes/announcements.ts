@@ -1,3 +1,7 @@
+/**
+ * 前台公告接口：只读分页列表，按置顶优先排序，支持关键词检索。
+ * 公告的发布 / 编辑 / 上下线在管理后台完成，这里仅暴露已发布内容。
+ */
 import { createRoute } from '@hono/zod-openapi';
 
 import * as announcementController from '../controllers/announcement.controller.js';
@@ -9,6 +13,11 @@ import { announcementListSchema } from '../validators/misc.js';
 
 const router = createApiRouter();
 
+/**
+ * GET /api/announcements —— 公告分页列表。
+ * 鉴权：optionalAuth（游客可读）；query 经 announcementListSchema（页码、每页 ≤48、关键词 ≤64 字）。
+ * 响应：置顶公告优先，随后按发布时间倒序。
+ */
 const listRoute = createRoute({
   method: 'get',
   path: '/',
