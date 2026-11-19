@@ -1,15 +1,17 @@
 import type { ReactNode } from 'react';
 
-import { AdminAuthProvider } from './auth';
-import { ConfirmProvider } from './confirm';
-import { ToastProvider } from './toast';
+import { AdminAuthSync } from './auth';
+import { ConfirmViewport } from './store/confirm';
+import { ToastViewport } from './store/toast';
 
+/** 应用根 Provider：会话同步 + 全局状态渲染层（Zustand 无需 Provider）。 */
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <ToastProvider>
-      <ConfirmProvider>
-        <AdminAuthProvider>{children}</AdminAuthProvider>
-      </ConfirmProvider>
-    </ToastProvider>
+    <>
+      <AdminAuthSync />
+      {children}
+      <ToastViewport />
+      <ConfirmViewport />
+    </>
   );
 }

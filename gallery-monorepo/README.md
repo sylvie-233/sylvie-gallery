@@ -7,7 +7,7 @@
 | 模块 | 目录 | 技术 |
 |---|---|---|
 | Web | `apps/web` | Next.js 15（App Router）+ React 19 + Tailwind CSS v4 + SWR |
-| Admin | `apps/admin` | React 19 + Vite + React Router + Tailwind CSS v4 + SWR |
+| Admin | `apps/admin` | React 19 + Vite + React Router + Tailwind CSS v4 + SWR + Zustand |
 | API | `apps/api` | Hono + MySQL 8 + RustFS（S3 兼容）+ Sharp |
 | 共享类型 | `packages/types` | API DTO、管理端 DTO、枚举常量 |
 | 共享工具 | `packages/utils` | 日期 / 计数 / 价格 / 文本格式化 |

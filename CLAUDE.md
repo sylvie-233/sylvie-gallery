@@ -26,7 +26,7 @@
 | `manage.ps1` | 根目录运维脚本：up/down/restart/reset/build/logs/cli/status/init/pull/dev。 |
 | `scripts/init/02-demo-data.sql` | 演示数据（37 套图集 / 1140 条媒体 / 公告 / 评论 / 收藏 / 订单），由 `scripts/generate-demo-data.mjs` 生成。 |
 | `gallery-monorepo/apps/web` | Next.js 15 App Router 前台，Tailwind CSS v4 + SWR；通过 rewrites 代理 `/api`。 |
-| `gallery-monorepo/apps/admin` | React + Vite + React Router 管理后台，Tailwind CSS v4 + SWR；开发端口 3002。 |
+| `gallery-monorepo/apps/admin` | React + Vite + React Router 管理后台，Tailwind CSS v4 + SWR；全局客户端状态（登录会话、Toast、Confirm）用 Zustand；开发端口 3002。 |
 | `gallery-monorepo/apps/api` | Hono API：JWT、Agent 令牌、MySQL 参数化查询、RustFS 对象存储、Sharp 图片处理、ZIP 下载、MCP。分层：`routes/` 用 `@hono/zod-openapi` 的 `createRoute` 声明接口 → `controllers/` 处理请求 → `services/` 编排业务 → `sql/` 构建参数化 SQL。`/api/docs` 为 Scalar 文档页，`/api/openapi.json` 由路由声明自动生成；`/api/mcp` 为 MCP Streamable HTTP 端点（见 `apps/api/MCP.md`）。 |
 | `gallery-monorepo/packages/types` | API 响应、DTO、枚举常量；Web 与 API 共用。 |
 | `gallery-monorepo/packages/db` | Drizzle schema（25 张表，`src/schema/`）、mysql2 连接池、事务与参数化查询封装。 |
@@ -75,7 +75,7 @@ MySQL 8 / InnoDB / `utf8mb4_unicode_ci`；主键统一 `BIGINT UNSIGNED AUTO_INC
 - API 统一返回 `{ code, message, data }`，成功时 `code=200`；分页统一 `{ list, total, page, pageSize, totalPages }`。
 - 共享类型以 `packages/types` 为准，修改接口时同步更新 Web 调用与 DTO。
 - 前台登录态存 `localStorage`（`sylvie_token`），请求通过 `Authorization: Bearer` 传递；不要假设存在 Cookie 会话。
-- 后台独立登录态存 `sylvie_admin_token`（勾选「记住我」用 localStorage，否则 sessionStorage）；所有后台接口位于 `/api/admin/*`，由 `authenticate + requireAdmin` 保护。
+- 后台独立登录态存 `sylvie_admin_token`（勾选「记住我」用 localStorage，否则 sessionStorage），由 Zustand `useAuthStore` 统一管理读写；所有后台接口位于 `/api/admin/*`，由 `authenticate + requireAdmin` 保护。后台服务端数据（列表、详情、看板）统一用 SWR，写操作后通过 `revalidateAll()` / `mutate()` 刷新。
 - 后台所有写操作必须调用 `logAdminOp` 写入 `admin_op_log`；标签收录数、作者图集数、评论数等冗余字段需在同一事务或操作后重算。
 - API 数据库访问使用参数化 SQL，语句统一放在 `apps/api/src/sql/*.sql.ts` 并以 `{ sql, params }` 返回；列表计数与冗余字段需事务内同步。Drizzle schema 仅作为表结构的类型化映射（`db.db` 查询构建器），服务层仍以参数化 SQL 为主。
 - OpenAPI 文档由 `createRoute` 的路由声明自动生成（`@hono/zod-openapi`），不要再手写 spec 文件。新增接口时在 `routes/` 声明请求与响应模型（`validators/` 放请求 schema，`openapi/models/` 放响应模型），handler 放 `controllers/`。
