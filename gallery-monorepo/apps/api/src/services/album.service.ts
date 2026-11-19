@@ -763,7 +763,14 @@ export async function createAlbumZip(
 
   void (async () => {
     let appended = 0;
+    let imageIndex = 0;
+    let videoIndex = 0;
     for (const [index, item] of media.entries()) {
+      // 图片与视频分开编号，与后台发布时两个独立媒体列表一致：
+      // P001.jpg、P002.jpg…；V001.mp4、V002.mp4…。
+      // 编号在尝试读取前分配，失败时保留空号，便于定位是哪一项。
+      const isVideo = item.mediaType === 'video';
+      const sequence = isVideo ? ++videoIndex : ++imageIndex;
       try {
         const body = await openMediaSource(item.url);
         if (!body) {
@@ -775,8 +782,8 @@ export async function createAlbumZip(
           continue;
         }
         const extension = extensionOf(item.url, item.mediaType);
-        // 编号按实际成功写入的文件连续递增，跳过失败的媒体不会留下空号。
-        const name = `${String(appended + 1).padStart(3, '0')}.${extension}`;
+        const prefix = isVideo ? 'V' : 'P';
+        const name = `${prefix}${String(sequence).padStart(3, '0')}.${extension}`;
         // 视频本身已压缩，直接 store，避免无意义的二次压缩开销。
         archive.append(body, { name, store: item.mediaType === 'video' });
         appended += 1;
