@@ -29,5 +29,6 @@ import { Modal, Tabs, PageHead } from '@sylvie/ui/admin';
 - **样式命名空间隔离**：`web` 与 `admin` 使用各自的 Tailwind 主题与全局类（如 `panel`、`pager`、`masonry`），互不引用。
 - **Tailwind 扫描**：应用侧需在 CSS 中声明 `@source` 指向对应子目录，例如
   `@source '../../../packages/ui/src/admin';`。
+- **不声明 `tailwindcss` 依赖**：本包不含 CSS 入口，也不调用 Tailwind；样式由宿主应用编译。宿主必须使用 Tailwind CSS v4，并提供组件依赖的设计 token（`--color-panel`、`--color-t1..t3`、`--color-brand` 等）。若宿主缺少对应 token，类名不会报错，只是视觉降级。
 - Web 入口构建时会自动加上 `"use client"`，可直接在 Next.js App Router 中引用。
 - 组件不内置业务文案以外的国际化，文案由调用方传入或使用现有中文默认值。
