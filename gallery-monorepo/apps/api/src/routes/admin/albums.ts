@@ -1,95 +1,121 @@
-import { Hono } from 'hono';
-import { z } from 'zod';
+import { createRoute } from '@hono/zod-openapi';
 
+import * as albumController from '../../controllers/admin/album.controller.js';
 import {
-  deleteAdminAlbum,
-  getAdminAlbumDetail,
-  getAdminAlbums,
-  saveAdminAlbum,
-  toggleAdminAlbumRecommend,
-  updateAdminAlbumStatus,
-} from '../../services/admin/album-admin.service.js';
-import type { AppEnv } from '../../types/context.js';
-import { success } from '../../utils/http.js';
-import { currentAdminId, getRequestIp } from '../../utils/request.js';
-import { parseId, parseJson, parseQuery } from '../../utils/validate.js';
+  AdminAlbumDetailSchema,
+  AdminAlbumPageSchema,
+  AdminRecommendResultSchema,
+} from '../../openapi/models/admin.js';
+import {
+  errorResponses,
+  idParamsSchema,
+  jsonBody,
+  nullSchema,
+  successResponse,
+} from '../../openapi/models/common.js';
+import { createApiRouter, routeHandler } from '../../openapi/router.js';
+import {
+  albumListSchema,
+  albumSaveSchema,
+  albumStatusInputSchema,
+} from '../../validators/admin/catalog.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-const listSchema = z.object({
-  status: z.enum(['all', 'published', 'draft', 'offline']).optional(),
-  keyword: z.string().trim().max(64).optional(),
-  page: z.coerce.number().int().min(1).optional(),
-  pageSize: z.coerce.number().int().min(1).max(48).optional(),
+const listRoute = createRoute({
+  method: 'get',
+  path: '/',
+  tags: ['后台 · 图集'],
+  summary: '后台图集列表',
+  request: { query: albumListSchema },
+  responses: { 200: successResponse(AdminAlbumPageSchema, '图集分页'), ...errorResponses },
 });
 
-router.get('/', async (c) => {
-  const query = parseQuery(c, listSchema);
-  return success(c, await getAdminAlbums(query));
+const detailRoute = createRoute({
+  method: 'get',
+  path: '/{id}',
+  tags: ['后台 · 图集'],
+  summary: '后台图集详情（含全部媒体）',
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(AdminAlbumDetailSchema, '图集详情'), ...errorResponses },
 });
 
-const mediaSchema = z.object({
-  id: z.coerce.number().int().positive().optional(),
-  url: z.string().trim().min(1).max(512),
-  thumbUrl: z.string().trim().max(512).nullable().optional(),
-  watermarkUrl: z.string().trim().max(512).nullable().optional(),
-  width: z.coerce.number().int().positive().nullable().optional(),
-  height: z.coerce.number().int().positive().nullable().optional(),
-  duration: z.coerce.number().int().nonnegative().nullable().optional(),
-  size: z.coerce.number().nonnegative().optional(),
+const createRouteDef = createRoute({
+  method: 'post',
+  path: '/',
+  tags: ['后台 · 图集'],
+  summary: '发布 / 保存图集',
+  request: { body: jsonBody(albumSaveSchema) },
+  responses: { 201: successResponse(AdminAlbumDetailSchema, '图集已保存'), ...errorResponses },
 });
 
-const saveSchema = z.object({
-  title: z.string().trim().min(1, '请输入标题').max(60, '标题最多 60 个字符'),
-  authorId: z.coerce.number().int().positive(),
-  points: z.coerce.number().int().min(0).max(99).default(0),
-  description: z.string().max(1000).optional(),
-  tagIds: z.array(z.coerce.number().int().positive()).max(8).default([]),
-  coverUrl: z.string().trim().max(512).nullable().optional(),
-  status: z.enum(['draft', 'published', 'offline']).optional(),
-  images: z.array(mediaSchema).max(99).default([]),
-  videos: z.array(mediaSchema).max(3).default([]),
+const updateRoute = createRoute({
+  method: 'put',
+  path: '/{id}',
+  tags: ['后台 · 图集'],
+  summary: '更新图集',
+  request: { params: idParamsSchema, body: jsonBody(albumSaveSchema) },
+  responses: { 200: successResponse(AdminAlbumDetailSchema, '图集已更新'), ...errorResponses },
 });
 
-router.get('/:id', async (c) => {
-  const id = parseId(c.req.param('id'), '图集 ID');
-  return success(c, await getAdminAlbumDetail(id));
+const statusRoute = createRoute({
+  method: 'post',
+  path: '/{id}/status',
+  tags: ['后台 · 图集'],
+  summary: '发布 / 下架图集',
+  request: { params: idParamsSchema, body: jsonBody(albumStatusInputSchema) },
+  responses: { 200: successResponse(AdminAlbumDetailSchema, '图集状态'), ...errorResponses },
 });
 
-router.post('/', async (c) => {
-  const input = await parseJson(c, saveSchema);
-  const result = await saveAdminAlbum(currentAdminId(c), input, null, getRequestIp(c));
-  return success(c, result, '图集已保存', 201);
+const recommendRoute = createRoute({
+  method: 'post',
+  path: '/{id}/recommend',
+  tags: ['后台 · 图集'],
+  summary: '加入 / 移出瀑布流推荐池',
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(AdminRecommendResultSchema, '推荐状态'), ...errorResponses },
 });
 
-router.put('/:id', async (c) => {
-  const id = parseId(c.req.param('id'), '图集 ID');
-  const input = await parseJson(c, saveSchema);
-  const result = await saveAdminAlbum(currentAdminId(c), input, id, getRequestIp(c));
-  return success(c, result, '图集已更新');
+const deleteRoute = createRoute({
+  method: 'delete',
+  path: '/{id}',
+  tags: ['后台 · 图集'],
+  summary: '删除图集（软删除）',
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(nullSchema, '图集已删除'), ...errorResponses },
 });
 
-const statusSchema = z.object({
-  status: z.enum(['published', 'offline']),
-});
-
-router.post('/:id/status', async (c) => {
-  const id = parseId(c.req.param('id'), '图集 ID');
-  const input = await parseJson(c, statusSchema);
-  const result = await updateAdminAlbumStatus(currentAdminId(c), id, input.status, getRequestIp(c));
-  return success(c, result, input.status === 'published' ? '图集已发布' : '图集已下架');
-});
-
-router.post('/:id/recommend', async (c) => {
-  const id = parseId(c.req.param('id'), '图集 ID');
-  const result = await toggleAdminAlbumRecommend(currentAdminId(c), id, getRequestIp(c));
-  return success(c, result, result.isRecommended ? '已加入推荐池' : '已移出推荐池');
-});
-
-router.delete('/:id', async (c) => {
-  const id = parseId(c.req.param('id'), '图集 ID');
-  await deleteAdminAlbum(currentAdminId(c), id, getRequestIp(c));
-  return success(c, null, '图集已删除');
-});
+router.openapi(
+  listRoute,
+  routeHandler(listRoute, (c) => albumController.list(c, c.req.valid('query'))),
+);
+router.openapi(
+  detailRoute,
+  routeHandler(detailRoute, (c) => albumController.detail(c, c.req.valid('param').id)),
+);
+router.openapi(
+  createRouteDef,
+  routeHandler(createRouteDef, (c) => albumController.create(c, c.req.valid('json'))),
+);
+router.openapi(
+  updateRoute,
+  routeHandler(updateRoute, (c) =>
+    albumController.update(c, c.req.valid('param').id, c.req.valid('json')),
+  ),
+);
+router.openapi(
+  statusRoute,
+  routeHandler(statusRoute, (c) =>
+    albumController.updateStatus(c, c.req.valid('param').id, c.req.valid('json')),
+  ),
+);
+router.openapi(
+  recommendRoute,
+  routeHandler(recommendRoute, (c) => albumController.toggleRecommend(c, c.req.valid('param').id)),
+);
+router.openapi(
+  deleteRoute,
+  routeHandler(deleteRoute, (c) => albumController.remove(c, c.req.valid('param').id)),
+);
 
 export default router;

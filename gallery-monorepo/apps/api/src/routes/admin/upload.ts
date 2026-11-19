@@ -1,28 +1,27 @@
-import { Hono } from 'hono';
+import { createRoute } from '@hono/zod-openapi';
 
-import { handleAdminUpload, type AdminUploadKind } from '../../services/admin/upload.service.js';
-import type { AppEnv } from '../../types/context.js';
-import { HttpError, success } from '../../utils/http.js';
-import { currentAdminId } from '../../utils/request.js';
+import * as uploadController from '../../controllers/admin/upload.controller.js';
+import { AdminUploadResultSchema } from '../../openapi/models/admin.js';
+import { errorResponses, successResponse } from '../../openapi/models/common.js';
+import { createApiRouter, routeHandler } from '../../openapi/router.js';
+import { uploadBodySchema } from '../../validators/admin/system.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-router.post('/', async (c) => {
-  const body = await c.req.parseBody();
-  const file = body['file'];
-  const kindInput = String(body['kind'] ?? 'image');
-  if (!(file instanceof File)) {
-    throw new HttpError(400, '请选择要上传的文件');
-  }
-  if (kindInput !== 'image' && kindInput !== 'video' && kindInput !== 'avatar') {
-    throw new HttpError(400, '上传类型无效');
-  }
-  const result = await handleAdminUpload(
-    file,
-    kindInput as AdminUploadKind,
-    currentAdminId(c),
-  );
-  return success(c, result, '上传成功', 201);
+const uploadRoute = createRoute({
+  method: 'post',
+  path: '/',
+  tags: ['后台 · 上传'],
+  summary: '上传图片 / 视频 / 头像',
+  request: {
+    body: {
+      content: { 'multipart/form-data': { schema: uploadBodySchema } },
+      required: true,
+    },
+  },
+  responses: { 201: successResponse(AdminUploadResultSchema, '上传成功'), ...errorResponses },
 });
+
+router.openapi(uploadRoute, routeHandler(uploadRoute, (c) => uploadController.upload(c)));
 
 export default router;

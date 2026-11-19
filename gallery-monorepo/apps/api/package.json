@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "description": "希尔薇图集 API（Hono + MySQL + RustFS）",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "build": "tsup src/main.ts --format esm --dts --clean --target node20",
@@ -16,6 +18,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.750.0",
     "@hono/node-server": "^1.13.7",
+    "@hono/zod-openapi": "^1.6.3",
     "@scalar/hono-api-reference": "^0.12.22",
     "@sylvie/db": "workspace:*",
     "@sylvie/logger": "workspace:*",

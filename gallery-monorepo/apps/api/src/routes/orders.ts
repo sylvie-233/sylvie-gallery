@@ -1,65 +1,77 @@
-import { Hono } from 'hono';
-import { z } from 'zod';
+import { createRoute } from '@hono/zod-openapi';
 
+import * as orderController from '../controllers/order.controller.js';
 import { authenticate } from '../middleware/auth.js';
 import {
-  createVipOrder,
-  getPurchases,
-  listPlans,
-  payOrder,
-} from '../services/order.service.js';
-import type { AppEnv } from '../types/context.js';
-import { HttpError, success } from '../utils/http.js';
-import { parseJson, parseQuery } from '../utils/validate.js';
+  errorResponses,
+  jsonBody,
+  orderNoParamsSchema,
+  successResponse,
+} from '../openapi/models/common.js';
+import {
+  OrderSchema,
+  PlanListSchema,
+  PurchaseDataSchema,
+  VipOrderResultSchema,
+} from '../openapi/models/order.js';
+import { createApiRouter, routeHandler } from '../openapi/router.js';
+import { createVipSchema, purchasesQuerySchema } from '../validators/misc.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-router.get('/plans', async (c) => {
-  return success(c, await listPlans());
+const plansRoute = createRoute({
+  method: 'get',
+  path: '/plans',
+  tags: ['订单'],
+  summary: '会员套餐列表',
+  security: [],
+  responses: { 200: successResponse(PlanListSchema, '会员套餐'), ...errorResponses },
 });
 
-const createSchema = z.object({
-  planCode: z.string().trim().min(1, '请选择会员套餐').max(32),
+const createVipRoute = createRoute({
+  method: 'post',
+  path: '/vip',
+  tags: ['订单'],
+  summary: '创建会员开通 / 续费订单',
+  middleware: [authenticate],
+  request: { body: jsonBody(createVipSchema) },
+  responses: { 200: successResponse(VipOrderResultSchema, '订单已创建'), ...errorResponses },
 });
 
-router.post('/vip', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  const input = await parseJson(c, createSchema);
-  return success(c, await createVipOrder(user.id, input.planCode), '订单已创建');
+const payRoute = createRoute({
+  method: 'post',
+  path: '/{orderNo}/pay',
+  tags: ['订单'],
+  summary: '支付订单',
+  description: '本地开发默认使用模拟支付，支付成功后立即生效。',
+  middleware: [authenticate],
+  request: { params: orderNoParamsSchema },
+  responses: { 200: successResponse(OrderSchema, '支付成功'), ...errorResponses },
 });
 
-router.post('/:orderNo/pay', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  const orderNo = c.req.param('orderNo') ?? '';
-  if (!/^[A-Za-z0-9]{8,32}$/.test(orderNo)) {
-    throw new HttpError(400, '订单号无效');
-  }
-  const order = await payOrder(orderNo, user.id);
-  return success(c, order, '支付成功');
+const mineRoute = createRoute({
+  method: 'get',
+  path: '/mine',
+  tags: ['订单'],
+  summary: '我的购买',
+  description: '返回订单分页、图集解锁记录与累计消费统计。',
+  middleware: [authenticate],
+  request: { query: purchasesQuerySchema },
+  responses: { 200: successResponse(PurchaseDataSchema, '我的购买数据'), ...errorResponses },
 });
 
-const purchasesSchema = z.object({
-  ordersPage: z.coerce.number().int().min(1).optional(),
-  unlocksPage: z.coerce.number().int().min(1).optional(),
-  pageSize: z.coerce.number().int().min(1).max(24).optional(),
-});
-
-router.get('/mine', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  const query = parseQuery(c, purchasesSchema);
-  return success(
-    c,
-    await getPurchases(user.id, query.ordersPage, query.unlocksPage, query.pageSize),
-  );
-});
+router.openapi(plansRoute, routeHandler(plansRoute, (c) => orderController.plans(c)));
+router.openapi(
+  createVipRoute,
+  routeHandler(createVipRoute, (c) => orderController.createVip(c, c.req.valid('json'))),
+);
+router.openapi(
+  payRoute,
+  routeHandler(payRoute, (c) => orderController.pay(c, c.req.valid('param').orderNo)),
+);
+router.openapi(
+  mineRoute,
+  routeHandler(mineRoute, (c) => orderController.mine(c, c.req.valid('query'))),
+);
 
 export default router;

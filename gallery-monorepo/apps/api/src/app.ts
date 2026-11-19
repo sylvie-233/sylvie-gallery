@@ -1,5 +1,5 @@
 import { Scalar } from '@scalar/hono-api-reference';
-import { Hono } from 'hono';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 
@@ -7,14 +7,13 @@ import { corsOrigins } from './config/env.js';
 import { dbClient } from './db/index.js';
 import { errorHandler } from './middleware/error.js';
 import { requestLogger } from './middleware/request-logger.js';
-import { openapiSpec } from './openapi/spec.js';
 import apiRoutes from './routes/index.js';
 import { storageHealthy } from './services/storage.service.js';
 import type { AppEnv } from './types/context.js';
 import { failure, success } from './utils/http.js';
 import { logger } from './utils/logger.js';
 
-export const app = new Hono<AppEnv>();
+export const app = new OpenAPIHono<AppEnv>();
 
 app.use('*', requestLogger);
 app.use(
@@ -70,8 +69,7 @@ app.get('/', (c) =>
   }),
 );
 
-/** OpenAPI JSON 与 Scalar API 文档。需在 API 路由之前注册。 */
-app.get('/api/openapi.json', (c) => c.json(openapiSpec));
+/** Scalar API 文档；OpenAPI JSON 由 API 路由的 doc31 自动生成。 */
 app.get(
   '/api/docs',
   Scalar({

@@ -1,24 +1,32 @@
-import { Hono } from 'hono';
-import { z } from 'zod';
+import { createRoute } from '@hono/zod-openapi';
 
+import * as announcementController from '../controllers/announcement.controller.js';
 import { optionalAuth } from '../middleware/auth.js';
-import { listAnnouncements } from '../services/announcement.service.js';
-import type { AppEnv } from '../types/context.js';
-import { success } from '../utils/http.js';
-import { parseQuery } from '../utils/validate.js';
+import { errorResponses, successResponse } from '../openapi/models/common.js';
+import { AnnouncementPageResultSchema } from '../openapi/models/content.js';
+import { createApiRouter, routeHandler } from '../openapi/router.js';
+import { announcementListSchema } from '../validators/misc.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-const querySchema = z.object({
-  page: z.coerce.number().int().min(1).optional(),
-  pageSize: z.coerce.number().int().min(1).max(48).optional(),
-  keyword: z.string().trim().max(64).optional(),
+const listRoute = createRoute({
+  method: 'get',
+  path: '/',
+  tags: ['公告'],
+  summary: '公告列表',
+  description: '置顶优先，支持标题 / 摘要 / 正文 / 类型关键词搜索。',
+  security: [],
+  middleware: [optionalAuth],
+  request: { query: announcementListSchema },
+  responses: {
+    200: successResponse(AnnouncementPageResultSchema, '公告分页列表'),
+    ...errorResponses,
+  },
 });
 
-router.get('/', optionalAuth, async (c) => {
-  const query = parseQuery(c, querySchema);
-  const user = c.get('currentUser');
-  return success(c, await listAnnouncements(query, user?.id));
-});
+router.openapi(
+  listRoute,
+  routeHandler(listRoute, (c) => announcementController.list(c, c.req.valid('query'))),
+);
 
 export default router;

@@ -1,7 +1,5 @@
-import { Hono } from 'hono';
-
 import { authenticate, requireAdmin } from '../../middleware/auth.js';
-import type { AppEnv } from '../../types/context.js';
+import { createApiRouter } from '../../openapi/router.js';
 import albumRoutes from './albums.js';
 import announcementRoutes from './announcements.js';
 import authorRoutes from './authors.js';
@@ -14,7 +12,7 @@ import tagRoutes from './tags.js';
 import uploadRoutes from './upload.js';
 import userRoutes from './users.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
 router.use('*', authenticate, requireAdmin);
 

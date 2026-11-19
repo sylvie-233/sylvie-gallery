@@ -1,64 +1,85 @@
-import { Hono } from 'hono';
-import { z } from 'zod';
+import { createRoute } from '@hono/zod-openapi';
 
+import * as authorController from '../../controllers/admin/author.controller.js';
+import { AdminAuthorPageSchema, AdminAuthorRowSchema } from '../../openapi/models/admin.js';
 import {
-  createAdminAuthor,
-  deleteAdminAuthor,
-  getAdminAuthors,
-  toggleAdminAuthor,
-  updateAdminAuthor,
-} from '../../services/admin/author-admin.service.js';
-import type { AppEnv } from '../../types/context.js';
-import { success } from '../../utils/http.js';
-import { currentAdminId, getRequestIp } from '../../utils/request.js';
-import { parseId, parseJson, parseQuery } from '../../utils/validate.js';
+  errorResponses,
+  idParamsSchema,
+  jsonBody,
+  nullSchema,
+  successResponse,
+} from '../../openapi/models/common.js';
+import { createApiRouter, routeHandler } from '../../openapi/router.js';
+import { authorInputSchema, authorListSchema } from '../../validators/admin/catalog.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-const listSchema = z.object({
-  status: z.enum(['all', 'on', 'off']).optional(),
-  keyword: z.string().trim().max(64).optional(),
-  page: z.coerce.number().int().min(1).optional(),
-  pageSize: z.coerce.number().int().min(1).max(200).optional(),
+const listRoute = createRoute({
+  method: 'get',
+  path: '/',
+  tags: ['后台 · 作者'],
+  summary: '后台作者列表',
+  request: { query: authorListSchema },
+  responses: { 200: successResponse(AdminAuthorPageSchema, '作者分页'), ...errorResponses },
 });
 
-router.get('/', async (c) => {
-  const query = parseQuery(c, listSchema);
-  return success(c, await getAdminAuthors(query));
+const createRouteDef = createRoute({
+  method: 'post',
+  path: '/',
+  tags: ['后台 · 作者'],
+  summary: '新建作者',
+  request: { body: jsonBody(authorInputSchema) },
+  responses: { 201: successResponse(AdminAuthorRowSchema, '作者已创建'), ...errorResponses },
 });
 
-const authorSchema = z.object({
-  name: z.string().trim().min(1, '请输入作者名').max(32, '作者名最多 32 个字符'),
-  alias: z.string().trim().max(64).optional(),
-  initial: z.string().trim().max(8).optional(),
-  color: z.string().trim().max(16).optional(),
-  avatarUrl: z.string().trim().max(512).nullable().optional(),
-  bio: z.string().max(500).optional(),
-  styleTags: z.array(z.string().trim().max(16)).max(8).optional(),
-  sortWeight: z.coerce.number().int().min(-9999).max(9999).optional(),
+const updateRoute = createRoute({
+  method: 'put',
+  path: '/{id}',
+  tags: ['后台 · 作者'],
+  summary: '更新作者资料',
+  request: { params: idParamsSchema, body: jsonBody(authorInputSchema) },
+  responses: { 200: successResponse(AdminAuthorRowSchema, '作者已更新'), ...errorResponses },
 });
 
-router.post('/', async (c) => {
-  const input = await parseJson(c, authorSchema);
-  return success(c, await createAdminAuthor(currentAdminId(c), input, getRequestIp(c)), '作者已创建', 201);
+const toggleRoute = createRoute({
+  method: 'post',
+  path: '/{id}/toggle',
+  tags: ['后台 · 作者'],
+  summary: '显示 / 隐藏作者',
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(AdminAuthorRowSchema, '作者状态'), ...errorResponses },
 });
 
-router.put('/:id', async (c) => {
-  const id = parseId(c.req.param('id'), '作者 ID');
-  const input = await parseJson(c, authorSchema);
-  return success(c, await updateAdminAuthor(currentAdminId(c), id, input, getRequestIp(c)), '作者已更新');
+const deleteRoute = createRoute({
+  method: 'delete',
+  path: '/{id}',
+  tags: ['后台 · 作者'],
+  summary: '删除作者（软删除）',
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(nullSchema, '作者已删除'), ...errorResponses },
 });
 
-router.post('/:id/toggle', async (c) => {
-  const id = parseId(c.req.param('id'), '作者 ID');
-  const result = await toggleAdminAuthor(currentAdminId(c), id, getRequestIp(c));
-  return success(c, result, result.status === 1 ? '作者已恢复展示' : '作者已隐藏');
-});
-
-router.delete('/:id', async (c) => {
-  const id = parseId(c.req.param('id'), '作者 ID');
-  await deleteAdminAuthor(currentAdminId(c), id, getRequestIp(c));
-  return success(c, null, '作者已删除');
-});
+router.openapi(
+  listRoute,
+  routeHandler(listRoute, (c) => authorController.list(c, c.req.valid('query'))),
+);
+router.openapi(
+  createRouteDef,
+  routeHandler(createRouteDef, (c) => authorController.create(c, c.req.valid('json'))),
+);
+router.openapi(
+  updateRoute,
+  routeHandler(updateRoute, (c) =>
+    authorController.update(c, c.req.valid('param').id, c.req.valid('json')),
+  ),
+);
+router.openapi(
+  toggleRoute,
+  routeHandler(toggleRoute, (c) => authorController.toggle(c, c.req.valid('param').id)),
+);
+router.openapi(
+  deleteRoute,
+  routeHandler(deleteRoute, (c) => authorController.remove(c, c.req.valid('param').id)),
+);
 
 export default router;

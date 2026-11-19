@@ -1,55 +1,76 @@
-import { Hono } from 'hono';
-import { z } from 'zod';
+import { createRoute, z } from '@hono/zod-openapi';
 
+import * as orderController from '../../controllers/admin/order.controller.js';
 import {
-  exportAdminOrders,
-  getAdminOrders,
-  refundAdminOrder,
-} from '../../services/admin/order-admin.service.js';
-import type { AppEnv } from '../../types/context.js';
-import { success } from '../../utils/http.js';
-import { currentAdminId, getRequestIp } from '../../utils/request.js';
-import { parseId, parseJson, parseQuery } from '../../utils/validate.js';
+  AdminOrderExportSchema,
+  AdminOrderPageSchema,
+  AdminOrderRowSchema,
+} from '../../openapi/models/admin.js';
+import {
+  errorResponses,
+  idParamsSchema,
+  jsonBody,
+  successResponse,
+} from '../../openapi/models/common.js';
+import { createApiRouter, routeHandler } from '../../openapi/router.js';
+import { orderListSchema, refundSchema } from '../../validators/admin/commerce.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-const listSchema = z.object({
-  biz: z.enum(['all', 'vip', 'unlock']).optional(),
-  status: z.enum(['all', 'created', 'paid', 'refunded', 'closed']).optional(),
-  keyword: z.string().trim().max(64).optional(),
-  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  page: z.coerce.number().int().min(1).optional(),
-  pageSize: z.coerce.number().int().min(1).max(48).optional(),
+const listRoute = createRoute({
+  method: 'get',
+  path: '/',
+  tags: ['后台 · 订单'],
+  summary: '后台支付流水',
+  request: { query: orderListSchema },
+  responses: { 200: successResponse(AdminOrderPageSchema, '订单分页与汇总'), ...errorResponses },
 });
 
-router.get('/', async (c) => {
-  const query = parseQuery(c, listSchema);
-  return success(c, await getAdminOrders(query));
+const exportRoute = createRoute({
+  method: 'get',
+  path: '/export',
+  tags: ['后台 · 订单'],
+  summary: '导出支付流水 CSV',
+  request: { query: orderListSchema },
+  responses: {
+    200: {
+      description: 'CSV 文件流；筛选结果为空时返回统一 JSON 响应',
+      content: {
+        'text/csv': {
+          schema: z.string().openapi({ type: 'string', format: 'binary' }),
+        },
+        'application/json': successResponse(
+          AdminOrderExportSchema,
+          '筛选结果为空，未生成文件',
+        ).content['application/json'],
+      },
+    },
+    ...errorResponses,
+  },
 });
 
-router.get('/export', async (c) => {
-  const query = parseQuery(c, listSchema);
-  const result = await exportAdminOrders(currentAdminId(c), query, getRequestIp(c));
-  if (result.count === 0) {
-    return success(c, { filename: null, count: 0 }, '当前筛选结果为空，未生成文件');
-  }
-  return c.body(result.csv, 200, {
-    'Content-Type': 'text/csv; charset=utf-8',
-    'Content-Disposition': `attachment; filename="pay.csv"; filename*=UTF-8''${encodeURIComponent(result.filename)}`,
-    'Cache-Control': 'no-store',
-  });
+const refundRoute = createRoute({
+  method: 'post',
+  path: '/{id}/refund',
+  tags: ['后台 · 订单'],
+  summary: '退款并收回会员权益',
+  request: { params: idParamsSchema, body: jsonBody(refundSchema) },
+  responses: { 200: successResponse(AdminOrderRowSchema, '退款结果'), ...errorResponses },
 });
 
-const refundSchema = z.object({
-  reason: z.string().trim().max(255).optional(),
-});
-
-router.post('/:id/refund', async (c) => {
-  const id = parseId(c.req.param('id'), '订单 ID');
-  const input = await parseJson(c, refundSchema);
-  const result = await refundAdminOrder(currentAdminId(c), id, input.reason, getRequestIp(c));
-  return success(c, result, '订单已退款，会员权益已收回');
-});
+router.openapi(
+  listRoute,
+  routeHandler(listRoute, (c) => orderController.list(c, c.req.valid('query'))),
+);
+router.openapi(
+  exportRoute,
+  routeHandler(exportRoute, (c) => orderController.exportOrders(c, c.req.valid('query'))),
+);
+router.openapi(
+  refundRoute,
+  routeHandler(refundRoute, (c) =>
+    orderController.refund(c, c.req.valid('param').id, c.req.valid('json')),
+  ),
+);
 
 export default router;

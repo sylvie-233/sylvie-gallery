@@ -1,73 +1,88 @@
-import { Hono } from 'hono';
-import { z } from 'zod';
+import { createRoute } from '@hono/zod-openapi';
 
+import * as configController from '../../controllers/admin/config.controller.js';
 import {
-  createAdminFriendLink,
-  deleteAdminFriendLink,
-  getAdminConfigBundle,
-  updateAdminPlan,
-  updateAdminSiteConfig,
-} from '../../services/admin/config-admin.service.js';
-import type { AppEnv } from '../../types/context.js';
-import { success } from '../../utils/http.js';
-import { currentAdminId, getRequestIp } from '../../utils/request.js';
-import { parseId, parseJson } from '../../utils/validate.js';
+  AdminConfigBundleSchema,
+  AdminFriendLinkRowSchema,
+} from '../../openapi/models/admin.js';
+import {
+  errorResponses,
+  idParamsSchema,
+  jsonBody,
+  nullSchema,
+  successResponse,
+} from '../../openapi/models/common.js';
+import { createApiRouter, routeHandler } from '../../openapi/router.js';
+import {
+  friendLinkSchema,
+  planConfigSchema,
+  siteConfigSchema,
+} from '../../validators/admin/commerce.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-router.get('/', async (c) => {
-  return success(c, await getAdminConfigBundle());
+const bundleRoute = createRoute({
+  method: 'get',
+  path: '/',
+  tags: ['后台 · 配置'],
+  summary: '获取站点配置、会员套餐与友情链接',
+  responses: { 200: successResponse(AdminConfigBundleSchema, '配置聚合'), ...errorResponses },
 });
 
-const siteSchema = z.object({
-  copyright: z.string().max(255).default(''),
-  icpNo: z.string().max(64).default(''),
-  ageStatement: z.string().max(255).default(''),
-  disclaimer: z.string().max(255).default(''),
-  checkinPoints: z.coerce.number().int().min(1).max(99).default(2),
-  watermarkOn: z.coerce.boolean().default(true),
+const siteRoute = createRoute({
+  method: 'put',
+  path: '/site',
+  tags: ['后台 · 配置'],
+  summary: '保存站点配置',
+  request: { body: jsonBody(siteConfigSchema) },
+  responses: { 200: successResponse(AdminConfigBundleSchema, '站点配置已保存'), ...errorResponses },
 });
 
-router.put('/site', async (c) => {
-  const input = await parseJson(c, siteSchema);
-  return success(
-    c,
-    await updateAdminSiteConfig(currentAdminId(c), input, getRequestIp(c)),
-    '站点配置已保存',
-  );
+const planRoute = createRoute({
+  method: 'put',
+  path: '/plan',
+  tags: ['后台 · 配置'],
+  summary: '保存会员套餐',
+  request: { body: jsonBody(planConfigSchema) },
+  responses: { 200: successResponse(AdminConfigBundleSchema, '会员套餐已保存'), ...errorResponses },
 });
 
-const planSchema = z.object({
-  priceCents: z.coerce.number().int().min(1).max(1000000),
-  durationDays: z.coerce.number().int().min(1).max(365),
-  benefits: z.array(z.string().trim().max(100)).min(1).max(12),
+const createFriendRoute = createRoute({
+  method: 'post',
+  path: '/friends',
+  tags: ['后台 · 配置'],
+  summary: '新增友情链接',
+  request: { body: jsonBody(friendLinkSchema) },
+  responses: { 201: successResponse(AdminFriendLinkRowSchema, '友链已添加'), ...errorResponses },
 });
 
-router.put('/plan', async (c) => {
-  const input = await parseJson(c, planSchema);
-  return success(c, await updateAdminPlan(currentAdminId(c), input, getRequestIp(c)), '会员套餐已保存');
+const deleteFriendRoute = createRoute({
+  method: 'delete',
+  path: '/friends/{id}',
+  tags: ['后台 · 配置'],
+  summary: '删除友情链接',
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(nullSchema, '友链已删除'), ...errorResponses },
 });
 
-const friendSchema = z.object({
-  name: z.string().trim().min(1, '请输入站名').max(32),
-  slogan: z.string().trim().max(64).optional(),
-  url: z.string().trim().min(1, '请输入链接').max(255),
-});
-
-router.post('/friends', async (c) => {
-  const input = await parseJson(c, friendSchema);
-  return success(
-    c,
-    await createAdminFriendLink(currentAdminId(c), input, getRequestIp(c)),
-    '友链已添加',
-    201,
-  );
-});
-
-router.delete('/friends/:id', async (c) => {
-  const id = parseId(c.req.param('id'), '友链 ID');
-  await deleteAdminFriendLink(currentAdminId(c), id, getRequestIp(c));
-  return success(c, null, '友链已删除');
-});
+router.openapi(bundleRoute, routeHandler(bundleRoute, (c) => configController.bundle(c)));
+router.openapi(
+  siteRoute,
+  routeHandler(siteRoute, (c) => configController.updateSite(c, c.req.valid('json'))),
+);
+router.openapi(
+  planRoute,
+  routeHandler(planRoute, (c) => configController.updatePlan(c, c.req.valid('json'))),
+);
+router.openapi(
+  createFriendRoute,
+  routeHandler(createFriendRoute, (c) => configController.createFriend(c, c.req.valid('json'))),
+);
+router.openapi(
+  deleteFriendRoute,
+  routeHandler(deleteFriendRoute, (c) =>
+    configController.deleteFriend(c, c.req.valid('param').id),
+  ),
+);
 
 export default router;

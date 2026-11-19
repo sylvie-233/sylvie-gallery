@@ -1,50 +1,60 @@
-import { Hono } from 'hono';
-import { z } from 'zod';
+import { createRoute } from '@hono/zod-openapi';
 
+import * as notificationController from '../controllers/notification.controller.js';
 import { authenticate } from '../middleware/auth.js';
 import {
-  listNotifications,
-  markAllNotificationsRead,
-  markNotificationRead,
-} from '../services/notification.service.js';
-import type { AppEnv } from '../types/context.js';
-import { HttpError, success } from '../utils/http.js';
-import { parseId, parseQuery } from '../utils/validate.js';
+  errorResponses,
+  idParamsSchema,
+  nullSchema,
+  successResponse,
+} from '../openapi/models/common.js';
+import { NotificationPageResultSchema } from '../openapi/models/content.js';
+import { createApiRouter, routeHandler } from '../openapi/router.js';
+import { notificationQuerySchema } from '../validators/misc.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-const querySchema = z.object({
-  page: z.coerce.number().int().min(1).optional(),
-  pageSize: z.coerce.number().int().min(1).max(24).optional(),
-  filter: z.enum(['all', 'unread']).optional(),
+const listRoute = createRoute({
+  method: 'get',
+  path: '/',
+  tags: ['通知'],
+  summary: '我的通知',
+  description: '返回分页列表与未读数，可用于红点提示。',
+  middleware: [authenticate],
+  request: { query: notificationQuerySchema },
+  responses: {
+    200: successResponse(NotificationPageResultSchema, '通知分页列表'),
+    ...errorResponses,
+  },
 });
 
-router.get('/', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  const query = parseQuery(c, querySchema);
-  return success(c, await listNotifications(user.id, query));
+const readRoute = createRoute({
+  method: 'post',
+  path: '/{id}/read',
+  tags: ['通知'],
+  summary: '标记单条通知为已读',
+  middleware: [authenticate],
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(nullSchema, '已标记为已读'), ...errorResponses },
 });
 
-router.post('/:id/read', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  const id = parseId(c.req.param('id'), '通知 ID');
-  await markNotificationRead(user.id, id);
-  return success(c, null, '已标记为已读');
+const readAllRoute = createRoute({
+  method: 'post',
+  path: '/read-all',
+  tags: ['通知'],
+  summary: '全部通知标记为已读',
+  middleware: [authenticate],
+  responses: { 200: successResponse(nullSchema, '全部通知已标记为已读'), ...errorResponses },
 });
 
-router.post('/read-all', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  await markAllNotificationsRead(user.id);
-  return success(c, null, '全部通知已标记为已读');
-});
+router.openapi(
+  listRoute,
+  routeHandler(listRoute, (c) => notificationController.list(c, c.req.valid('query'))),
+);
+router.openapi(
+  readRoute,
+  routeHandler(readRoute, (c) => notificationController.read(c, c.req.valid('param').id)),
+);
+router.openapi(readAllRoute, routeHandler(readAllRoute, (c) => notificationController.readAll(c)));
 
 export default router;

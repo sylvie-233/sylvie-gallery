@@ -1,50 +1,38 @@
-import { Hono } from 'hono';
-import { z } from 'zod';
+import { createRoute } from '@hono/zod-openapi';
 
+import * as adminAuthController from '../../controllers/admin/auth.controller.js';
 import { authenticate, requireAdmin } from '../../middleware/auth.js';
-import { login } from '../../services/auth.service.js';
-import { getProfileById } from '../../services/user.service.js';
-import type { AppEnv } from '../../types/context.js';
-import { HttpError, success } from '../../utils/http.js';
-import { parseJson } from '../../utils/validate.js';
+import { errorResponses, jsonBody, successResponse } from '../../openapi/models/common.js';
+import { AuthResultSchema, UserProfileSchema } from '../../openapi/models/user.js';
+import { createApiRouter, routeHandler } from '../../openapi/router.js';
+import { adminLoginSchema } from '../../validators/admin/auth.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-const loginSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .min(1, '请输入账号')
-    .max(128)
-    .refine(
-      (value) =>
-        value.toLowerCase() === 'admin' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
-      '账号格式不正确',
-    ),
-  password: z.string().min(1, '请输入密码').max(64),
+const loginRoute = createRoute({
+  method: 'post',
+  path: '/login',
+  tags: ['后台 · 认证'],
+  summary: '管理后台登录',
+  description: '仅 admin 角色可登录；演示账号可输入简写 admin。',
+  security: [],
+  request: { body: jsonBody(adminLoginSchema) },
+  responses: { 200: successResponse(AuthResultSchema, '登录成功'), ...errorResponses },
 });
 
-router.post('/login', async (c) => {
-  const input = await parseJson(c, loginSchema);
-  // 演示后台允许使用简写 admin 登录；正式账号仍为邮箱
-  const email = input.email.includes('@')
-    ? input.email
-    : input.email.trim().toLowerCase() === 'admin'
-      ? 'admin@sylvie.cc'
-      : input.email;
-  const result = await login(email, input.password);
-  if (result.profile.role !== 'admin') {
-    throw new HttpError(403, '该账号没有管理后台权限');
-  }
-  return success(c, result, '登录成功');
+const meRoute = createRoute({
+  method: 'get',
+  path: '/me',
+  tags: ['后台 · 认证'],
+  summary: '获取当前管理员资料',
+  middleware: [authenticate, requireAdmin],
+  responses: { 200: successResponse(UserProfileSchema, '管理员资料'), ...errorResponses },
 });
 
-router.get('/me', authenticate, requireAdmin, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  return success(c, await getProfileById(user.id));
-});
+router.openapi(
+  loginRoute,
+  routeHandler(loginRoute, (c) => adminAuthController.loginAdmin(c, c.req.valid('json'))),
+);
+router.openapi(meRoute, routeHandler(meRoute, (c) => adminAuthController.me(c)));
 
 export default router;

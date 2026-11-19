@@ -1,134 +1,132 @@
-import { randomUUID } from 'node:crypto';
-
-import { Hono } from 'hono';
-import { z } from 'zod';
-
-import { MAX_AVATAR_BYTES } from '@sylvie/types';
+import { createRoute } from '@hono/zod-openapi';
 
 import { authenticate } from '../middleware/auth.js';
-import { login, register, sendVerifyCode } from '../services/auth.service.js';
-import { uploadObject } from '../services/storage.service.js';
+import * as authController from '../controllers/auth.controller.js';
+import { errorResponses, jsonBody, successResponse } from '../openapi/models/common.js';
 import {
-  checkin,
-  getCheckinStatus,
-  getProfileById,
-  setAvatarUrl,
-  updateProfile,
-} from '../services/user.service.js';
-import type { AppEnv } from '../types/context.js';
-import { HttpError } from '../utils/http.js';
-import { parseJson } from '../utils/validate.js';
-import { success } from '../utils/http.js';
+  AuthResultSchema,
+  CheckinResultSchema,
+  CheckinStatusSchema,
+  SendCodeResultSchema,
+  UserProfileSchema,
+} from '../openapi/models/user.js';
+import { createApiRouter, routeHandler } from '../openapi/router.js';
+import {
+  avatarBodySchema,
+  loginSchema,
+  profileSchema,
+  registerSchema,
+  sendCodeSchema,
+} from '../validators/auth.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-const emailSchema = z.string().trim().email('邮箱格式不正确').max(128);
-
-const sendCodeSchema = z.object({
-  email: emailSchema,
-  scene: z.enum(['register', 'reset_password']).default('register'),
+const sendCodeRoute = createRoute({
+  method: 'post',
+  path: '/send-code',
+  tags: ['认证'],
+  summary: '发送邮箱验证码',
+  description: '注册或找回密码时发送 6 位验证码；开发环境返回固定验证码。',
+  security: [],
+  request: { body: jsonBody(sendCodeSchema) },
+  responses: { 200: successResponse(SendCodeResultSchema, '验证码已发送'), ...errorResponses },
 });
 
-router.post('/send-code', async (c) => {
-  const input = await parseJson(c, sendCodeSchema);
-  const result = await sendVerifyCode(input.email, input.scene);
-  return success(c, result, '验证码已发送');
+const registerRoute = createRoute({
+  method: 'post',
+  path: '/register',
+  tags: ['认证'],
+  summary: '注册会员账号',
+  security: [],
+  request: { body: jsonBody(registerSchema) },
+  responses: { 201: successResponse(AuthResultSchema, '注册成功'), ...errorResponses },
 });
 
-const registerSchema = z.object({
-  nickname: z.string().trim().min(1, '昵称不能为空').max(16, '昵称最多 16 个字符'),
-  email: emailSchema,
-  password: z.string().min(6, '密码至少 6 位').max(64, '密码最多 64 位'),
-  code: z.string().trim().min(4, '验证码格式不正确').max(8, '验证码格式不正确'),
+const loginRoute = createRoute({
+  method: 'post',
+  path: '/login',
+  tags: ['认证'],
+  summary: '登录并签发 JWT',
+  security: [],
+  request: { body: jsonBody(loginSchema) },
+  responses: { 200: successResponse(AuthResultSchema, '登录成功'), ...errorResponses },
 });
 
-router.post('/register', async (c) => {
-  const input = await parseJson(c, registerSchema);
-  const result = await register(input);
-  return success(c, result, '注册成功', 201);
+const meRoute = createRoute({
+  method: 'get',
+  path: '/me',
+  tags: ['认证'],
+  summary: '获取当前用户资料',
+  middleware: [authenticate],
+  responses: { 200: successResponse(UserProfileSchema, '当前用户资料'), ...errorResponses },
 });
 
-const loginSchema = z.object({
-  email: emailSchema,
-  password: z.string().min(1, '请输入密码').max(64),
+const updateProfileRoute = createRoute({
+  method: 'patch',
+  path: '/profile',
+  tags: ['认证'],
+  summary: '更新昵称与预设头像',
+  middleware: [authenticate],
+  request: { body: jsonBody(profileSchema) },
+  responses: { 200: successResponse(UserProfileSchema, '资料已更新'), ...errorResponses },
 });
 
-router.post('/login', async (c) => {
-  const input = await parseJson(c, loginSchema);
-  const result = await login(input.email, input.password);
-  return success(c, result, '登录成功');
+const avatarRoute = createRoute({
+  method: 'post',
+  path: '/avatar',
+  tags: ['认证'],
+  summary: '上传自定义头像',
+  description: '≤2MB，支持 jpg / png / webp。',
+  middleware: [authenticate],
+  request: {
+    body: {
+      content: { 'multipart/form-data': { schema: avatarBodySchema } },
+      required: true,
+    },
+  },
+  responses: { 200: successResponse(UserProfileSchema, '头像已更新'), ...errorResponses },
 });
 
-router.get('/me', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  return success(c, await getProfileById(user.id));
+const checkinStatusRoute = createRoute({
+  method: 'get',
+  path: '/checkin',
+  tags: ['认证'],
+  summary: '查询今日签到状态',
+  middleware: [authenticate],
+  responses: { 200: successResponse(CheckinStatusSchema, '签到状态'), ...errorResponses },
 });
 
-const profileSchema = z.object({
-  nickname: z.string().trim().min(1, '昵称不能为空').max(16, '昵称最多 16 个字符').optional(),
-  avatarType: z.coerce.number().int().min(0).max(1).optional(),
-  avatarIndex: z.coerce.number().int().min(0).max(7).optional(),
+const checkinRoute = createRoute({
+  method: 'post',
+  path: '/checkin',
+  tags: ['认证'],
+  summary: '每日签到领取解锁积分',
+  middleware: [authenticate],
+  responses: { 200: successResponse(CheckinResultSchema, '签到结果'), ...errorResponses },
 });
 
-router.patch('/profile', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  const input = await parseJson(c, profileSchema);
-  return success(c, await updateProfile(user.id, input), '资料已更新');
-});
-
-const ALLOWED_AVATAR_TYPES: Record<string, string> = {
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-};
-
-router.post('/avatar', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-
-  const body = await c.req.parseBody();
-  const file = body['file'];
-  if (!(file instanceof File)) {
-    throw new HttpError(400, '请选择要上传的头像文件');
-  }
-  if (file.size > MAX_AVATAR_BYTES) {
-    throw new HttpError(400, '头像大小不能超过 2MB');
-  }
-  const extension = ALLOWED_AVATAR_TYPES[file.type];
-  if (!extension) {
-    throw new HttpError(400, '仅支持 jpg / png / webp 格式');
-  }
-
-  const key = `avatars/${user.id}/${Date.now()}-${randomUUID()}.${extension}`;
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const uploaded = await uploadObject(key, bytes, file.type);
-  const profile = await setAvatarUrl(user.id, uploaded.url);
-  return success(c, profile, '头像已更新');
-});
-
-router.get('/checkin', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  return success(c, await getCheckinStatus(user.id));
-});
-
-router.post('/checkin', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  const result = await checkin(user.id);
-  return success(c, result, result.message);
-});
+router.openapi(
+  sendCodeRoute,
+  routeHandler(sendCodeRoute, (c) => authController.sendCode(c, c.req.valid('json'))),
+);
+router.openapi(
+  registerRoute,
+  routeHandler(registerRoute, (c) => authController.registerUser(c, c.req.valid('json'))),
+);
+router.openapi(
+  loginRoute,
+  routeHandler(loginRoute, (c) => authController.loginUser(c, c.req.valid('json'))),
+);
+router.openapi(meRoute, routeHandler(meRoute, (c) => authController.me(c)));
+router.openapi(
+  updateProfileRoute,
+  routeHandler(updateProfileRoute, (c) => authController.updateMyProfile(c, c.req.valid('json'))),
+);
+router.openapi(avatarRoute, routeHandler(avatarRoute, (c) => authController.uploadAvatar(c)));
+router.openapi(
+  checkinStatusRoute,
+  routeHandler(checkinStatusRoute, (c) => authController.checkinStatus(c)),
+);
+router.openapi(checkinRoute, routeHandler(checkinRoute, (c) => authController.checkinToday(c)));
 
 export default router;

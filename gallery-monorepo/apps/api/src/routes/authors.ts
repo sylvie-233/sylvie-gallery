@@ -1,48 +1,60 @@
-import { Hono } from 'hono';
-import { z } from 'zod';
+import { createRoute, z } from '@hono/zod-openapi';
 
+import * as authorController from '../controllers/author.controller.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
-import {
-  getAuthorDetail,
-  listAuthors,
-  toggleSubscription,
-} from '../services/author.service.js';
-import type { AppEnv } from '../types/context.js';
-import { HttpError, success } from '../utils/http.js';
-import { parseId, parseQuery } from '../utils/validate.js';
+import { AuthorDetailSchema, AuthorSchema, SubscriptionResultSchema } from '../openapi/models/album.js';
+import { errorResponses, idParamsSchema, successResponse } from '../openapi/models/common.js';
+import { createApiRouter, routeHandler } from '../openapi/router.js';
+import { authorDetailSchema, authorListSchema } from '../validators/albums.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-const listSchema = z.object({
-  keyword: z.string().trim().max(32).optional(),
+const listRoute = createRoute({
+  method: 'get',
+  path: '/',
+  tags: ['作者'],
+  summary: '作者列表',
+  description: '支持姓名、别名与风格标签搜索。',
+  security: [],
+  middleware: [optionalAuth],
+  request: { query: authorListSchema },
+  responses: { 200: successResponse(z.array(AuthorSchema), '作者列表'), ...errorResponses },
 });
 
-router.get('/', optionalAuth, async (c) => {
-  const query = parseQuery(c, listSchema);
-  const user = c.get('currentUser');
-  return success(c, await listAuthors(query.keyword, user?.id));
+const detailRoute = createRoute({
+  method: 'get',
+  path: '/{id}',
+  tags: ['作者'],
+  summary: '作者详情与其图集',
+  security: [],
+  middleware: [optionalAuth],
+  request: { params: idParamsSchema, query: authorDetailSchema },
+  responses: { 200: successResponse(AuthorDetailSchema, '作者详情'), ...errorResponses },
 });
 
-const detailSchema = z.object({
-  page: z.coerce.number().int().min(1).optional(),
-  pageSize: z.coerce.number().int().min(1).max(36).optional(),
+const subscribeRoute = createRoute({
+  method: 'post',
+  path: '/{id}/subscribe',
+  tags: ['作者'],
+  summary: '切换作者订阅状态',
+  middleware: [authenticate],
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(SubscriptionResultSchema, '订阅状态'), ...errorResponses },
 });
 
-router.get('/:id', optionalAuth, async (c) => {
-  const id = parseId(c.req.param('id'), '作者 ID');
-  const query = parseQuery(c, detailSchema);
-  const user = c.get('currentUser');
-  return success(c, await getAuthorDetail(id, user?.id, query.page, query.pageSize));
-});
-
-router.post('/:id/subscribe', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  const id = parseId(c.req.param('id'), '作者 ID');
-  const result = await toggleSubscription(id, user.id);
-  return success(c, result, result.subscribed ? '已订阅该作者' : '已取消订阅');
-});
+router.openapi(
+  listRoute,
+  routeHandler(listRoute, (c) => authorController.list(c, c.req.valid('query'))),
+);
+router.openapi(
+  detailRoute,
+  routeHandler(detailRoute, (c) =>
+    authorController.detail(c, c.req.valid('param').id, c.req.valid('query')),
+  ),
+);
+router.openapi(
+  subscribeRoute,
+  routeHandler(subscribeRoute, (c) => authorController.subscribe(c, c.req.valid('param').id)),
+);
 
 export default router;

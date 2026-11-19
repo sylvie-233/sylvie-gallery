@@ -1,64 +1,91 @@
-import { Hono } from 'hono';
-import { z } from 'zod';
+import { createRoute } from '@hono/zod-openapi';
 
+import * as announcementController from '../../controllers/admin/announcement.controller.js';
 import {
-  createAdminAnnouncement,
-  deleteAdminAnnouncement,
-  getAdminAnnouncements,
-  toggleAdminAnnouncement,
-  updateAdminAnnouncement,
-} from '../../services/admin/announcement-admin.service.js';
-import type { AppEnv } from '../../types/context.js';
-import { success } from '../../utils/http.js';
-import { currentAdminId, getRequestIp } from '../../utils/request.js';
-import { parseId, parseJson, parseQuery } from '../../utils/validate.js';
+  AdminAnnouncementPageSchema,
+  AdminAnnouncementRowSchema,
+} from '../../openapi/models/admin.js';
+import {
+  errorResponses,
+  idParamsSchema,
+  jsonBody,
+  nullSchema,
+  successResponse,
+} from '../../openapi/models/common.js';
+import { createApiRouter, routeHandler } from '../../openapi/router.js';
+import { announcementListSchema, announcementSaveSchema } from '../../validators/admin/content.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-const listSchema = z.object({
-  type: z.string().trim().max(16).optional(),
-  status: z.string().trim().max(4).optional(),
-  keyword: z.string().trim().max(128).optional(),
-  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  page: z.coerce.number().int().min(1).optional(),
-  pageSize: z.coerce.number().int().min(1).max(48).optional(),
+const listRoute = createRoute({
+  method: 'get',
+  path: '/',
+  tags: ['后台 · 公告'],
+  summary: '后台公告列表',
+  request: { query: announcementListSchema },
+  responses: { 200: successResponse(AdminAnnouncementPageSchema, '公告分页'), ...errorResponses },
 });
 
-router.get('/', async (c) => {
-  const query = parseQuery(c, listSchema);
-  return success(c, await getAdminAnnouncements(query));
+const createRouteDef = createRoute({
+  method: 'post',
+  path: '/',
+  tags: ['后台 · 公告'],
+  summary: '发布公告',
+  request: { body: jsonBody(announcementSaveSchema) },
+  responses: {
+    201: successResponse(AdminAnnouncementRowSchema, '公告已发布'),
+    ...errorResponses,
+  },
 });
 
-const announcementSchema = z.object({
-  type: z.enum(['update', 'activity', 'maintain', 'rule', 'notice']),
-  title: z.string().trim().min(1, '请输入标题').max(128, '标题最多 128 个字符'),
-  summary: z.string().max(255).optional(),
-  content: z.string().max(20000).optional(),
-  isTop: z.coerce.boolean().optional(),
+const updateRoute = createRoute({
+  method: 'put',
+  path: '/{id}',
+  tags: ['后台 · 公告'],
+  summary: '更新公告',
+  request: { params: idParamsSchema, body: jsonBody(announcementSaveSchema) },
+  responses: { 200: successResponse(AdminAnnouncementRowSchema, '公告已更新'), ...errorResponses },
 });
 
-router.post('/', async (c) => {
-  const input = await parseJson(c, announcementSchema);
-  return success(c, await createAdminAnnouncement(currentAdminId(c), input, getRequestIp(c)), '公告已发布', 201);
+const toggleRoute = createRoute({
+  method: 'post',
+  path: '/{id}/toggle',
+  tags: ['后台 · 公告'],
+  summary: '发布 / 下线公告',
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(AdminAnnouncementRowSchema, '公告状态'), ...errorResponses },
 });
 
-router.put('/:id', async (c) => {
-  const id = parseId(c.req.param('id'), '公告 ID');
-  const input = await parseJson(c, announcementSchema);
-  return success(c, await updateAdminAnnouncement(currentAdminId(c), id, input, getRequestIp(c)), '公告已更新');
+const deleteRoute = createRoute({
+  method: 'delete',
+  path: '/{id}',
+  tags: ['后台 · 公告'],
+  summary: '删除公告（软删除）',
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(nullSchema, '公告已删除'), ...errorResponses },
 });
 
-router.post('/:id/toggle', async (c) => {
-  const id = parseId(c.req.param('id'), '公告 ID');
-  const result = await toggleAdminAnnouncement(currentAdminId(c), id, getRequestIp(c));
-  return success(c, result, result.status === 1 ? '公告已发布' : '公告已下线');
-});
-
-router.delete('/:id', async (c) => {
-  const id = parseId(c.req.param('id'), '公告 ID');
-  await deleteAdminAnnouncement(currentAdminId(c), id, getRequestIp(c));
-  return success(c, null, '公告已删除');
-});
+router.openapi(
+  listRoute,
+  routeHandler(listRoute, (c) => announcementController.list(c, c.req.valid('query'))),
+);
+router.openapi(
+  createRouteDef,
+  routeHandler(createRouteDef, (c) => announcementController.create(c, c.req.valid('json'))),
+);
+router.openapi(
+  updateRoute,
+  routeHandler(updateRoute, (c) =>
+    announcementController.update(c, c.req.valid('param').id, c.req.valid('json')),
+  ),
+);
+router.openapi(
+  toggleRoute,
+  routeHandler(toggleRoute, (c) => announcementController.toggle(c, c.req.valid('param').id)),
+);
+router.openapi(
+  deleteRoute,
+  routeHandler(deleteRoute, (c) => announcementController.remove(c, c.req.valid('param').id)),
+);
 
 export default router;

@@ -1,70 +1,93 @@
-import { Hono } from 'hono';
-import { z } from 'zod';
+import { createRoute } from '@hono/zod-openapi';
 
+import * as userController from '../../controllers/admin/user.controller.js';
 import {
-  adjustAdminUserPoints,
-  getAdminUsers,
-  grantAdminUserVip,
-  resetAdminUserPassword,
-  toggleAdminUserStatus,
-} from '../../services/admin/user-admin.service.js';
-import type { AppEnv } from '../../types/context.js';
-import { success } from '../../utils/http.js';
-import { currentAdminId, getRequestIp } from '../../utils/request.js';
-import { parseId, parseJson, parseQuery } from '../../utils/validate.js';
+  AdminResetPasswordResultSchema,
+  AdminUserPageSchema,
+  AdminUserRowSchema,
+} from '../../openapi/models/admin.js';
+import {
+  errorResponses,
+  idParamsSchema,
+  jsonBody,
+  successResponse,
+} from '../../openapi/models/common.js';
+import { createApiRouter, routeHandler } from '../../openapi/router.js';
+import { pointsSchema, userListSchema } from '../../validators/admin/commerce.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-const listSchema = z.object({
-  role: z.enum(['all', 'admin', 'vip', 'member']).optional(),
-  status: z.enum(['all', '0', '1']).optional(),
-  keyword: z.string().trim().max(64).optional(),
-  page: z.coerce.number().int().min(1).optional(),
-  pageSize: z.coerce.number().int().min(1).max(48).optional(),
+const listRoute = createRoute({
+  method: 'get',
+  path: '/',
+  tags: ['后台 · 用户'],
+  summary: '后台用户列表',
+  request: { query: userListSchema },
+  responses: { 200: successResponse(AdminUserPageSchema, '用户分页'), ...errorResponses },
 });
 
-router.get('/', async (c) => {
-  const query = parseQuery(c, listSchema);
-  return success(c, await getAdminUsers(query));
+const pointsRoute = createRoute({
+  method: 'post',
+  path: '/{id}/points',
+  tags: ['后台 · 用户'],
+  summary: '调整用户解锁积分',
+  request: { params: idParamsSchema, body: jsonBody(pointsSchema) },
+  responses: { 200: successResponse(AdminUserRowSchema, '积分已调整'), ...errorResponses },
 });
 
-const pointsSchema = z.object({
-  delta: z.coerce.number().int().min(-99999).max(99999),
-  reason: z.string().trim().min(1, '请填写调整原因').max(64),
+const grantVipRoute = createRoute({
+  method: 'post',
+  path: '/{id}/grant-vip',
+  tags: ['后台 · 用户'],
+  summary: '赠送 30 天付费会员',
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(AdminUserRowSchema, '会员已赠送'), ...errorResponses },
 });
 
-router.post('/:id/points', async (c) => {
-  const id = parseId(c.req.param('id'), '用户 ID');
-  const input = await parseJson(c, pointsSchema);
-  return success(
-    c,
-    await adjustAdminUserPoints(currentAdminId(c), id, input, getRequestIp(c)),
-    '积分已调整',
-  );
+const resetPasswordRoute = createRoute({
+  method: 'post',
+  path: '/{id}/reset-password',
+  tags: ['后台 · 用户'],
+  summary: '重置用户密码为默认值',
+  request: { params: idParamsSchema },
+  responses: {
+    200: successResponse(AdminResetPasswordResultSchema, '密码已重置'),
+    ...errorResponses,
+  },
 });
 
-router.post('/:id/grant-vip', async (c) => {
-  const id = parseId(c.req.param('id'), '用户 ID');
-  return success(
-    c,
-    await grantAdminUserVip(currentAdminId(c), id, getRequestIp(c)),
-    '已赠送 30 天付费会员',
-  );
+const toggleStatusRoute = createRoute({
+  method: 'post',
+  path: '/{id}/toggle-status',
+  tags: ['后台 · 用户'],
+  summary: '封禁 / 解封用户',
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(AdminUserRowSchema, '用户状态'), ...errorResponses },
 });
 
-router.post('/:id/reset-password', async (c) => {
-  const id = parseId(c.req.param('id'), '用户 ID');
-  return success(
-    c,
-    await resetAdminUserPassword(currentAdminId(c), id, getRequestIp(c)),
-    '密码已重置',
-  );
-});
-
-router.post('/:id/toggle-status', async (c) => {
-  const id = parseId(c.req.param('id'), '用户 ID');
-  const result = await toggleAdminUserStatus(currentAdminId(c), id, getRequestIp(c));
-  return success(c, result, result.status === 1 ? '用户已解封' : '用户已封禁');
-});
+router.openapi(
+  listRoute,
+  routeHandler(listRoute, (c) => userController.list(c, c.req.valid('query'))),
+);
+router.openapi(
+  pointsRoute,
+  routeHandler(pointsRoute, (c) =>
+    userController.adjustPoints(c, c.req.valid('param').id, c.req.valid('json')),
+  ),
+);
+router.openapi(
+  grantVipRoute,
+  routeHandler(grantVipRoute, (c) => userController.grantVip(c, c.req.valid('param').id)),
+);
+router.openapi(
+  resetPasswordRoute,
+  routeHandler(resetPasswordRoute, (c) =>
+    userController.resetPassword(c, c.req.valid('param').id),
+  ),
+);
+router.openapi(
+  toggleStatusRoute,
+  routeHandler(toggleStatusRoute, (c) => userController.toggleStatus(c, c.req.valid('param').id)),
+);
 
 export default router;

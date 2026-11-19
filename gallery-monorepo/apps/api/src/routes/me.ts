@@ -1,36 +1,50 @@
-import { Hono } from 'hono';
-import { z } from 'zod';
+import { createRoute } from '@hono/zod-openapi';
 
+import * as albumController from '../controllers/album.controller.js';
+import * as authorController from '../controllers/author.controller.js';
 import { authenticate } from '../middleware/auth.js';
-import { listFavoriteAlbums } from '../services/album.service.js';
-import { listSubscribedAuthors } from '../services/author.service.js';
-import type { AppEnv } from '../types/context.js';
-import { HttpError, success } from '../utils/http.js';
-import { parseQuery } from '../utils/validate.js';
+import { AlbumPageResultSchema, AuthorPageResultSchema } from '../openapi/models/album.js';
+import { errorResponses, successResponse } from '../openapi/models/common.js';
+import { createApiRouter, routeHandler } from '../openapi/router.js';
+import { pageQuerySchema } from '../validators/albums.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-const pageSchema = z.object({
-  page: z.coerce.number().int().min(1).optional(),
-  pageSize: z.coerce.number().int().min(1).max(36).optional(),
+const favoritesRoute = createRoute({
+  method: 'get',
+  path: '/favorites',
+  tags: ['个人中心'],
+  summary: '我的收藏图集',
+  middleware: [authenticate],
+  request: { query: pageQuerySchema },
+  responses: {
+    200: successResponse(AlbumPageResultSchema, '收藏图集分页'),
+    ...errorResponses,
+  },
 });
 
-router.get('/favorites', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  const query = parseQuery(c, pageSchema);
-  return success(c, await listFavoriteAlbums(user.id, query.page, query.pageSize));
+const subscriptionsRoute = createRoute({
+  method: 'get',
+  path: '/subscriptions',
+  tags: ['个人中心'],
+  summary: '我订阅的作者',
+  middleware: [authenticate],
+  request: { query: pageQuerySchema },
+  responses: {
+    200: successResponse(AuthorPageResultSchema, '订阅作者分页'),
+    ...errorResponses,
+  },
 });
 
-router.get('/subscriptions', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  const query = parseQuery(c, pageSchema);
-  return success(c, await listSubscribedAuthors(user.id, query.page, query.pageSize));
-});
+router.openapi(
+  favoritesRoute,
+  routeHandler(favoritesRoute, (c) => albumController.favorites(c, c.req.valid('query'))),
+);
+router.openapi(
+  subscriptionsRoute,
+  routeHandler(subscriptionsRoute, (c) =>
+    authorController.subscriptions(c, c.req.valid('query')),
+  ),
+);
 
 export default router;

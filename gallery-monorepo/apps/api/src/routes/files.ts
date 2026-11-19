@@ -1,34 +1,35 @@
-import { Hono } from 'hono';
+import { z } from '@hono/zod-openapi';
 
-import { getObject } from '../services/storage.service.js';
-import type { AppEnv } from '../types/context.js';
-import { failure } from '../utils/http.js';
+import * as fileController from '../controllers/file.controller.js';
+import { binaryResponse, ErrorResponseSchema, jsonContent } from '../openapi/models/common.js';
+import { createApiRouter } from '../openapi/router.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-const ALLOWED_PREFIXES = ['avatars/', 'albums/', 'authors/'];
-
-/** 对象存储代理：头像与图集资源统一走 /api/files/<key>，便于签名与防盗链。 */
-router.get('/:key{.+}', async (c) => {
-  const key = c.req.param('key');
-  if (!key || !ALLOWED_PREFIXES.some((prefix) => key.startsWith(prefix)) || key.includes('..')) {
-    return failure(c, 404, '文件不存在');
-  }
-
-  const object = await getObject(key);
-  if (!object) {
-    return failure(c, 404, '文件不存在');
-  }
-
-  const headers: Record<string, string> = {
-    'Content-Type': object.contentType,
-    'Cache-Control': 'public, max-age=31536000, immutable',
-  };
-  if (object.contentLength !== undefined) {
-    headers['Content-Length'] = String(object.contentLength);
-  }
-
-  return c.body(object.body as never, 200, headers);
+/**
+ * 对象存储代理：文件 key 含 `/`，需要正则路径，因此使用普通 Hono 路由，
+ * OpenAPI 文档通过 registry 手动注册同样的路径。
+ */
+router.openAPIRegistry.registerPath({
+  method: 'get',
+  path: '/{key}',
+  tags: ['文件'],
+  summary: '对象存储代理读取',
+  description: '仅允许 avatars/、albums/、authors/ 前缀。',
+  request: {
+    params: z.object({
+      key: z.string().openapi({ param: { name: 'key', in: 'path' }, description: '对象键' }),
+    }),
+  },
+  responses: {
+    200: binaryResponse('application/octet-stream', '文件二进制流'),
+    404: {
+      content: jsonContent(ErrorResponseSchema),
+      description: '文件不存在',
+    },
+  },
 });
+
+router.get('/:key{.+}', (c) => fileController.proxy(c));
 
 export default router;

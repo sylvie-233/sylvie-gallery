@@ -1,47 +1,59 @@
-import { Hono } from 'hono';
-import { z } from 'zod';
+import { createRoute } from '@hono/zod-openapi';
 
+import * as commentController from '../../controllers/admin/comment.controller.js';
+import { AdminCommentPageSchema, AdminCommentRowSchema } from '../../openapi/models/admin.js';
 import {
-  deleteAdminComment,
-  getAdminComments,
-  reviewAdminComment,
-} from '../../services/admin/comment-admin.service.js';
-import type { AppEnv } from '../../types/context.js';
-import { success } from '../../utils/http.js';
-import { currentAdminId, getRequestIp } from '../../utils/request.js';
-import { parseId, parseJson, parseQuery } from '../../utils/validate.js';
+  errorResponses,
+  idParamsSchema,
+  jsonBody,
+  nullSchema,
+  successResponse,
+} from '../../openapi/models/common.js';
+import { createApiRouter, routeHandler } from '../../openapi/router.js';
+import { commentListSchema, commentReviewSchema } from '../../validators/admin/content.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-const listSchema = z.object({
-  status: z.enum(['pending', 'approved', 'rejected']).optional(),
-  keyword: z.string().trim().max(64).optional(),
-  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  page: z.coerce.number().int().min(1).optional(),
-  pageSize: z.coerce.number().int().min(1).max(48).optional(),
+const listRoute = createRoute({
+  method: 'get',
+  path: '/',
+  tags: ['后台 · 评论'],
+  summary: '后台评论列表',
+  request: { query: commentListSchema },
+  responses: { 200: successResponse(AdminCommentPageSchema, '评论分页'), ...errorResponses },
 });
 
-router.get('/', async (c) => {
-  const query = parseQuery(c, listSchema);
-  return success(c, await getAdminComments(query));
+const reviewRoute = createRoute({
+  method: 'post',
+  path: '/{id}/review',
+  tags: ['后台 · 评论'],
+  summary: '审核通过 / 拒绝评论',
+  request: { params: idParamsSchema, body: jsonBody(commentReviewSchema) },
+  responses: { 200: successResponse(AdminCommentRowSchema, '评论审核结果'), ...errorResponses },
 });
 
-const reviewSchema = z.object({
-  status: z.enum(['approved', 'rejected']),
+const deleteRoute = createRoute({
+  method: 'delete',
+  path: '/{id}',
+  tags: ['后台 · 评论'],
+  summary: '删除评论',
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(nullSchema, '评论已删除'), ...errorResponses },
 });
 
-router.post('/:id/review', async (c) => {
-  const id = parseId(c.req.param('id'), '评论 ID');
-  const input = await parseJson(c, reviewSchema);
-  const result = await reviewAdminComment(currentAdminId(c), id, input.status, getRequestIp(c));
-  return success(c, result, input.status === 'approved' ? '评论已通过' : '评论已拒绝');
-});
-
-router.delete('/:id', async (c) => {
-  const id = parseId(c.req.param('id'), '评论 ID');
-  await deleteAdminComment(currentAdminId(c), id, getRequestIp(c));
-  return success(c, null, '评论已删除');
-});
+router.openapi(
+  listRoute,
+  routeHandler(listRoute, (c) => commentController.list(c, c.req.valid('query'))),
+);
+router.openapi(
+  reviewRoute,
+  routeHandler(reviewRoute, (c) =>
+    commentController.review(c, c.req.valid('param').id, c.req.valid('json')),
+  ),
+);
+router.openapi(
+  deleteRoute,
+  routeHandler(deleteRoute, (c) => commentController.remove(c, c.req.valid('param').id)),
+);
 
 export default router;

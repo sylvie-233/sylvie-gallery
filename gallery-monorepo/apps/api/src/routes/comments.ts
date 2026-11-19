@@ -1,21 +1,30 @@
-import { Hono } from 'hono';
+import { createRoute } from '@hono/zod-openapi';
 
+import * as albumController from '../controllers/album.controller.js';
 import { authenticate } from '../middleware/auth.js';
-import { deleteComment } from '../services/album.service.js';
-import type { AppEnv } from '../types/context.js';
-import { HttpError, success } from '../utils/http.js';
-import { parseId } from '../utils/validate.js';
+import {
+  errorResponses,
+  idParamsSchema,
+  nullSchema,
+  successResponse,
+} from '../openapi/models/common.js';
+import { createApiRouter, routeHandler } from '../openapi/router.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-router.delete('/:id', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  const id = parseId(c.req.param('id'), '评论 ID');
-  await deleteComment(id, user.id);
-  return success(c, null, '评论已删除');
+const deleteRoute = createRoute({
+  method: 'delete',
+  path: '/{id}',
+  tags: ['图集'],
+  summary: '删除本人评论',
+  middleware: [authenticate],
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(nullSchema, '评论已删除'), ...errorResponses },
 });
+
+router.openapi(
+  deleteRoute,
+  routeHandler(deleteRoute, (c) => albumController.removeComment(c, c.req.valid('param').id)),
+);
 
 export default router;

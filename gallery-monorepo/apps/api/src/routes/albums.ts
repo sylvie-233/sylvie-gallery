@@ -1,99 +1,120 @@
-import { Readable } from 'node:stream';
+import { createRoute } from '@hono/zod-openapi';
 
-import { Hono } from 'hono';
-import { z } from 'zod';
-
+import * as albumController from '../controllers/album.controller.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
 import {
-  createAlbumZip,
-  createComment,
-  getAlbumDetail,
-  listAlbums,
-  toggleFavorite,
-} from '../services/album.service.js';
-import { unlockAlbum } from '../services/order.service.js';
-import type { AppEnv } from '../types/context.js';
-import { HttpError, success } from '../utils/http.js';
-import { parseId, parseJson, parseQuery } from '../utils/validate.js';
+  AlbumDetailSchema,
+  AlbumPageResultSchema,
+  CommentSchema,
+  FavoriteResultSchema,
+  UnlockResultSchema,
+} from '../openapi/models/album.js';
+import {
+  binaryResponse,
+  errorResponses,
+  idParamsSchema,
+  jsonBody,
+  successResponse,
+} from '../openapi/models/common.js';
+import { createApiRouter, routeHandler } from '../openapi/router.js';
+import { albumListSchema, commentSchema } from '../validators/albums.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-const listSchema = z.object({
-  page: z.coerce.number().int().min(1).optional(),
-  pageSize: z.coerce.number().int().min(1).max(48).optional(),
-  sort: z.enum(['new', 'hot', 'fav']).optional(),
-  tag: z.string().trim().max(32).optional(),
-  keyword: z.string().trim().max(64).optional(),
-  authorId: z.coerce.number().int().positive().optional(),
+const listRoute = createRoute({
+  method: 'get',
+  path: '/',
+  tags: ['图集'],
+  summary: '图集列表',
+  description: '支持最新 / 热门 / 收藏排序、标签筛选、关键词检索与作者筛选。',
+  security: [],
+  middleware: [optionalAuth],
+  request: { query: albumListSchema },
+  responses: { 200: successResponse(AlbumPageResultSchema, '图集分页列表'), ...errorResponses },
 });
 
-router.get('/', optionalAuth, async (c) => {
-  const query = parseQuery(c, listSchema);
-  const user = c.get('currentUser');
-  return success(c, await listAlbums(query, user?.id));
+const detailRoute = createRoute({
+  method: 'get',
+  path: '/{id}',
+  tags: ['图集'],
+  summary: '图集详情',
+  description: '未解锁时仅返回前 3 张预览；付费会员与已解锁用户返回全部媒体。',
+  security: [],
+  middleware: [optionalAuth],
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(AlbumDetailSchema, '图集详情'), ...errorResponses },
 });
 
-function clientIp(header: string | undefined): string | undefined {
-  return header?.split(',')[0]?.trim();
-}
-
-router.get('/:id', optionalAuth, async (c) => {
-  const id = parseId(c.req.param('id'), '图集 ID');
-  const user = c.get('currentUser');
-  const ip = clientIp(c.req.header('x-forwarded-for')) ?? c.req.header('x-real-ip');
-  return success(c, await getAlbumDetail(id, user, ip));
+const commentRoute = createRoute({
+  method: 'post',
+  path: '/{id}/comments',
+  tags: ['图集'],
+  summary: '发表评论',
+  description: '先审后发，审核通过后展示。',
+  middleware: [authenticate],
+  request: { params: idParamsSchema, body: jsonBody(commentSchema) },
+  responses: {
+    201: successResponse(CommentSchema, '评论已提交，审核通过后展示'),
+    ...errorResponses,
+  },
 });
 
-const commentSchema = z.object({
-  content: z.string().trim().min(1, '评论内容不能为空').max(500, '评论最多 500 个字符'),
-  parentId: z.coerce.number().int().positive().nullable().optional(),
-  replyToUserId: z.coerce.number().int().positive().nullable().optional(),
+const favoriteRoute = createRoute({
+  method: 'post',
+  path: '/{id}/favorite',
+  tags: ['图集'],
+  summary: '切换图集收藏状态',
+  middleware: [authenticate],
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(FavoriteResultSchema, '收藏状态'), ...errorResponses },
 });
 
-router.post('/:id/comments', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  const id = parseId(c.req.param('id'), '图集 ID');
-  const input = await parseJson(c, commentSchema);
-  const comment = await createComment(id, user.id, input);
-  return success(c, comment, '评论已提交，审核通过后展示', 201);
+const unlockRoute = createRoute({
+  method: 'post',
+  path: '/{id}/unlock',
+  tags: ['图集'],
+  summary: '消耗解锁积分永久解锁图集',
+  middleware: [authenticate],
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(UnlockResultSchema, '解锁结果'), ...errorResponses },
 });
 
-router.post('/:id/favorite', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  const id = parseId(c.req.param('id'), '图集 ID');
-  const result = await toggleFavorite(id, user.id);
-  return success(c, result, result.favorited ? '已收藏' : '已取消收藏');
+const downloadRoute = createRoute({
+  method: 'get',
+  path: '/{id}/download',
+  tags: ['图集'],
+  summary: '打包下载原图 ZIP',
+  description: '需已解锁或付费会员；下载不扣积分。',
+  middleware: [authenticate],
+  request: { params: idParamsSchema },
+  responses: { 200: binaryResponse('application/zip', 'ZIP 文件流'), ...errorResponses },
 });
 
-router.post('/:id/unlock', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  const id = parseId(c.req.param('id'), '图集 ID');
-  const result = await unlockAlbum(user.id, id);
-  return success(c, result, result.already ? '当前已可查看全部内容' : '解锁成功');
-});
-
-router.get('/:id/download', authenticate, async (c) => {
-  const user = c.get('currentUser');
-  if (!user) {
-    throw new HttpError(401, '未登录或登录已过期');
-  }
-  const id = parseId(c.req.param('id'), '图集 ID');
-  const { stream, filename } = await createAlbumZip(id, user);
-  const encoded = encodeURIComponent(filename);
-  return c.body(Readable.toWeb(stream) as never, 200, {
-    'Content-Type': 'application/zip',
-    'Content-Disposition': `attachment; filename="album.zip"; filename*=UTF-8''${encoded}`,
-    'Cache-Control': 'no-store',
-  });
-});
+router.openapi(
+  listRoute,
+  routeHandler(listRoute, (c) => albumController.list(c, c.req.valid('query'))),
+);
+router.openapi(
+  detailRoute,
+  routeHandler(detailRoute, (c) => albumController.detail(c, c.req.valid('param').id)),
+);
+router.openapi(
+  commentRoute,
+  routeHandler(commentRoute, (c) =>
+    albumController.comment(c, c.req.valid('param').id, c.req.valid('json')),
+  ),
+);
+router.openapi(
+  favoriteRoute,
+  routeHandler(favoriteRoute, (c) => albumController.favorite(c, c.req.valid('param').id)),
+);
+router.openapi(
+  unlockRoute,
+  routeHandler(unlockRoute, (c) => albumController.unlock(c, c.req.valid('param').id)),
+);
+router.openapi(
+  downloadRoute,
+  routeHandler(downloadRoute, (c) => albumController.download(c, c.req.valid('param').id)),
+);
 
 export default router;

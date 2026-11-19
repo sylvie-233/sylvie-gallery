@@ -1,57 +1,82 @@
-import { Hono } from 'hono';
-import { z } from 'zod';
+import { createRoute } from '@hono/zod-openapi';
 
+import * as tagController from '../../controllers/admin/tag.controller.js';
+import { AdminTagPageSchema, AdminTagRowSchema } from '../../openapi/models/admin.js';
 import {
-  createAdminTag,
-  deleteAdminTag,
-  getAdminTags,
-  toggleAdminTag,
-  updateAdminTag,
-} from '../../services/admin/tag-admin.service.js';
-import type { AppEnv } from '../../types/context.js';
-import { success } from '../../utils/http.js';
-import { currentAdminId, getRequestIp } from '../../utils/request.js';
-import { parseId, parseJson, parseQuery } from '../../utils/validate.js';
+  errorResponses,
+  idParamsSchema,
+  jsonBody,
+  nullSchema,
+  successResponse,
+} from '../../openapi/models/common.js';
+import { createApiRouter, routeHandler } from '../../openapi/router.js';
+import { tagListSchema, tagNameSchema } from '../../validators/admin/catalog.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-const listSchema = z.object({
-  status: z.enum(['all', 'on', 'off']).optional(),
-  keyword: z.string().trim().max(32).optional(),
-  page: z.coerce.number().int().min(1).optional(),
-  pageSize: z.coerce.number().int().min(1).max(200).optional(),
+const listRoute = createRoute({
+  method: 'get',
+  path: '/',
+  tags: ['后台 · 标签'],
+  summary: '后台标签列表',
+  request: { query: tagListSchema },
+  responses: { 200: successResponse(AdminTagPageSchema, '标签分页'), ...errorResponses },
 });
 
-router.get('/', async (c) => {
-  const query = parseQuery(c, listSchema);
-  return success(c, await getAdminTags(query));
+const createRouteDef = createRoute({
+  method: 'post',
+  path: '/',
+  tags: ['后台 · 标签'],
+  summary: '新建标签',
+  request: { body: jsonBody(tagNameSchema) },
+  responses: { 201: successResponse(AdminTagRowSchema, '标签已创建'), ...errorResponses },
 });
 
-const nameSchema = z.object({
-  name: z.string().trim().min(1, '请输入标签名').max(20, '标签名最多 20 个字符'),
+const updateRoute = createRoute({
+  method: 'put',
+  path: '/{id}',
+  tags: ['后台 · 标签'],
+  summary: '重命名标签',
+  request: { params: idParamsSchema, body: jsonBody(tagNameSchema) },
+  responses: { 200: successResponse(AdminTagRowSchema, '标签已更新'), ...errorResponses },
 });
 
-router.post('/', async (c) => {
-  const input = await parseJson(c, nameSchema);
-  return success(c, await createAdminTag(currentAdminId(c), input.name, getRequestIp(c)), '标签已创建', 201);
+const toggleRoute = createRoute({
+  method: 'post',
+  path: '/{id}/toggle',
+  tags: ['后台 · 标签'],
+  summary: '显示 / 隐藏标签',
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(AdminTagRowSchema, '标签状态'), ...errorResponses },
 });
 
-router.put('/:id', async (c) => {
-  const id = parseId(c.req.param('id'), '标签 ID');
-  const input = await parseJson(c, nameSchema);
-  return success(c, await updateAdminTag(currentAdminId(c), id, input.name, getRequestIp(c)), '标签已更新');
+const deleteRoute = createRoute({
+  method: 'delete',
+  path: '/{id}',
+  tags: ['后台 · 标签'],
+  summary: '删除标签（仅未被收录可删）',
+  request: { params: idParamsSchema },
+  responses: { 200: successResponse(nullSchema, '标签已删除'), ...errorResponses },
 });
 
-router.post('/:id/toggle', async (c) => {
-  const id = parseId(c.req.param('id'), '标签 ID');
-  const result = await toggleAdminTag(currentAdminId(c), id, getRequestIp(c));
-  return success(c, result, result.status === 1 ? '标签已恢复展示' : '标签已隐藏');
-});
-
-router.delete('/:id', async (c) => {
-  const id = parseId(c.req.param('id'), '标签 ID');
-  await deleteAdminTag(currentAdminId(c), id, getRequestIp(c));
-  return success(c, null, '标签已删除');
-});
+router.openapi(listRoute, routeHandler(listRoute, (c) => tagController.list(c, c.req.valid('query'))));
+router.openapi(
+  createRouteDef,
+  routeHandler(createRouteDef, (c) => tagController.create(c, c.req.valid('json'))),
+);
+router.openapi(
+  updateRoute,
+  routeHandler(updateRoute, (c) =>
+    tagController.update(c, c.req.valid('param').id, c.req.valid('json')),
+  ),
+);
+router.openapi(
+  toggleRoute,
+  routeHandler(toggleRoute, (c) => tagController.toggle(c, c.req.valid('param').id)),
+);
+router.openapi(
+  deleteRoute,
+  routeHandler(deleteRoute, (c) => tagController.remove(c, c.req.valid('param').id)),
+);
 
 export default router;

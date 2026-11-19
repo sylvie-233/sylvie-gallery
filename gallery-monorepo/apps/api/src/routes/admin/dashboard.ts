@@ -1,24 +1,34 @@
-import { Hono } from 'hono';
-import { z } from 'zod';
+import { createRoute } from '@hono/zod-openapi';
 
-import { getAdminDashboard, getAdminTrend } from '../../services/admin/dashboard.service.js';
-import type { AppEnv } from '../../types/context.js';
-import { success } from '../../utils/http.js';
-import { parseQuery } from '../../utils/validate.js';
+import * as dashboardController from '../../controllers/admin/dashboard.controller.js';
+import { AdminDashboardSchema, AdminTrendSchema } from '../../openapi/models/admin.js';
+import { errorResponses, successResponse } from '../../openapi/models/common.js';
+import { createApiRouter, routeHandler } from '../../openapi/router.js';
+import { trendSchema } from '../../validators/admin/system.js';
 
-const router = new Hono<AppEnv>();
+const router = createApiRouter();
 
-router.get('/', async (c) => {
-  return success(c, await getAdminDashboard());
+const dashboardRoute = createRoute({
+  method: 'get',
+  path: '/',
+  tags: ['后台 · 看板'],
+  summary: '数据看板统计',
+  responses: { 200: successResponse(AdminDashboardSchema, '看板数据'), ...errorResponses },
 });
 
-const trendSchema = z.object({
-  mode: z.enum(['7d', '30d', '6m']).default('7d'),
+const trendRoute = createRoute({
+  method: 'get',
+  path: '/trend',
+  tags: ['后台 · 看板'],
+  summary: '营收趋势',
+  request: { query: trendSchema },
+  responses: { 200: successResponse(AdminTrendSchema, '趋势数据'), ...errorResponses },
 });
 
-router.get('/trend', async (c) => {
-  const query = parseQuery(c, trendSchema);
-  return success(c, await getAdminTrend(query.mode));
-});
+router.openapi(dashboardRoute, routeHandler(dashboardRoute, (c) => dashboardController.dashboard(c)));
+router.openapi(
+  trendRoute,
+  routeHandler(trendRoute, (c) => dashboardController.trend(c, c.req.valid('query'))),
+);
 
 export default router;
