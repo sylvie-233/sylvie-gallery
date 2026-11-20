@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
-    希尔薇图集本地环境运维脚本（MySQL + Redis + RabbitMQ + Mailpit + RustFS + API + Web + Admin）。
+    希尔薇图集本地环境运维脚本（MySQL + Redis + RabbitMQ + Mailpit + RustFS + API + Web + Admin，
+    可选的可观测性栈 Alloy + Prometheus + Loki + Tempo + Grafana）。
 
 .DESCRIPTION
     封装 scripts/docker-compose.yml 的常用操作：启动、停止、重启、重置、构建、日志、
@@ -24,6 +25,9 @@
       dev       启动 MySQL / Redis / RabbitMQ / Mailpit / RustFS 容器后，在本机运行 pnpm dev（三端热更新）
       obs       启动可观测性栈（Alloy + Prometheus + Loki + Tempo + Grafana），不包含业务容器
 
+    obs 目标可用于 up / restart / logs / pull / status / reset；down 始终带上 observability profile，
+    确保通过 obs 动作启动的容器与数据卷不会被遗留。
+
 .PARAMETER Target
     操作目标，默认 all（仅容器相关操作使用，dev 忽略）：
       mysql  仅 MySQL
@@ -31,10 +35,11 @@
       rabbitmq 仅 RabbitMQ 消息队列
       mailpit 仅 Mailpit 开发邮件捕获
       rustfs 仅 RustFS 对象存储
+      obs    仅可观测性栈（Alloy / Prometheus / Loki / Tempo / Grafana）
       api    仅 API（自动启动依赖的 MySQL / Redis / RustFS）
       web    仅 Web（自动启动依赖的 API / MySQL / Redis / RustFS）
       admin  仅 Admin（自动启动依赖的 API / MySQL / Redis / RustFS）
-      all    MySQL + Redis + RabbitMQ + Mailpit + RustFS + API + Web + Admin
+      all    MySQL + Redis + RabbitMQ + Mailpit + RustFS + API + Web + Admin（不含 obs）
 
 .PARAMETER Force
     reset / init 跳过二次确认；build 时禁用 Docker 构建缓存。
@@ -80,6 +85,12 @@
 
 .EXAMPLE
     pwsh ./manage.ps1 obs
+
+.EXAMPLE
+    pwsh ./manage.ps1 restart -Target obs
+
+.EXAMPLE
+    pwsh ./manage.ps1 logs -Target obs -Follow
 #>
 #Requires -Version 7.0
 [CmdletBinding()]
@@ -88,7 +99,7 @@ param(
     [ValidateSet('up', 'down', 'restart', 'reset', 'build', 'logs', 'cli', 'status', 'init', 'pull', 'dev', 'obs')]
     [string]$Action = 'status',
 
-    [ValidateSet('mysql', 'redis', 'rabbitmq', 'mailpit', 'rustfs', 'api', 'web', 'admin', 'all')]
+    [ValidateSet('mysql', 'redis', 'rabbitmq', 'mailpit', 'rustfs', 'obs', 'api', 'web', 'admin', 'all')]
     [string]$Target = 'all',
 
     [switch]$Force,
@@ -116,17 +127,26 @@ $MonorepoRoot = Join-Path $ScriptRoot 'gallery-monorepo'
 $DatabaseName = 'sylvie_gallery'
 
 $ContainerNames = @{
-    mysql   = 'sylvie-mysql'
-    redis    = 'sylvie-redis'
-    rabbitmq = 'sylvie-rabbitmq'
-    mailpit = 'sylvie-mailpit'
-    rustfs  = 'sylvie-rustfs'
-    api     = 'sylvie-api'
-    web     = 'sylvie-web'
-    admin   = 'sylvie-admin'
+    mysql      = 'sylvie-mysql'
+    redis      = 'sylvie-redis'
+    rabbitmq   = 'sylvie-rabbitmq'
+    mailpit    = 'sylvie-mailpit'
+    rustfs     = 'sylvie-rustfs'
+    api        = 'sylvie-api'
+    web        = 'sylvie-web'
+    admin      = 'sylvie-admin'
+    alloy      = 'sylvie-alloy'
+    prometheus = 'sylvie-prometheus'
+    loki       = 'sylvie-loki'
+    tempo      = 'sylvie-tempo'
+    grafana    = 'sylvie-grafana'
 }
 
 $AppServices = @('api', 'web', 'admin')
+
+# 可观测性栈使用 compose profile 隔离，默认不启动；由 obs 动作或 -Target obs 管理
+$ObsServices = @('alloy', 'prometheus', 'loki', 'tempo', 'grafana')
+$BusinessServices = @('mysql', 'redis', 'rabbitmq', 'mailpit', 'rustfs', 'api', 'web', 'admin')
 
 function Assert-Prerequisites {
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
@@ -172,11 +192,26 @@ function Get-TargetServices {
         'rabbitmq' { return @('rabbitmq') }
         'mailpit' { return @('mailpit') }
         'rustfs' { return @('rustfs') }
+        'obs' { return $ObsServices }
         'api' { return @('api') }
         'web' { return @('web') }
         'admin' { return @('admin') }
-        default { return @('mysql', 'redis', 'rabbitmq', 'mailpit', 'rustfs', 'api', 'web', 'admin') }
+        default { return $BusinessServices }
     }
+}
+
+# 当前 Target 是否指向可观测性栈（用于判断是否需要 --profile observability）
+function Test-ObsTarget {
+    $services = Get-TargetServices
+    return [bool]($services | Where-Object { $ObsServices -contains $_ })
+}
+
+# 仅当目标包含 obs 时返回 compose 的 profile 全局参数
+function Get-ObsProfileArgs {
+    if (Test-ObsTarget) {
+        return @('--profile', 'observability')
+    }
+    return @()
 }
 
 # 等待就绪时连同 compose 自动启动的上游服务一起检查
@@ -184,6 +219,9 @@ function Get-WaitServices {
     $services = Get-TargetServices
     $result = @()
 
+    if (Test-ObsTarget) {
+        $result += $ObsServices
+    }
     if ($services -contains 'mysql' -or $services -contains 'api' -or $services -contains 'web' -or $services -contains 'admin') {
         $result += 'mysql'
     }
@@ -237,6 +275,11 @@ function Get-DisplayName {
         'api' { 'API' }
         'web' { 'Web' }
         'admin' { 'Admin' }
+        'alloy' { 'Alloy' }
+        'prometheus' { 'Prometheus' }
+        'loki' { 'Loki' }
+        'tempo' { 'Tempo' }
+        'grafana' { 'Grafana' }
         default { $Service }
     }
 }
@@ -341,14 +384,68 @@ function Get-EnvValue {
     return $Default
 }
 
+# 可观测性栈访问地址；obs 动作与 status / restart 等复用
+function Write-ObsAccessUrls {
+    $grafanaPort = Get-EnvValue -Name 'GRAFANA_PORT' -Default '3030'
+    $prometheusPort = Get-EnvValue -Name 'PROMETHEUS_PORT' -Default '9090'
+    $lokiPort = Get-EnvValue -Name 'LOKI_PORT' -Default '3100'
+    $tempoPort = Get-EnvValue -Name 'TEMPO_PORT' -Default '3200'
+    $alloyUiPort = Get-EnvValue -Name 'ALLOY_UI_PORT' -Default '12345'
+
+    Write-Host ''
+    Write-Host '可观测性栈访问地址（以 scripts/.env 为准）：' -ForegroundColor Cyan
+    Write-Host "  Grafana     http://localhost:$grafanaPort（admin / 123456）"
+    Write-Host "  Prometheus  http://localhost:$prometheusPort"
+    Write-Host "  Loki        http://localhost:$lokiPort"
+    Write-Host "  Tempo       http://localhost:$tempoPort"
+    Write-Host "  Alloy UI    http://localhost:$alloyUiPort"
+}
+
+# 打印可观测性栈容器状态；返回是否有容器已启动
+function Write-ObsStatus {
+    Write-Host ''
+    Write-Host '可观测性栈：' -ForegroundColor Cyan
+
+    $running = $false
+    foreach ($service in $ObsServices) {
+        $container = $ContainerNames[$service]
+        $health = Get-ContainerHealth -ContainerName $container
+
+        if ($null -eq $health) {
+            Write-Host "  $service（$container）未启动，执行 pwsh ./manage.ps1 obs 启动。" -ForegroundColor DarkGray
+            continue
+        }
+
+        $running = $true
+        $color = if ($health -eq 'healthy' -or $health -eq 'running') {
+            'Green'
+        }
+        elseif ($health -eq 'unhealthy') {
+            'Red'
+        }
+        else {
+            'Yellow'
+        }
+        Write-Host "  $service（$container）状态：$health" -ForegroundColor $color
+    }
+
+    return $running
+}
+
 function Write-AccessUrls {
+    param(
+        [switch]$IncludeObs
+    )
+
     $apiPort = Get-EnvValue -Name 'API_PORT' -Default '3000'
     $webPort = Get-EnvValue -Name 'WEB_PORT' -Default '8080'
     $adminPort = Get-EnvValue -Name 'ADMIN_PORT' -Default '8081'
     $rustfsConsolePort = Get-EnvValue -Name 'S3_CONSOLE_PORT' -Default '9001'
 
-    Write-Host ''
-    Write-Host '访问地址（以 scripts/.env 为准）：' -ForegroundColor Cyan
+    if ($Target -ne 'obs') {
+        Write-Host ''
+        Write-Host '访问地址（以 scripts/.env 为准）：' -ForegroundColor Cyan
+    }
     if ($Target -in @('web', 'all')) {
         Write-Host "  前台 Web      http://localhost:$webPort"
     }
@@ -378,7 +475,13 @@ function Write-AccessUrls {
         $mailpitSmtpPort = Get-EnvValue -Name 'MAILPIT_SMTP_PORT' -Default '1025'
         Write-Host "  Mailpit       http://localhost:$mailpitUiPort（SMTP $mailpitSmtpPort）"
     }
-    Write-Host '  后台演示账号  admin / 123456'
+    if ($Target -ne 'obs') {
+        Write-Host '  后台演示账号  admin / 123456'
+    }
+
+    if ($IncludeObs) {
+        Write-ObsAccessUrls
+    }
 }
 
 function Invoke-MySqlInit {
@@ -444,7 +547,9 @@ Assert-Prerequisites
 switch ($Action) {
     'up' {
         $services = Get-TargetServices
-        $upArgs = @('up', '-d')
+        $upArgs = @()
+        $upArgs += Get-ObsProfileArgs
+        $upArgs += @('up', '-d')
         if ($services | Where-Object { $_ -in $AppServices }) {
             # 容器化运行时确保使用最新源码构建应用
             $upArgs += '--build'
@@ -452,37 +557,48 @@ switch ($Action) {
         $upArgs += $services
         Invoke-Compose -ComposeArgs $upArgs
         Wait-TargetHealthy
-        Write-AccessUrls
+        Write-AccessUrls -IncludeObs:(Test-ObsTarget)
     }
 
     'down' {
-        # down 作用于整个 compose 项目，-Target 不参与
-        Invoke-Compose -ComposeArgs @('down')
-        Write-Host '全部容器已停止并移除（数据卷保留）。' -ForegroundColor Green
+        # down 作用于整个 compose 项目，-Target 不参与；显式带上 observability profile，
+        # 避免通过 obs 动作启动的容器残留。
+        Invoke-Compose -ComposeArgs @('--profile', 'observability', 'down')
+        Write-Host '全部容器（含可观测性栈）已停止并移除（数据卷保留）。' -ForegroundColor Green
     }
 
     'restart' {
-        Invoke-Compose -ComposeArgs (@('restart') + (Get-TargetServices))
+        $restartArgs = @()
+        $restartArgs += Get-ObsProfileArgs
+        $restartArgs += @('restart')
+        $restartArgs += Get-TargetServices
+        Invoke-Compose -ComposeArgs $restartArgs
         Wait-TargetHealthy
-        Write-AccessUrls
+        Write-AccessUrls -IncludeObs:(Test-ObsTarget)
     }
 
     'reset' {
-        Confirm-Destructive -Message '将删除 MySQL、Redis、RabbitMQ、Mailpit 与 RustFS 数据卷，数据库、缓存、队列、测试邮件、头像与图集原图都会丢失。'
-        Invoke-Compose -ComposeArgs @('down', '-v')
+        Confirm-Destructive -Message '将删除 MySQL、Redis、RabbitMQ、Mailpit、RustFS 与可观测性栈（Prometheus / Loki / Tempo / Grafana）数据卷，数据库、缓存、队列、测试邮件、头像、图集原图与监控数据都会丢失。'
+        # 同样带上 observability profile，确保 obs 容器与数据卷一并清理。
+        Invoke-Compose -ComposeArgs @('--profile', 'observability', 'down', '-v')
 
         $services = Get-TargetServices
-        $upArgs = @('up', '-d')
+        $upArgs = @()
+        $upArgs += Get-ObsProfileArgs
+        $upArgs += @('up', '-d')
         if ($services | Where-Object { $_ -in $AppServices }) {
             $upArgs += '--build'
         }
         $upArgs += $services
         Invoke-Compose -ComposeArgs $upArgs
         Wait-TargetHealthy
-        Write-AccessUrls
+        Write-AccessUrls -IncludeObs:(Test-ObsTarget)
     }
 
     'build' {
+        if (Test-ObsTarget) {
+            throw '可观测性栈使用官方镜像，不支持 build；请使用 pwsh ./manage.ps1 pull -Target obs。'
+        }
         $buildServices = @((Get-TargetServices) | Where-Object { $_ -in $AppServices })
         if ($buildServices.Count -eq 0) {
             throw 'build 需要目标包含 api / web / admin，请使用 -Target api、web、admin 或 all。'
@@ -497,7 +613,9 @@ switch ($Action) {
     }
 
     'logs' {
-        $logArgs = @('logs', '--tail', "$Tail")
+        $logArgs = @()
+        $logArgs += Get-ObsProfileArgs
+        $logArgs += @('logs', '--tail', "$Tail")
         if ($Follow) {
             $logArgs += '-f'
         }
@@ -514,30 +632,41 @@ switch ($Action) {
     }
 
     'status' {
-        Invoke-Compose -ComposeArgs @('ps')
+        # 带上 profile 才能看到 obs 容器；-Target all 仍只报告业务容器，并额外列出可观测性栈。
+        Invoke-Compose -ComposeArgs @('--profile', 'observability', 'ps')
 
-        foreach ($service in Get-TargetServices) {
-            $container = $ContainerNames[$service]
-            $health = Get-ContainerHealth -ContainerName $container
+        $obsRunning = $false
+        if ($Target -eq 'obs') {
+            $obsRunning = Write-ObsStatus
+        }
+        else {
+            foreach ($service in Get-TargetServices) {
+                $container = $ContainerNames[$service]
+                $health = Get-ContainerHealth -ContainerName $container
 
-            if ($null -eq $health) {
-                Write-Host "$service（$container）尚未创建，执行 up 启动。" -ForegroundColor Yellow
-                continue
+                if ($null -eq $health) {
+                    Write-Host "$service（$container）尚未创建，执行 up 启动。" -ForegroundColor Yellow
+                    continue
+                }
+
+                $color = if ($health -eq 'healthy' -or $health -eq 'running') {
+                    'Green'
+                }
+                elseif ($health -eq 'unhealthy') {
+                    'Red'
+                }
+                else {
+                    'Yellow'
+                }
+                Write-Host "$service（$container）状态：$health" -ForegroundColor $color
             }
 
-            $color = if ($health -eq 'healthy' -or $health -eq 'running') {
-                'Green'
+            if ($Target -eq 'all') {
+                $obsRunning = Write-ObsStatus
             }
-            elseif ($health -eq 'unhealthy') {
-                'Red'
-            }
-            else {
-                'Yellow'
-            }
-            Write-Host "$service（$container）状态：$health" -ForegroundColor $color
         }
 
-        Write-AccessUrls
+        Write-AccessUrls -IncludeObs:$obsRunning
     }
 
     'init' {
@@ -566,6 +695,11 @@ switch ($Action) {
         foreach ($service in ($services | Where-Object { $_ -in $AppServices })) {
             Invoke-Compose -ComposeArgs @('build', '--pull', $service)
         }
+        if (Test-ObsTarget) {
+            $obsPullArgs = @('--profile', 'observability', 'pull')
+            $obsPullArgs += $ObsServices
+            Invoke-Compose -ComposeArgs $obsPullArgs
+        }
         Write-Host '镜像拉取 / 重建完成。' -ForegroundColor Green
     }
 
@@ -574,25 +708,14 @@ switch ($Action) {
     }
 
     'obs' {
-        # 可观测性栈使用 compose profile 隔离，不参与默认 up / reset。
-        Invoke-Compose -ComposeArgs @(
-            '--profile', 'observability', 'up', '-d',
-            'alloy', 'prometheus', 'loki', 'tempo', 'grafana'
-        )
+        # 可观测性栈使用 compose profile 隔离，不参与默认 up / reset（-Target all）。
+        Invoke-Compose -ComposeArgs (@('--profile', 'observability', 'up', '-d') + $ObsServices)
 
-        $grafanaPort = Get-EnvValue -Name 'GRAFANA_PORT' -Default '3030'
-        $prometheusPort = Get-EnvValue -Name 'PROMETHEUS_PORT' -Default '9090'
-        $lokiPort = Get-EnvValue -Name 'LOKI_PORT' -Default '3100'
-        $tempoPort = Get-EnvValue -Name 'TEMPO_PORT' -Default '3200'
-        $alloyUiPort = Get-EnvValue -Name 'ALLOY_UI_PORT' -Default '12345'
+        foreach ($service in $ObsServices) {
+            Wait-ContainerHealthy -ContainerName $ContainerNames[$service] -DisplayName (Get-DisplayName $service)
+        }
 
-        Write-Host ''
-        Write-Host '可观测性栈已启动：' -ForegroundColor Cyan
-        Write-Host "  Grafana     http://localhost:$grafanaPort（admin / 123456）"
-        Write-Host "  Prometheus  http://localhost:$prometheusPort"
-        Write-Host "  Loki        http://localhost:$lokiPort"
-        Write-Host "  Tempo       http://localhost:$tempoPort"
-        Write-Host "  Alloy UI    http://localhost:$alloyUiPort"
+        Write-ObsAccessUrls
         Write-Host ''
         Write-Host '在 scripts/.env 或 apps/api/.env 设置 OBSERVABILITY_ENABLED=true 后重启 API，才会开始上报数据。' -ForegroundColor Yellow
     }

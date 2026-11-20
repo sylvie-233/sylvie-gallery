@@ -28,14 +28,19 @@ pwsh ./manage.ps1 up -Target redis    # 只启动 Redis
 pwsh ./manage.ps1 up -Target rabbitmq # 只启动 RabbitMQ
 pwsh ./manage.ps1 up -Target mailpit  # 只启动 Mailpit
 pwsh ./manage.ps1 up -Target admin    # 只启动 Admin（自动带起依赖）
-pwsh ./manage.ps1 status              # 状态与访问地址
+pwsh ./manage.ps1 status              # 状态与访问地址（含可观测性栈）
 pwsh ./manage.ps1 logs -Target api -Follow
 pwsh ./manage.ps1 build -Target api   # 只重建 API 镜像
 pwsh ./manage.ps1 cli                 # 进入 MySQL 客户端
 pwsh ./manage.ps1 init                # 删除业务库并重跑建表 + 演示数据
 pwsh ./manage.ps1 reset -Force        # 清空数据卷并重建全部服务
+pwsh ./manage.ps1 down                # 停止全部容器（含可观测性栈），保留数据卷
 pwsh ./manage.ps1 dev                 # 仅容器跑 MySQL/Redis/RabbitMQ/Mailpit/RustFS，本机 pnpm dev 热更新
 pwsh ./manage.ps1 obs                 # 启动 Alloy + Prometheus + Loki + Tempo + Grafana
+pwsh ./manage.ps1 status -Target obs  # 仅查看可观测性栈
+pwsh ./manage.ps1 restart -Target obs # 重启可观测性栈
+pwsh ./manage.ps1 logs -Target obs -Follow
+pwsh ./manage.ps1 pull -Target obs    # 拉取可观测性栈镜像
 ```
 
 > 应用镜像使用 `node:24-alpine`（API / Web / Admin 构建）与 `nginx:1.29`（Admin 运行）。

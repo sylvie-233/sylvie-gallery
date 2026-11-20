@@ -24,7 +24,7 @@
 |---|---|
 | `scripts/docker-compose.yml` | MySQL 8 + Redis 7.4 + RabbitMQ 4.4 + Mailpit + RustFS + API + Web + Admin 编排；Mailpit 捕获开发环境邮件，首次启动执行建表与演示数据。`observability` profile 额外提供 Alloy + Prometheus + Loki + Tempo + Grafana。 |
 | `scripts/observability/` | 可观测性栈配置：Alloy 采集、Prometheus / Loki / Tempo 存储配置、Grafana 数据源与看板 provisioning。 |
-| `manage.ps1` | 根目录运维脚本：up/down/restart/reset/build/logs/cli/status/init/pull/dev/obs。 |
+| `manage.ps1` | 根目录运维脚本：up/down/restart/reset/build/logs/cli/status/init/pull/dev/obs；`-Target obs` 管理可观测性栈，down / reset 会一并清理 obs 容器与数据卷。 |
 | `scripts/init/02-demo-data.sql` | 演示数据（37 套图集 / 1140 条媒体 / 公告 / 评论 / 收藏 / 订单），由 `scripts/generate-demo-data.mjs` 生成。 |
 | `gallery-monorepo/apps/web` | Next.js 15 App Router 前台，Tailwind CSS v4 + SWR；通过 rewrites 代理 `/api`。 |
 | `gallery-monorepo/apps/admin` | React + Vite + React Router 管理后台，Tailwind CSS v4 + SWR；全局客户端状态（登录会话、Toast、Confirm）用 Zustand；开发端口 3002。 |
