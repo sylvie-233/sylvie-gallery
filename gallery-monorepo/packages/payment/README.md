@@ -1,31 +1,40 @@
 # @sylvie/payment
 
-共享支付层：封装支付宝网页支付（电脑网站支付 `alipay.trade.page.pay`），收敛创建支付、主动查询、异步通知验签与退款。沙箱与生产共用同一套签名逻辑，只切换网关与密钥。
+共享支付层：统一门面 `Payment` + 可插拔服务商实现，当前内置支付宝网页支付（电脑网站支付 `alipay.trade.page.pay`），收敛创建支付、主动查询、异步通知验签与退款。沙箱与生产共用同一套签名逻辑，只切换网关与密钥；后续接入微信支付等服务商时，实现 `PaymentProvider` 并在 `createPayment` 注册即可。
 
 ## 定位
 
-- 向上提供统一的支付状态与金额单位，业务侧不直接接触支付宝 SDK；
+- 向上提供统一的支付状态与金额单位，业务侧不直接接触支付宝 / 微信 SDK；
+- 服务商差异由 `PaymentProvider` 接口收敛，`Payment` 门面负责工厂装配与统一调用；
 - 负责签名、验签、字段映射与元 / 分转换等协议细节；
-- **不负责**：订单落库、会员履约、金额校验、幂等业务处理，这些由 API 层完成；
-- 后续接入微信支付时，实现 `PaymentProvider` 接口并在入口导出即可。
+- **不负责**：订单落库、会员履约、金额校验、幂等业务处理，这些由 API 层完成。
 
 ## 目录结构
 
 ```text
 packages/payment/
 ├── src/
-│   ├── index.ts   # 包入口：导出类型与支付宝实现
-│   ├── types.ts   # 公共类型：配置、请求 / 结果、PaymentProvider 接口
-│   └── alipay.ts  # AlipayProvider：支付宝签名、查询、验签与退款
+│   ├── index.ts    # 包入口：导出类型、Payment 门面与支付宝实现
+│   ├── payment.ts  # Payment 门面与 createPayment 工厂
+│   ├── types.ts    # 公共类型：配置、请求 / 结果、PaymentProvider 接口
+│   └── alipay.ts   # AlipayProvider：支付宝签名、查询、验签与退款
 ├── package.json
 └── tsconfig.json
 ```
+
+新增服务商时按同样模式增加实现文件（如 `wechat.ts`），不改动门面与业务调用。
 
 ## 引入方式
 
 ```ts
 import {
+  createPayment,
+  Payment,
+  AlipayProvider,
   createAlipayProvider,
+  type PaymentOptions,
+  type PaymentProvider,
+  type PaymentProviderName,
   type PaymentNotification,
   type PaymentStatus,
   type RefundResult,
@@ -35,29 +44,33 @@ import {
 ## 快速开始
 
 ```ts
-import { createAlipayProvider } from '@sylvie/payment';
+import { createPayment } from '@sylvie/payment';
 
-const alipay = createAlipayProvider({
-  appId: '2021xxxx',
-  privateKey,          // 应用私钥 PEM（PKCS8 / PKCS1），由调用方保证格式
-  alipayPublicKey,     // 支付宝公钥 PEM，用于验签
-  gateway: 'https://openapi-sandbox.dl.alipaydev.com/gateway.do', // 生产换正式网关
-  signType: 'RSA2',
-  keyType: 'PKCS8',
-  notifyUrl: 'https://api.example.com/api/orders/alipay/notify',
-  returnUrl: 'https://example.com/membership',
+// 统一工厂：provider 缺省为 'alipay'
+const payment = createPayment({
+  provider: 'alipay',
+  alipay: {
+    appId: '2021xxxx',
+    privateKey,          // 应用私钥 PEM（PKCS8 / PKCS1），由调用方保证格式
+    alipayPublicKey,     // 支付宝公钥 PEM，用于验签
+    gateway: 'https://openapi-sandbox.dl.alipaydev.com/gateway.do', // 生产换正式网关
+    signType: 'RSA2',
+    keyType: 'PKCS8',
+    notifyUrl: 'https://api.example.com/api/orders/alipay/notify',
+    returnUrl: 'https://example.com/membership',
+  },
 });
 
-// 1) 创建支付：金额单位是「分」，provider 内部转为元
-const payment = alipay.createPagePayment({
+// 1) 创建支付：金额单位是「分」，服务商内部转为元
+const result = payment.createPagePayment({
   orderNo: 'SV202611190001',
   amountCents: 1900,
   subject: '希尔薇图集 · 付费会员月卡',
 });
-console.log(payment.payUrl); // 前端跳到收银台
+console.log(result.payUrl); // 前端跳到收银台
 
 // 2) 异步通知：先验签解析，再校验金额并幂等履约
-const notification = alipay.parseNotify(formParams);
+const notification = payment.parseNotify(formParams);
 if (!notification) {
   // 签名或 app_id 校验失败，直接拒绝
 } else if (notification.status === 'paid') {
@@ -69,13 +82,13 @@ if (!notification) {
 }
 
 // 3) 主动查询：支付回跳后的状态兜底
-const query = await alipay.query('SV202611190001');
+const query = await payment.query('SV202611190001');
 if (query.status === 'paid') {
   // 同样需要幂等履约
 }
 
 // 4) 退款：失败会抛错，调用方在成功前不要更新本地退款状态
-const refund = await alipay.refund({
+const refund = await payment.refund({
   orderNo: 'SV202611190001',
   tradeNo: '2026111922001400000001', // 有流水号时优先使用
   amountCents: 1900,
@@ -84,7 +97,30 @@ const refund = await alipay.refund({
 });
 ```
 
+需要直接使用支付宝实现时仍可 `createAlipayProvider(alipayOptions)`；它实现的 `PaymentProvider` 与门面方法一一对应。
+
 ## API 概览
+
+### 门面与工厂
+
+| API | 说明 |
+|---|---|
+| `createPayment(options)` | 按 `provider` 装配服务商并创建门面；对应配置缺失时抛错 |
+| `Payment(provider)` | 直接持有某个 `PaymentProvider` 实现创建门面（测试 / 自定义场景） |
+| `Payment.name` | 当前服务商名称 |
+| `Payment.provider` | 底层服务商实现，需要服务商专有 API 时可直接访问 |
+
+`Payment` 同时实现 `PaymentProvider`，方法语义与接口一致：
+
+| 方法 | 说明 |
+|---|---|
+| `createPagePayment(input)` | 生成收银台 URL，同步返回 |
+| `query(orderNo)` | 主动查询；异常按 `unknown` 处理，不抛错 |
+| `refund(input)` | 发起退款；失败抛错，成功返回退款金额 |
+| `verifyNotify(params)` | 校验异步通知签名，返回布尔值 |
+| `parseNotify(params)` | 验签后解析为 `PaymentNotification`；无效返回 `null` |
+
+### 支付宝实现
 
 | API | 说明 |
 |---|---|
@@ -123,16 +159,16 @@ const refund = await alipay.refund({
 
 | 字段 | 说明 |
 |---|---|
-| `provider` | 固定为 `'alipay'` |
-| `refundNo` | 本次退款使用的幂等号（`out_request_no`），可用于对账 |
-| `amountCents` | 实际退款金额（分）；支付宝未返回时取请求金额 |
+| `provider` | 当前服务商名称（支付宝为 `'alipay'`） |
+| `refundNo` | 本次退款使用的幂等号（支付宝为 `out_request_no`），可用于对账 |
+| `amountCents` | 实际退款金额（分）；服务商未返回时取请求金额 |
 
 ### PaymentNotification
 
 | 字段 | 说明 |
 |---|---|
-| `orderNo` | 商户订单号 `out_trade_no` |
-| `tradeNo` | 支付宝交易流水号 `trade_no` |
+| `orderNo` | 商户订单号（支付宝为 `out_trade_no`） |
+| `tradeNo` | 服务商交易流水号（支付宝为 `trade_no`） |
 | `status` | 映射后的统一状态 |
 | `amountCents` | 通知中的订单金额（分） |
 | `raw` | 原始通知参数，便于排查与落库 |
@@ -142,16 +178,37 @@ const refund = await alipay.refund({
 - `CreatePagePaymentInput`：`orderNo`、`amountCents`（分）、`subject` 必填，`body` 与 `timeoutMinutes`（默认 30 分钟）可选。
 - `RefundPaymentInput`：`orderNo`、`amountCents` 必填；`tradeNo` 优先、缺失时回退 `orderNo`；`outRequestNo` 为退款幂等号，默认等于 `orderNo`。
 
+## 扩展新服务商
+
+以微信支付为例，新增实现无需改动业务调用：
+
+1. 在 `types.ts` 的 `PaymentProviderName` 追加 `'wechat'`，并在 `PaymentOptions` 增加 `wechat?: WechatOptions`；
+2. 新增 `src/wechat.ts`，实现 `PaymentProvider` 的五个方法（创建支付、查询、退款、验签、解析通知），把微信的协议状态映射为 `PaymentStatus`；
+3. 在 `payment.ts` 的 `createPayment` 中注册对应分支；
+4. 在 `index.ts` 导出 `WechatProvider` / `createWechatProvider`，补充 README。
+
+门面、`PaymentStatus`、金额单位（分）与 API 层履约逻辑保持不变。
+
 ## 设计边界
 
 - **只封装协议**：验签、字段映射、元 / 分转换在本包；金额比对、订单状态推进、会员开通由 API 层负责。
+- **服务商差异收敛在实现层**：业务侧只依赖 `Payment` 门面与 `PaymentProvider` 的统一语义。
 - **密钥格式由调用方负责**：本包不做 PEM 格式修复或自动识别。`.env` 中 `\n` 转义、PKCS#1 / PKCS#8 归一化都在 `apps/api/src/services/payment.service.ts` 完成。
-- **查询不抛错**：网络异常或支付宝返回非成功码时返回 `status: 'unknown'`，避免回跳页因查询失败白屏。
-- **退款必须抛错**：退款失败时抛错，调用方据此保持本地订单不变，防止「本地已退款、支付宝未退」。
+- **查询不抛错**：网络异常或服务商返回非成功码时返回 `status: 'unknown'`，避免回跳页因查询失败白屏。
+- **退款必须抛错**：退款失败时抛错，调用方据此保持本地订单不变，防止「本地已退款、服务商未退」。
 - **通知只做解析**：`parseNotify` 只验签并解析字段，不校验金额、不做幂等；重复通知由调用方按订单号幂等处理。
 - **沙箱与生产同构**：仅 `gateway` 与密钥不同，签名算法、请求参数完全一致。
 
 ## 配置
+
+`PaymentOptions`：
+
+| 配置 | 说明 |
+|---|---|
+| `provider` | 服务商名称，缺省 `'alipay'`；新增服务商后在此切换 |
+| `alipay` | 支付宝配置（`provider: 'alipay'` 时必填），见下表 |
+
+`AlipayOptions`：
 
 | 配置 | 说明 |
 |---|---|
@@ -171,7 +228,7 @@ const refund = await alipay.refund({
 
 应用侧入口为 `apps/api/src/services/payment.service.ts`：
 
-- 启动时按 `ALIPAY_MOCK` 与密钥是否齐全决定是否创建 provider；
+- 启动时按 `ALIPAY_MOCK` 与密钥是否齐全决定是否创建门面；装配使用 `createPayment({ provider: 'alipay', alipay })`，未来切换 / 新增服务商只改这一处；
 - `normalizePrivateKey` / `normalizePublicKey` 负责 PEM 换行与 PKCS#1 / PKCS#8 归一化——**这些修复逻辑不在本包内**；
 - `createAlipayPagePayment()` 创建收银台地址；
 - `parseAlipayNotify()` 验签解析异步通知；

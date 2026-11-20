@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "希尔薇共享支付层：支付宝（沙箱 / 生产）封装",
+  "description": "希尔薇共享支付层：多服务商门面 + 支付宝（沙箱 / 生产）实现",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

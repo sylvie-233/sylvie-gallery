@@ -16,7 +16,12 @@
  */
 export type PaymentStatus = 'pending' | 'paid' | 'closed' | 'unknown';
 
-/** 支持的服务商；接入微信支付时按 `PaymentProvider` 扩展。 */
+/**
+ * 支持的服务商。
+ *
+ * 当前仅 `alipay`；接入微信支付等新服务商时，在此追加名称，
+ * 实现对应 `PaymentProvider`，并在 `createPayment` 中注册即可。
+ */
 export type PaymentProviderName = 'alipay';
 
 /**
@@ -43,6 +48,20 @@ export interface AlipayOptions {
   returnUrl?: string;
   /** 请求支付宝网关的超时时间（毫秒），默认 10 秒。 */
   timeoutMs?: number;
+}
+
+/**
+ * `createPayment` 的统一配置。
+ *
+ * `provider` 缺省为 `alipay`；服务商各自专有的配置按名称分组，
+ * 如 `alipay` 配置只在 `provider: 'alipay'` 时生效。
+ * 后续接入微信支付时追加 `wechat?: WechatOptions`，业务侧统一通过门面调用。
+ */
+export interface PaymentOptions {
+  /** 服务商名称，默认 `alipay`。 */
+  provider?: PaymentProviderName;
+  /** 支付宝配置；`provider: 'alipay'` 时必填。 */
+  alipay?: AlipayOptions;
 }
 
 /** 创建电脑网站支付参数。 */

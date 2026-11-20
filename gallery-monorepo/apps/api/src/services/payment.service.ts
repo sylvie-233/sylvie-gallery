@@ -1,13 +1,13 @@
 /**
  * 支付宝支付服务封装：
  * - 真实 / 模拟支付由 `ALIPAY_MOCK` 切换，所有金额单位统一为分；
- * - 启动时自动识别私钥 / 公钥 PEM 格式并构建 provider；
+ * - 启动时自动识别私钥 / 公钥 PEM 格式，经 `createPayment` 装配服务商门面；
  * - 对外提供收银台地址、异步通知验签解析、主动查询与真实退款。
  */
 import { createPrivateKey, createPublicKey } from 'node:crypto';
 
 import {
-  createAlipayProvider,
+  createPayment,
   type CreatePagePaymentInput,
   type PaymentNotification,
   type PaymentQueryResult,
@@ -114,27 +114,31 @@ export const realPaymentEnabled =
   Boolean(env.ALIPAY_APP_ID && env.ALIPAY_PRIVATE_KEY && env.ALIPAY_PUBLIC_KEY);
 
 /**
- * 真实支付 provider 单例；模拟支付或配置不完整时为 null。
+ * 真实支付门面单例；模拟支付或配置不完整时为 null。
+ * 通过统一工厂装配支付宝服务商，后续切换 / 新增服务商只需改这里；
  * 构建时会完成密钥归一化，签名类型与网关由环境变量决定（沙箱 / 生产仅切换 gateway）。
  */
-const provider = realPaymentEnabled
+const payment = realPaymentEnabled
   ? (() => {
       const privateKey = normalizePrivateKey(env.ALIPAY_PRIVATE_KEY);
-      return createAlipayProvider({
-        appId: env.ALIPAY_APP_ID,
-        privateKey: privateKey.key,
-        alipayPublicKey: normalizePublicKey(env.ALIPAY_PUBLIC_KEY),
-        gateway: env.ALIPAY_GATEWAY,
-        signType: env.ALIPAY_SIGN_TYPE,
-        // 以实际解析成功的格式为准，避免 `.env` 中 KEY_TYPE 与实际内容不一致。
-        keyType: privateKey.keyType,
-        notifyUrl: env.ALIPAY_NOTIFY_URL,
-        returnUrl: env.ALIPAY_RETURN_URL,
+      return createPayment({
+        provider: 'alipay',
+        alipay: {
+          appId: env.ALIPAY_APP_ID,
+          privateKey: privateKey.key,
+          alipayPublicKey: normalizePublicKey(env.ALIPAY_PUBLIC_KEY),
+          gateway: env.ALIPAY_GATEWAY,
+          signType: env.ALIPAY_SIGN_TYPE,
+          // 以实际解析成功的格式为准，避免 `.env` 中 KEY_TYPE 与实际内容不一致。
+          keyType: privateKey.keyType,
+          notifyUrl: env.ALIPAY_NOTIFY_URL,
+          returnUrl: env.ALIPAY_RETURN_URL,
+        },
       });
     })()
   : null;
 
-if (!env.ALIPAY_MOCK && !provider) {
+if (!env.ALIPAY_MOCK && !payment) {
   log.warn('ALIPAY_MOCK=false 但支付宝配置不完整，真实支付不可用', {
     hasAppId: Boolean(env.ALIPAY_APP_ID),
     hasPrivateKey: Boolean(env.ALIPAY_PRIVATE_KEY),
@@ -144,15 +148,15 @@ if (!env.ALIPAY_MOCK && !provider) {
 
 /**
  * 生成支付宝收银台地址（电脑网站支付，GET 跳转）。
- * @param input 订单号、金额（分）、商品标题等；金额在 provider 内由分转换为元。
+ * @param input 订单号、金额（分）、商品标题等；金额在门面内由分转换为元。
  * @returns 可直接跳转的支付宝 URL。
- * @throws 模拟支付或配置不完整（provider 为 null）时抛错，调用方应走模拟支付分支。
+ * @throws 模拟支付或配置不完整（payment 为 null）时抛错，调用方应走模拟支付分支。
  */
 export function createAlipayPagePayment(input: CreatePagePaymentInput): string {
-  if (!provider) {
+  if (!payment) {
     throw new Error('支付宝支付未配置：请设置 ALIPAY_MOCK=false 并提供应用密钥');
   }
-  return provider.createPagePayment(input).payUrl;
+  return payment.createPagePayment(input).payUrl;
 }
 
 /**
@@ -163,10 +167,10 @@ export function createAlipayPagePayment(input: CreatePagePaymentInput): string {
 export function parseAlipayNotify(
   params: Record<string, string>,
 ): PaymentNotification | null {
-  if (!provider) {
+  if (!payment) {
     return null;
   }
-  return provider.parseNotify(params);
+  return payment.parseNotify(params);
 }
 
 /**
@@ -175,10 +179,10 @@ export function parseAlipayNotify(
  * @returns 统一状态与实付金额（分）；模拟支付模式下返回 null，查询异常时状态为 unknown。
  */
 export async function queryAlipayPayment(orderNo: string): Promise<PaymentQueryResult | null> {
-  if (!provider) {
+  if (!payment) {
     return null;
   }
-  return provider.query(orderNo);
+  return payment.query(orderNo);
 }
 
 /**
@@ -187,14 +191,14 @@ export async function queryAlipayPayment(orderNo: string): Promise<PaymentQueryR
  * 优先使用支付宝交易流水号，缺失时回退到商户订单号；
  * `out_request_no` 作为幂等号，重复请求返回同一结果。
  *
- * @throws provider 未配置或支付宝返回失败时抛错；调用方必须保持本地订单状态不变，
+ * @throws payment 未配置或支付宝返回失败时抛错；调用方必须保持本地订单状态不变，
  *         待确认成功后再更新退款状态。
  */
 export async function refundAlipayPayment(input: RefundPaymentInput): Promise<RefundResult> {
-  if (!provider) {
+  if (!payment) {
     throw new Error('支付宝支付未配置，无法发起真实退款');
   }
-  return provider.refund(input);
+  return payment.refund(input);
 }
 
 /**
@@ -206,5 +210,5 @@ export function paymentMode(): 'mock' | 'alipay' | 'unconfigured' {
   if (env.ALIPAY_MOCK) {
     return 'mock';
   }
-  return provider ? 'alipay' : 'unconfigured';
+  return payment ? 'alipay' : 'unconfigured';
 }
