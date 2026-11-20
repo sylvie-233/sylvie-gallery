@@ -6,6 +6,9 @@
     "composite": false,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    // 库均为 Node 运行时；显式声明 types，避免新版 TypeScript 不再自动加载 @types/node
+    // 时全局 Buffer / NodeJS / node:* 模块解析失效（与 node.json 保持一致）。
+    "types": ["node"]
   }
 }

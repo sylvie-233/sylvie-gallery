@@ -1,7 +1,9 @@
 {
   "extends": "@sylvie/tsconfig/library.json",
   "compilerOptions": {
-    "outDir": "dist"
+    "outDir": "dist",
+    // 纯函数工具包不依赖 Node 全局；显式清空 types，避免未安装 @types/node 时解析失败
+    "types": []
   },
   "include": ["src/**/*.ts"]
 }
