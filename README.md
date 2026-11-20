@@ -131,6 +131,18 @@ sylvie-gallery/
 - [API 可观测性集成方案参考](docs/api模块可观测性集成方案参考文档.md)：OpenTelemetry + Alloy + Prometheus + Loki + Tempo + Grafana 参考方案
 - [scripts/docker-compose.yml](scripts/docker-compose.yml)：八容器编排（MySQL / Redis / RabbitMQ / Mailpit / RustFS / API / Web / Admin）
 
+## 赞助支持
+
+如果这个项目对你有帮助，欢迎通过爱发电支持作者。可使用支付宝或微信扫码赞助：
+
+<p align="center">
+  <a href="https://ifdian.net/a/sylvie233">
+    <img src="docs/afdian-Sylvie.jpg" alt="爱发电赞助二维码（支付宝 / 微信扫码）" width="240">
+  </a>
+</p>
+
+爱发电主页：<https://ifdian.net/a/sylvie233>
+
 ## License
 
 [MIT](LICENSE)
