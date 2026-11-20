@@ -1,7 +1,7 @@
 {
   "extends": "@sylvie/tsconfig/next.json",
   "compilerOptions": {
-    "baseUrl": ".",
+    // baseUrl 已在 TS 7 nightly 中移除；未设置时 paths 相对本 tsconfig 解析
     "paths": {
       "@/*": ["./src/*"]
     }
