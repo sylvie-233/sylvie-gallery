@@ -1074,6 +1074,15 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px}
   </div>
 </div>
 
+<!-- ===== 弹窗：订单详情 ===== -->
+<div class="modal" id="mPay">
+  <div class="mbox" style="width:620px">
+    <div class="mhead"><h3>订单详情</h3><button class="x" onclick="closeModal('mPay')">✕</button></div>
+    <div class="mbody" id="payDetail"></div>
+    <div class="mfoot"><button class="btn btn-line" onclick="closeModal('mPay')">关闭</button></div>
+  </div>
+</div>
+
 <!-- ===== 弹窗：重置密码结果 ===== -->
 <div class="modal" id="mPwd">
   <div class="mbox" style="width:410px">
@@ -1215,6 +1224,16 @@ let PAYORDERS=[
   {no:'SV20261115011',user:'山雾',biz:'unlock',item:'白裙与午后的窗',pay:'points',amount:0,points:12,status:'paid',time:'2026-11-15 12:19'},
   {no:'SV20261114012',user:'柠檬茶',biz:'unlock',item:'胶片夏日纪念册',pay:'points',amount:0,points:15,status:'closed',time:'—'}
 ];
+/* 详情弹窗演示字段：创建时间 / 会员时长 / 支付宝流水号 / 退款时间与原因 */
+PAYORDERS.forEach((o,i)=>{
+  o.created=o.created||(o.time==='—'?`${o.no.slice(2,6)}-${o.no.slice(6,8)}-${o.no.slice(8,10)} 09:00`:o.time);
+  o.vipDays=o.biz==='vip'?30:0;
+  o.trade=o.pay==='alipay'?`2026${o.no.slice(4,12)}220014${String(1000000+i*137).slice(-7)}`:'';
+  if(o.status==='refunded'&&!o.refundAt){
+    o.refundAt=o.time==='—'?'':o.time.slice(0,10)+' 14:05';
+    o.reason='用户申请退款：误购月卡，会员权益已收回';
+  }
+});
 let LOGS=[
   {time:'2026-11-17 14:20',admin:'admin',action:'album.publish',target:'图集 #1001',detail:'发布「绝对主观美少女 Vol.6」'},
   {time:'2026-11-14 10:05',admin:'admin',action:'album.publish',target:'图集 #1002',detail:'发布「白裙与午后的窗」'},
@@ -2353,7 +2372,7 @@ function renderPay(){
   $('#pyUnD').textContent='消耗 '+unl.reduce((s,o)=>s+(o.points||0),0)+' 积分';
   $('#payBody').innerHTML=slice.map(o=>{
     const [cls,txt]=PAY_ST[o.status];
-    return `<tr>
+    return `<tr style="cursor:pointer" onclick="openPayDetail('${o.no}')" title="点击查看订单详情">
       <td style="font-variant-numeric:tabular-nums">${o.no}</td>
       <td>${esc(o.user)}</td>
       <td><span class="badge ${o.biz==='vip'?'bg-vip':'bg-draft'}">${o.biz==='vip'?'会员开通':'积分解锁'}</span></td>
@@ -2361,11 +2380,12 @@ function renderPay(){
       <td class="hide-m">${o.pay==='alipay'?'支付宝':o.points+' 积分'}</td>
       <td style="font-weight:600">${o.amount?yuan(o.amount):(o.points+' 分')}</td>
       <td><span class="badge ${cls}">${txt}</span></td>
-      <td class="hide-m">${o.time}</td>
+      <td class="hide-m">${o.time!=='—'?o.time:`<span title="尚未支付，按创建时间排序">创建 ${esc((o.created||'').slice(0,16))}</span>`}</td>
       <td><div class="ops">
+        <button class="btn btn-line btn-sm" onclick="event.stopPropagation();openPayDetail('${o.no}')">详情</button>
         ${o.status==='paid'&&o.biz==='vip'
-          ?`<button class="btn btn-ghost-red btn-sm" onclick="refundOrder('${o.no}')">退款</button>`
-          :'<span style="font-size:12px;color:var(--t3)">—</span>'}
+          ?`<button class="btn btn-ghost-red btn-sm" onclick="event.stopPropagation();refundOrder('${o.no}')">退款</button>`
+          :''}
       </div></td></tr>`;
   }).join('');
   renderPager($('#payPager'),pages,payPage,n=>{payPage=n;renderPay()});
@@ -2374,12 +2394,36 @@ function refundOrder(no){
   const o=PAYORDERS.find(x=>x.no===no);if(!o)return;
   confirmDo('订单退款',`将退还「${o.user}」${yuan(o.amount)}（${o.item}），会员权益同步失效，确认退款？`,'退款',()=>{
     o.status='refunded';
+    o.refundAt=now().slice(0,16);
+    o.reason='用户申请退款：管理员在流水页操作退款';
     // 联动用户权益：演示口径——退款后该用户会员立即失效
     const u=USERS.find(x=>x.name===o.user);
     if(u&&u.role==='vip'&&(o.item.includes('月卡'))){u.vip='—';u.role='member';renderUsers();}
     log('order.refund','订单 '+no,'退款 '+yuan(o.amount)+' · '+o.user+' · '+o.item);
     toast('退款成功，用户会员权益已同步失效');renderPay();
   });
+}
+/* 订单详情弹窗：展示支付流水号、创建 / 支付 / 退款时间与完整退款原因 */
+function openPayDetail(no){
+  const o=PAYORDERS.find(x=>x.no===no);if(!o)return;
+  const [cls,txt]=PAY_ST[o.status]||['bg-draft','未知'];
+  const amt=o.amount?yuan(o.amount):(o.points?o.points+' 分':'¥0');
+  const payTxt=o.pay==='alipay'?'支付宝':o.pay==='points'?`积分解锁（${o.points} 积分）`:'管理员赠送';
+  $('#payDetail').innerHTML=`
+    <div class="kv">
+      <span>订单号</span><b>${esc(o.no)}</b>
+      <span>状态</span><b><span class="badge ${cls}">${txt}</span></b>
+      <span>用户</span><b>${esc(o.user)}</b>
+      <span>业务 / 内容</span><b><span class="badge ${o.biz==='vip'?'bg-vip':'bg-draft'}">${o.biz==='vip'?'会员开通':'积分解锁'}</span> ${esc(o.item)}</b>
+      <span>金额</span><b style="color:var(--red2)">${amt}${o.biz==='vip'?` · 会员 ${o.vipDays} 天`:''}</b>
+      <span>支付方式</span><b>${payTxt}</b>
+      <span>创建时间</span><b>${esc(o.created||'—')}</b>
+      <span>支付时间</span><b>${esc(o.time||'—')}</b>
+      <span>退款时间</span><b>${esc(o.refundAt||'—')}</b>
+      <span>支付宝交易号</span><b style="font-variant-numeric:tabular-nums">${esc(o.trade||'—')}</b>
+    </div>
+    ${o.status==='refunded'?`<div class="kv" style="margin-top:7px;padding:11px 14px;border:1px solid rgba(255,45,85,.35);border-radius:10px;background:var(--reddim)"><span style="color:var(--red2)">退款原因</span><b style="white-space:normal;line-height:1.7">${esc(o.reason||'—')}</b></div>`:''}`;
+  openModal('mPay');
 }
 /* 导出当前筛选结果为 CSV */
 function csvCell(v){
@@ -2390,12 +2434,13 @@ function exportPay(){
   const list=payFiltered();
   if(!list.length){toast('当前筛选条件下没有可导出的订单');return}
   const from=$('#payFrom').value,to=$('#payTo').value;
-  const head=['订单号','用户','业务','图集/套餐','支付方式','金额','状态','支付时间'];
+  const head=['订单号','用户','业务','图集/套餐','支付方式','金额','状态','支付时间','创建时间','支付宝交易号','退款时间','退款原因'];
   const rows=list.map(o=>[
     o.no,o.user,o.biz==='vip'?'会员开通':'积分解锁',o.item,
     o.pay==='alipay'?'支付宝':(o.points+' 积分'),
     o.amount?yuan(o.amount):(o.points+' 分'),
-    (PAY_ST[o.status]||['','未知'])[1],o.time
+    (PAY_ST[o.status]||['','未知'])[1],o.time,
+    o.created||'',o.trade||'',o.refundAt||'',o.reason||''
   ]);
   const csv='\ufeff'+[head,...rows].map(r=>r.map(csvCell).join(',')).join('\r\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});

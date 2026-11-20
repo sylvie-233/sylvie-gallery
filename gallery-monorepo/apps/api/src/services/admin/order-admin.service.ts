@@ -251,6 +251,8 @@ function csvEscape(value: unknown): string {
 /**
  * 按当前筛选条件导出全部订单为 CSV（不分页）。
  *
+ * 字段覆盖业务展示、支付与退款审计：除订单基础信息外，追加创建时间、
+ * 支付宝交易号、退款时间与退款原因，便于对账和售后追溯；
  * 业务字段转换为中文展示（业务类型、支付方式、状态、金额 / 积分）；
  * 文件名为 sylvie-pay-YYYYMMDD-HHmm.csv，内容带 UTF-8 BOM 以便 Excel 正确识别中文。
  * 导出前记录 pay.export 日志，包含导出条数与时间范围。
@@ -264,7 +266,20 @@ export async function exportAdminOrders(
   const exportStatement = selectOrdersForExport(where);
   const rows = await dbClient.query<OrderRow>(exportStatement.sql, exportStatement.params);
 
-  const header = ['订单号', '用户', '业务', '图集/套餐', '支付方式', '金额', '状态', '支付时间'];
+  const header = [
+    '订单号',
+    '用户',
+    '业务',
+    '图集/套餐',
+    '支付方式',
+    '金额',
+    '状态',
+    '支付时间',
+    '创建时间',
+    '支付宝交易号',
+    '退款时间',
+    '退款原因',
+  ];
   const lines = [
     header.join(','),
     ...rows.map((row) =>
@@ -281,6 +296,10 @@ export async function exportAdminOrders(
             : '¥0.00',
         row.status === 'paid' ? '已支付' : row.status === 'created' ? '待支付' : row.status === 'refunded' ? '已退款' : '已关闭',
         row.paidAt ?? '',
+        row.createdAt ?? '',
+        row.tradeNo ?? '',
+        row.refundAt ?? '',
+        row.refundReason ?? '',
       ]
         .map(csvEscape)
         .join(','),

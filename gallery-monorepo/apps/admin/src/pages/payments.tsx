@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import useSWR from 'swr';
-import { AlertTriangle, CheckCircle2, Download, Loader2, RotateCcw } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Download,
+  Loader2,
+  MousePointerClick,
+  RotateCcw,
+} from 'lucide-react';
 
 import type { AdminOrderPage, AdminOrderRow } from '@sylvie/types';
 import { formatCount } from '@sylvie/utils';
@@ -51,6 +58,22 @@ function viewQuery(view: PaymentView): { biz: string; status: string } {
   return { biz: 'all', status: 'all' };
 }
 
+/** 状态徽章展示；未知状态回退为灰色徽章。 */
+function statusBadge(status: string): { tone: 'green' | 'amber' | 'red' | 'gray'; label: string } {
+  return STATUS_BADGE[status] ?? { tone: 'gray', label: status };
+}
+
+/** 金额展示：现金优先，其次积分，最后 ¥0。 */
+function amountLabel(order: AdminOrderRow): string {
+  if (order.amountCents > 0) {
+    return formatYuan(order.amountCents);
+  }
+  if (order.pointsCost > 0) {
+    return `${order.pointsCost} 分`;
+  }
+  return '¥0';
+}
+
 export function PaymentsPage() {
   const { token, revalidateAll } = useAdminAuth();
   const { toast } = useToast();
@@ -61,6 +84,8 @@ export function PaymentsPage() {
   const [page, setPage] = useState(1);
   const [range, setRange] = useState<TimeRange>({ quick: 'all', from: '', to: '' });
   const [exporting, setExporting] = useState(false);
+  /** 详情弹窗：列表行已包含完整的订单 / 支付 / 退款字段，无需额外请求。 */
+  const [detailTarget, setDetailTarget] = useState<AdminOrderRow | null>(null);
 
   // 退款弹窗：目标订单、原因、备注、提交状态、错误提示与成功结果。
   const [refundTarget, setRefundTarget] = useState<AdminOrderRow | null>(null);
@@ -269,7 +294,12 @@ export function PaymentsPage() {
                     label: order.status,
                   };
                   return (
-                    <tr key={order.id}>
+                    <tr
+                      key={order.id}
+                      className="cursor-pointer"
+                      title="点击查看订单详情"
+                      onClick={() => setDetailTarget(order)}
+                    >
                       <td className="mono text-[11.5px] text-t2">{order.orderNo}</td>
                       <td>
                         <div>
@@ -295,11 +325,7 @@ export function PaymentsPage() {
                             : '管理员赠送'}
                       </td>
                       <td className="text-[12.5px] font-semibold tabular-nums text-brand2">
-                        {order.amountCents > 0
-                          ? formatYuan(order.amountCents)
-                          : order.pointsCost > 0
-                            ? `${order.pointsCost} 分`
-                            : '¥0'}
+                        {amountLabel(order)}
                       </td>
                       <td>
                         <span
@@ -318,21 +344,41 @@ export function PaymentsPage() {
                         </span>
                       </td>
                       <td className="hide-m text-[12px] tabular-nums text-t3">
-                        {formatDateTime(order.paidAt)}
+                        {order.paidAt ? (
+                          formatDateTime(order.paidAt)
+                        ) : (
+                          <span title="尚未支付，按创建时间参与排序">
+                            创建 {formatDateTime(order.createdAt)}
+                          </span>
+                        )}
                       </td>
                       <td>
-                        {order.status === 'paid' && order.bizType === 'vip' ? (
+                        <div className="flex items-center gap-1">
                           <button
                             type="button"
-                            className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11.5px] text-t3 transition hover:bg-white/5 hover:text-brand2"
-                            onClick={() => openRefund(order)}
+                            className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11.5px] text-t3 transition hover:bg-white/5 hover:text-t1"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setDetailTarget(order);
+                            }}
                           >
-                            <RotateCcw size={11} />
-                            退款
+                            <MousePointerClick size={11} />
+                            详情
                           </button>
-                        ) : (
-                          <span className="text-[11.5px] text-t3">—</span>
-                        )}
+                          {order.status === 'paid' && order.bizType === 'vip' ? (
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11.5px] text-t3 transition hover:bg-white/5 hover:text-brand2"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openRefund(order);
+                              }}
+                            >
+                              <RotateCcw size={11} />
+                              退款
+                            </button>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -519,6 +565,105 @@ export function PaymentsPage() {
                 <p className="text-[12px] leading-relaxed text-[#ff8194]">{refundError}</p>
                 <p className="mt-1 text-[11px] leading-relaxed text-t3">
                   订单与会员权益未发生变更，可修改后重新提交。
+                </p>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal
+        open={detailTarget !== null}
+        title="订单详情"
+        onClose={() => setDetailTarget(null)}
+        width={620}
+      >
+        {detailTarget ? (
+          <div className="space-y-3 text-[12.5px]">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg border border-line bg-panel2 px-3.5 py-2.5">
+                <p className="text-[11px] text-t3">订单号</p>
+                <p className="mt-1 mono break-all">{detailTarget.orderNo}</p>
+              </div>
+              <div className="rounded-lg border border-line bg-panel2 px-3.5 py-2.5">
+                <p className="text-[11px] text-t3">状态</p>
+                <p className="mt-1">
+                  <Badge tone={statusBadge(detailTarget.status).tone}>
+                    {statusBadge(detailTarget.status).label}
+                  </Badge>
+                </p>
+              </div>
+              <div className="rounded-lg border border-line bg-panel2 px-3.5 py-2.5">
+                <p className="text-[11px] text-t3">用户</p>
+                <p className="mt-1">{detailTarget.user.nickname}</p>
+                <p className="mt-0.5 break-all text-[11.5px] text-t3">
+                  {detailTarget.user.email} · ID #{detailTarget.user.id}
+                </p>
+              </div>
+              <div className="rounded-lg border border-line bg-panel2 px-3.5 py-2.5">
+                <p className="text-[11px] text-t3">业务 / 内容</p>
+                <p className="mt-1">
+                  {detailTarget.bizType === 'vip' ? '会员开通' : '积分解锁'}
+                </p>
+                <p className="mt-0.5 text-[11.5px] text-t3">
+                  {detailTarget.bizType === 'vip'
+                    ? (detailTarget.planName ?? '付费会员')
+                    : (detailTarget.albumTitle ?? '—')}
+                </p>
+              </div>
+              <div className="rounded-lg border border-line bg-panel2 px-3.5 py-2.5">
+                <p className="text-[11px] text-t3">金额</p>
+                <p className="mt-1 text-[16px] font-extrabold tabular-nums text-brand2">
+                  {amountLabel(detailTarget)}
+                </p>
+                {detailTarget.bizType === 'vip' && detailTarget.vipDays > 0 ? (
+                  <p className="mt-0.5 text-[11.5px] text-t3">
+                    会员时长 {detailTarget.vipDays} 天
+                  </p>
+                ) : null}
+              </div>
+              <div className="rounded-lg border border-line bg-panel2 px-3.5 py-2.5">
+                <p className="text-[11px] text-t3">支付方式</p>
+                <p className="mt-1">
+                  {detailTarget.payType === 'alipay'
+                    ? '支付宝'
+                    : detailTarget.payType === 'points'
+                      ? `积分解锁（${detailTarget.pointsCost} 积分）`
+                      : '管理员赠送'}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-line bg-panel2 px-3.5 py-2.5">
+              <p className="text-[11px] text-t3">时间信息</p>
+              <div className="mt-1.5 grid grid-cols-3 gap-3">
+                <div>
+                  <p className="text-[11px] text-t3">创建时间</p>
+                  <p className="mt-0.5 tabular-nums">{formatDateTime(detailTarget.createdAt)}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-t3">支付时间</p>
+                  <p className="mt-0.5 tabular-nums">{formatDateTime(detailTarget.paidAt)}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-t3">退款时间</p>
+                  <p className="mt-0.5 tabular-nums">{formatDateTime(detailTarget.refundAt)}</p>
+                </div>
+              </div>
+            </div>
+
+            {detailTarget.payType === 'alipay' || detailTarget.tradeNo ? (
+              <div className="rounded-lg border border-line bg-panel2 px-3.5 py-2.5">
+                <p className="text-[11px] text-t3">支付宝交易号</p>
+                <p className="mt-1 mono break-all">{detailTarget.tradeNo ?? '—'}</p>
+              </div>
+            ) : null}
+
+            {detailTarget.status === 'refunded' ? (
+              <div className="rounded-lg border border-brand2/40 bg-brand/10 px-3.5 py-2.5">
+                <p className="text-[11px] text-brand2">退款原因</p>
+                <p className="mt-1 whitespace-pre-wrap wrap-break-word leading-relaxed text-t1">
+                  {detailTarget.refundReason ?? '—'}
                 </p>
               </div>
             ) : null}
