@@ -39,7 +39,7 @@
 | `gallery-monorepo/packages/notify` | 共享通知层：邮件（nodemailer / Mailpit）与短信通道，短信实现由调用方注入。 |
 | `gallery-monorepo/packages/mq` | 基于 amqplib 的消息队列层：持久化队列、confirm 发布、自动重连与订阅恢复。 |
 | `gallery-monorepo/packages/payment` | 支付层：支付宝网页支付、主动查询与异步通知验签，沙箱 / 生产仅切换网关与密钥。 |
-| `gallery-monorepo/packages/storage` | S3 / RustFS 共享对象存储层：建桶、健康检查、上传/读取/探测/删除，配置与 URL 规则由调用方注入。 |
+| `gallery-monorepo/packages/storage` | S3 / RustFS 与本地文件共享对象存储层：`driver` 切换后端（默认 S3），建桶、健康检查、上传/读取/探测/删除，配置与 URL 规则由调用方注入。 |
 | `gallery-monorepo/packages/utils` | 日期、计数、价格、文本格式化等纯函数。 |
 
 ## 本地开发
@@ -103,7 +103,7 @@ MySQL 8 / InnoDB / `utf8mb4_unicode_ci`；主键统一 `BIGINT UNSIGNED AUTO_INC
 - OpenAPI 文档由 `createRoute` 的路由声明自动生成（`@hono/zod-openapi`），不要再手写 spec 文件。新增接口时在 `routes/` 声明请求与响应模型（`validators/` 放请求 schema，`openapi/models/` 放响应模型），handler 放 `controllers/`。
 - 日志统一使用 `@sylvie/logger`：API 侧从 `apps/api/src/utils/logger.ts` 取实例，按模块用 `moduleLogger('模块名')` 派生；不要直接使用 `console.*`（`config/env.ts` 在日志初始化前的校验失败除外）。
 - 可观测性统一使用 `@sylvie/observability`：实例在 `apps/api/src/observability/index.ts`，配置由 env 注入（包内不读环境变量）。`main.ts` 必须在加载 mysql2 / node:http / ioredis 等模块**之前**顶层 `await startObservability()`，否则自动埋点失效；Hono 中间件注册在最外层，日志通过 `mixin` 写入 `trace_id` / `span_id`，MCP 工具通过 `instrumentMcpServer` 统一包装。HTTP 中间件复用 `instrumentation-http` 的入站 span，不要将 `ignoreIncomingRequestHook` 全局设为忽略（会触发 tracing suppression）。新增业务指标用 `observability.counter` / `histogram`，禁止高基数属性。
-- 对象存储统一使用 `@sylvie/storage`：API 侧实例在 `apps/api/src/services/storage.service.ts`，配置从 env 注入；不要再直接使用 `@aws-sdk/client-s3`。图片压缩/水印等业务处理仍留在 API。
+- 对象存储统一使用 `@sylvie/storage`：API 侧实例在 `apps/api/src/services/storage.service.ts`，配置从 env 注入；本包支持 S3 / RustFS 与本地文件双后端（`driver=local` 用于本地开发 / 测试，默认 `s3`，API 使用 S3）。不要再直接使用 `@aws-sdk/client-s3`。图片压缩/水印等业务处理仍留在 API。
 - 可复用组件放 `@sylvie/ui`：无样式逻辑放根入口，前台视觉组件放 `@sylvie/ui/web`，后台放 `@sylvie/ui/admin`；依赖应用状态（auth、SWR、路由、后台日期工具）的组件留在应用内。两个应用都需在 CSS 中用 `@source` 声明对应子目录，Tailwind 才会生成组件类名。
 - Agent / MCP 接入使用独立 `agent_token`，不要复用登录 JWT：令牌分 `read` / `write` scope、可设有效期并支持吊销，明文只在创建时返回一次。MCP 端点 `/api/mcp` 由 `authenticateMcp + requireAdmin` 保护，写工具需同时满足 `MCP_ALLOW_WRITE=true` 与令牌 `scope=write`。
 - 缓存与限流统一使用 `@sylvie/cache`：API 实例在 `apps/api/src/cache/index.ts`，缓存键用 `cacheKey('域', ...)` 分段；只缓存访客可复用数据（登录用户带收藏 / 订阅状态，除 `site:bootstrap` 外不缓存），管理端写操作后调用 `invalidateCache('域', ...)`。限流规则集中在 `apps/api/src/middleware/rate-limit.ts`，登录、验证码、注册、评论、解锁、下载等敏感接口必须限流；缓存不可用时按放行降级。

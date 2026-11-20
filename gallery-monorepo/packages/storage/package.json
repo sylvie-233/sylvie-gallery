@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "希尔薇共享对象存储层（S3 / RustFS 封装）",
+  "description": "希尔薇共享对象存储层：S3 / RustFS 与本地文件双后端",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
